@@ -1,0 +1,104 @@
+@page "/regex"
+
+@namespace ToolBox.Components.Pages
+
+@inherits MvvmComponentBase<RegexTesterVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">正则匹配</MudText>
+    <MudText>实时测试正则并查看匹配结果。</MudText>
+</MudStack>
+
+<div class="regex-grid">
+    <section class="regex-panel">
+        <h2>Pattern</h2>
+        <input class="form-control" placeholder="Enter regex pattern..." @bind-Value="ViewModel.Pattern" @bind-Value:event="oninput" />
+
+        <div class="regex-options">
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="ViewModel.IgnoreCase" />
+                <span class="form-check-label">Ignore case</span>
+            </label>
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="ViewModel.Multiline" />
+                <span class="form-check-label">Multiline (^ $)</span>
+            </label>
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="ViewModel.Singleline" />
+                <span class="form-check-label">Singleline (.)</span>
+            </label>
+        </div>
+
+       <div class="d-flex justify-end">
+         <input class="form-control " placeholder="替换的字符串" @bind-Value="ViewModel.ReplacementText" @bind-Value:event="oninput" />
+        <MudButton class="mr-2 ml-2" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="ViewModel.ApplyReplacement" Disabled="@(string.IsNullOrEmpty(ViewModel.ReplacementResult) || ViewModel.MatchCount == 0)">替换</MudButton>
+    </div>
+    </section>
+
+    <section class="regex-panel">
+        <h2>Text</h2>
+        <textarea class="form-control regex-textarea" placeholder="Paste text to match..." @bind-Value="ViewModel.InputText" @bind-Value:event="oninput"></textarea>
+    </section>
+</div>
+
+
+
+<section class="regex-panel">
+    <h2>Matches</h2>
+    <div class="regex-summary">
+        <span>Matches: <strong>@ViewModel.MatchCount</strong></span>
+        @if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+        {
+            <span class="regex-error">@ViewModel.ErrorMessage</span>
+        }
+    </div>
+    <div class="regex-options">
+        <label class="form-check">
+            <input class="form-check-input" type="checkbox" @bind="ViewModel.MatchesOnly" />
+            <span class="form-check-label">Only matched lines</span>
+        </label>
+        <label class="form-check">
+            <input class="form-check-input" type="checkbox" @bind="ViewModel.ShowGroups" />
+            <span class="form-check-label">Show capture groups</span>
+        </label>
+        <button type="button" class="btn btn-sm btn-outline-primary ms-auto" onclick="window.clipboardCopy.copyElementText('regex-output-pre')">复制</button>
+    </div>
+
+    <pre id="regex-output-pre" class="regex-output" aria-live="polite">@foreach (var segment in ViewModel.Segments){if (segment.IsMatch){<span class="regex-match">@segment.Text</span>}else{@segment.Text}}</pre>
+</section>
+
+@if (ViewModel.ShowGroups)
+{
+    <section class="regex-panel">
+        <h2>Capture Groups</h2>
+        @if (ViewModel.GroupMatches.Count == 0)
+        {
+            <p>No matches.</p>
+        }
+        else
+        {
+            <table class="table regex-groups-table">
+                <thead>
+                    <tr>
+                        <th>Match #</th>
+                        <th>Group</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var match in ViewModel.GroupMatches)
+                    {
+                        @foreach (var group in match.Groups)
+                        {
+                            <tr>
+                                <td>@match.MatchIndex</td>
+                                <td>@group.DisplayName</td>
+                                <td>@group.Value</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}

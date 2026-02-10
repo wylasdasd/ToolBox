@@ -1,0 +1,56 @@
+@page "/jwt"
+
+@namespace ToolBox.Components.Pages.TextTool
+
+@inherits MvvmComponentBase<JwtVM>
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">JWT 解析</MudText>
+    <MudText>仅解析 Header / Payload，并提示过期时间。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudText Typo="Typo.h6" GutterBottom="true">JWT</MudText>
+    <MudTextField T="string" @bind-Value="ViewModel.Token"
+                  Variant="Variant.Outlined"
+                  TextFieldType="TextFieldType.MultiLine"
+                  Lines="5"
+                  Immediate="true"
+                  Class="jwt-textarea" />
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ViewModel.Parse()">解析</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="() => ViewModel.Clear()">清空</MudButton>
+    </MudStack>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" GutterBottom="true">Header</MudText>
+            <pre class="jwt-output">@ViewModel.HeaderJson</pre>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" GutterBottom="true">Payload</MudText>
+            <pre class="jwt-output">@ViewModel.PayloadJson</pre>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6" GutterBottom="true">过期时间</MudText>
+    @if (string.IsNullOrWhiteSpace(ViewModel.ExpiryUtc))
+    {
+        <MudText>未检测到 exp 字段。</MudText>
+    }
+    else
+    {
+        <MudText>UTC：@ViewModel.ExpiryUtc</MudText>
+        <MudText>本地时间：@ViewModel.ExpiryLocal</MudText>
+    }
+</MudPaper>

@@ -1,0 +1,129 @@
+@page "/socket-tool"
+@using ToolBox.Components.Pages.Network
+@inherits MvvmComponentBase<SocketToolVM>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Socket Tool</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4" KeepPanelsAlive="true">
+    <MudTabPanel Text="Client">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6">Client Settings</MudText>
+                    
+                    <MudRadioGroup @bind-Value="ViewModel.Client.Protocol" Class="mb-3"> 
+                        <MudRadio Value="@("TCP")" Color="Color.Primary" Disabled="@(!ViewModel.Client.CanEditSettings)">TCP</MudRadio>
+                        <MudRadio Value="@("UDP")" Color="Color.Secondary" Disabled="@(!ViewModel.Client.CanEditSettings)">UDP</MudRadio>
+                    </MudRadioGroup>
+
+                    <MudTextField @bind-Value="ViewModel.Client.IpAddress" Label="Target IP" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)"/>
+                    <MudNumericField @bind-Value="ViewModel.Client.Port" Label="Target Port" Variant="Variant.Outlined" Class="mb-3" Min="1" Max="65535" Disabled="@(!ViewModel.Client.CanEditSettings)"/>
+
+                    <MudButton Variant="Variant.Filled" 
+                               Color="@(ViewModel.Client.IsConnected ? Color.Error : Color.Success)" 
+                               OnClick="@(async () => await ViewModel.Client.ToggleConnection())" 
+                               FullWidth="true">
+                        @ViewModel.Client.ActionName
+                    </MudButton>
+                    
+                    <MudText Class="mt-2" Color="@(ViewModel.Client.IsConnected ? Color.Success : Color.Error)">
+                        Status: @ViewModel.Client.ConnectionStatusText
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4 d-flex flex-column" >
+                    <MudText Typo="Typo.h6">Client Console</MudText>
+                    
+                    <MudTextField @bind-Value="ViewModel.Client.ReceivedLog" 
+                                  Label="Log" 
+                                  Variant="Variant.Outlined" 
+                                  Lines="20" 
+                                  ReadOnly="true" 
+                                  Style="flex-grow: 1; font-family: monospace;" />
+
+                    <MudGrid Class="mt-2">
+                        <MudItem xs="10">
+                             <MudTextField @bind-Value="ViewModel.Client.MessageToSend" 
+                                           Label="Message" 
+                                           Variant="Variant.Outlined" 
+                                           Immediate="true" 
+                                           OnKeyDown="@(async (args) => { if (args.Key == "Enter") await ViewModel.Client.SendMessage(); })"/>
+                        </MudItem>
+                        <MudItem xs="2">
+                             <MudButton Variant="Variant.Filled" 
+                                        Color="Color.Primary" 
+                                        OnClick="@(async () => await ViewModel.Client.SendMessage())" 
+                                        FullWidth="true" 
+                                       >
+                                Send
+                             </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudTabPanel>
+    
+    <MudTabPanel Text="Server">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6">Server Settings</MudText>
+                    
+                    <MudRadioGroup @bind-Value="ViewModel.Server.Protocol" Class="mb-3">
+                        <MudRadio Value="@("TCP")" Color="Color.Primary" Disabled="@(!ViewModel.Server.CanEditSettings)">TCP</MudRadio>
+                        <MudRadio Value="@("UDP")" Color="Color.Secondary" Disabled="@(!ViewModel.Server.CanEditSettings)">UDP</MudRadio>
+                    </MudRadioGroup>
+
+                    <MudTextField @bind-Value="ViewModel.Server.IpAddress" Label="Bind IP" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)"/>
+                    <MudNumericField @bind-Value="ViewModel.Server.Port" Label="Listen Port" Variant="Variant.Outlined" Class="mb-3" Min="1" Max="65535" Disabled="@(!ViewModel.Server.CanEditSettings)"/>
+
+                    <MudButton Variant="Variant.Filled" 
+                               Color="@(ViewModel.Server.IsConnected ? Color.Error : Color.Success)" 
+                               OnClick="@(async () => await ViewModel.Server.ToggleConnection())" 
+                               FullWidth="true">
+                        @ViewModel.Server.ActionName
+                    </MudButton>
+                    
+                    <MudText Class="mt-2" Color="@(ViewModel.Server.IsConnected ? Color.Success : Color.Error)">
+                        Status: @ViewModel.Server.ConnectionStatusText
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4 d-flex flex-column" >
+                    <MudText Typo="Typo.h6">Server Console</MudText>
+                    
+                    <MudTextField @bind-Value="ViewModel.Server.ReceivedLog" 
+                                  Label="Log" 
+                                  Variant="Variant.Outlined" 
+                                  Lines="20" 
+                                  ReadOnly="true" 
+                                  Style="flex-grow: 1; font-family: monospace;" />
+
+                    <MudGrid Class="mt-2">
+                        <MudItem xs="10">
+                             <MudTextField @bind-Value="ViewModel.Server.MessageToSend" 
+                                           Label="Broadcast / Reply Message" 
+                                           Variant="Variant.Outlined" 
+                                           Immediate="true" 
+                                           OnKeyDown="@(async (args) => { if (args.Key == "Enter") await ViewModel.Server.SendMessage(); })"/>
+                        </MudItem>
+                        <MudItem xs="2">
+                             <MudButton Variant="Variant.Filled" 
+                                        Color="Color.Primary" 
+                                        OnClick="@(async () => await ViewModel.Server.SendMessage())" 
+                                        FullWidth="true" 
+                                        ">
+                                Send
+                             </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudTabPanel>
+</MudTabs>

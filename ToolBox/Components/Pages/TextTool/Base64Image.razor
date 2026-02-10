@@ -1,0 +1,26 @@
+@page "/base64-image"
+@namespace ToolBox.Components.Pages
+@inherits MvvmComponentBase<Base64ImageVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">Base64 图片预览</MudText>
+    <MudText>将 Base64 字符串预览为图片。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4">
+    <MudTextField @bind-Value="ViewModel.Base64Input" Label="Base64 字符串" Variant="Variant.Outlined" Lines="10" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ViewModel.UpdateImage" Class="mt-4">预览</MudButton>
+
+    @if (!string.IsNullOrEmpty(ViewModel.ImageUrl))
+    {
+        <div class="mt-4">
+            <img src="@ViewModel.ImageUrl" style="max-width: 100%;" />
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <MudText Color="Color.Error" Class="mt-4">@ViewModel.ErrorMessage</MudText>
+    }
+</MudPaper>

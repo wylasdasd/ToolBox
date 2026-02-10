@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ToolBox (Windows)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build ToolBox (Windows)",
+            "program": "${workspaceFolder}/ToolBox/bin/Debug/net10.0-windows10.0.19041.0/win-x64/ToolBox.exe",
+            "cwd": "${workspaceFolder}/ToolBox/bin/Debug/net10.0-windows10.0.19041.0/win-x64",
+            "stopAtEntry": false
+        },
+        {
+            "name": "ToolBox (Attach)",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        }
+    ]
+}

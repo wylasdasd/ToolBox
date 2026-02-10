@@ -1,0 +1,24 @@
+@page "/uuid"
+@namespace ToolBox.Components.Pages
+@inherits MvvmComponentBase<UuidGeneratorVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">UUID/GUID 生成器</MudText>
+    <MudText>批量生成 UUID/GUID，并支持大小写与连字符设置。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4">
+    <MudNumericField @bind-Value="ViewModel.Count" Label="要生成的数量" Variant="Variant.Outlined" Min="1" Max="1000" />
+
+    <MudStack Row="true" Class="mt-4">
+        <MudCheckBox T="bool" @bind-Value="ViewModel.IncludeHyphens" Label="包含连字符" />
+        <MudCheckBox T="bool" @bind-Value="ViewModel.UpperCase" Label="大写" />
+    </MudStack>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ViewModel.GenerateUuids" Class="mt-4">生成</MudButton>
+
+    @if (!string.IsNullOrEmpty(ViewModel.GeneratedUuids))
+    {
+        <MudTextField @bind-Value="ViewModel.GeneratedUuids" Label="生成的 UUIDs" Variant="Variant.Outlined" Lines="15" ReadOnly="true" Class="mt-4" />
+    }
+</MudPaper>

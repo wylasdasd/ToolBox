@@ -1,0 +1,73 @@
+.regex-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.regex-panel {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.regex-panel h2 {
+    font-size: 1rem;
+    margin: 0 0 0.75rem 0;
+}
+
+.regex-options {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+}
+
+.regex-textarea {
+    min-height: 9rem;
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}
+
+.regex-summary {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.regex-error {
+    color: #b42318;
+    font-weight: 600;
+}
+
+.regex-output {
+    min-height: 8rem;
+    max-height: 24rem;
+    overflow: auto;
+    background: #f7f8fa;
+    border-radius: 6px;
+    padding: 0.75rem;
+    border: 1px solid #e1e4e8;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}
+
+.regex-match {
+    background: #ffe08a;
+    color: #1f2933;
+    border-radius: 3px;
+    padding: 0.05rem 0.1rem;
+}
+
+.regex-groups-table td {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}
+
+@media (min-width: 900px) {
+    .regex-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}

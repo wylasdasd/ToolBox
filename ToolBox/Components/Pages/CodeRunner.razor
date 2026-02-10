@@ -1,0 +1,76 @@
+@page "/csharp-run"
+
+@namespace ToolBox.Components.Pages
+
+@inherits MvvmComponentBase<CodeRunnerVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">C# 运行器 </MudText>
+    <MudText>C# 运行器 运行 C# 代码片段并查看输出结果。</MudText>
+</MudStack>
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">代码</MudText>
+            <MudTextField @bind-Value="ViewModel.Code"
+                          Variant="Variant.Outlined"
+                          Lines="14"
+                          Immediate="true"
+                          Class="code-input" />
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="ViewModel.IsRunning" OnClick="ViewModel.RunAsync">
+                    Run
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Disabled="ViewModel.IsRunning" OnClick="ViewModel.ClearOutput">
+                    Clear
+                </MudButton>
+                <MudCheckBox T="bool" @bind-Value="ViewModel.ClearOutputBeforeRun" Label="运行前清空输出" />
+            </MudStack>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">输出</MudText>
+            @if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@ViewModel.ErrorMessage</MudAlert>
+            }
+            <pre class="code-output">@ViewModel.Output</pre>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudText Typo="Typo.h6" GutterBottom="true">引用</MudText>
+    <MudText Class="mb-2">
+        按程序集名添加（每行或逗号分隔），或加载本地 DLL 路径（每行一个）。
+    </MudText>
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" GutterBottom="true">程序集名称</MudText>
+            <MudTextField @bind-Value="ViewModel.ReferenceInput"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Immediate="true" />
+            <MudText Typo="Typo.caption" Class="mt-1">示例：System.Text.Json, System.Data</MudText>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" GutterBottom="true">DLL 路径</MudText>
+            <MudTextField @bind-Value="ViewModel.ReferencePaths"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Immediate="true" />
+            <MudText Typo="Typo.caption" Class="mt-1">每行一个完整路径。</MudText>
+        </MudItem>
+    </MudGrid>
+
+    @if (ViewModel.ActiveReferences.Count > 0)
+    {
+        <MudDivider Class="my-3" />
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">已加载引用</MudText>
+        <MudChipSet T="string" Class="reference-chips" ReadOnly="true">
+            @foreach (var reference in ViewModel.ActiveReferences)
+            {
+                <MudChip T="string" Variant="Variant.Outlined">@reference</MudChip>
+            }
+        </MudChipSet>
+    }
+</MudPaper>
+

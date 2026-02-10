@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CommonHelp/CommonHelp.csproj" />
+  <Project Path="ToolBox/ToolBox.csproj" />
+</Solution>

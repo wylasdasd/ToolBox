@@ -1,0 +1,154 @@
+@page "/bitwise"
+@using ToolBox.Components.Pages.Calculation
+@inherits MvvmComponentBase<BitwiseOperationVM>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h5">Bitwise Operations (位运算)</MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudText>Bit Width (位宽)</MudText>
+        <MudRadioGroup @bind-Value="ViewModel.BitWidth">
+            <MudRadio Value="8" Color="Color.Primary">8-bit</MudRadio>
+            <MudRadio Value="16" Color="Color.Primary">16-bit</MudRadio>
+            <MudRadio Value="32" Color="Color.Primary">32-bit</MudRadio>
+            <MudRadio Value="64" Color="Color.Primary">64-bit</MudRadio>
+        </MudRadioGroup>
+    </MudItem>
+    <MudItem xs="12" md="6" Class="d-flex align-center">
+        <MudSwitch @bind-Value="ViewModel.IsSigned" Label="Signed Mode (有符号)" Color="Color.Primary" />
+    </MudItem>
+
+    <!-- Operand A -->
+    <MudItem xs="12">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Operand A</MudText>
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="ViewModel.OperandADisplay" Label="Decimal" Variant="Variant.Outlined" Immediate="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="ViewModel.OperandAHex" Label="Hex" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="0x" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="d-flex flex-wrap gap-1">
+                        @for (int i = ViewModel.BitWidth - 1; i >= 0; i--)
+                        {
+                            var bitIndex = i;
+                            var isSet = ViewModel.GetBitA(bitIndex);
+                            <MudButton Variant="@(isSet ? Variant.Filled : Variant.Outlined)" 
+                                       Color="@(isSet ? Color.Primary : Color.Default)"
+                                       Size="Size.Small"
+                                       OnClick="@(() => ViewModel.ToggleBitA(bitIndex))"
+                                       Class="px-1" 
+                                       Style="min-width: 32px;">
+                                          @(bitIndex)
+                            </MudButton>
+                            @if (i > 0 && i % 8 == 0)
+                            {
+                                <div style="width: 8px;"></div>
+                            }
+                        }
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+                    <MudText Typo="Typo.h6">Operand B</MudText>
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="ViewModel.OperandBDisplay" Label="Decimal" Variant="Variant.Outlined" Immediate="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="ViewModel.OperandBHex" Label="Hex" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="0x" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="d-flex flex-wrap gap-1">
+                        @for (int i = ViewModel.BitWidth - 1; i >= 0; i--)
+                        {
+                            var bitIndex = i;
+                            var isSet = ViewModel.GetBitB(bitIndex);
+                             <MudButton Variant="@(isSet ? Variant.Filled : Variant.Outlined)" 
+                                       Color="@(isSet ? Color.Secondary : Color.Default)"
+                                       Size="Size.Small"
+                                       OnClick="@(() => ViewModel.ToggleBitB(bitIndex))"
+                                       Class="px-1"
+                                       Style="min-width: 32px;">
+                                        @(bitIndex)
+                            </MudButton>
+                            @if (i > 0 && i % 8 == 0)
+                            {
+                                <div style="width: 8px;"></div>
+                            }
+                        }
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Operations -->
+    <MudItem xs="12">
+        <MudPaper Class="pa-4 d-flex justify-center gap-2 flex-wrap">
+            <MudButton Variant="@(ViewModel.SelectedOperation == "AND" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation("AND"))">AND (&)</MudButton>
+            <MudButton Variant="@(ViewModel.SelectedOperation == "OR" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation("OR"))">OR (|)</MudButton>
+            <MudButton Variant="@(ViewModel.SelectedOperation == "XOR" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation("XOR"))">XOR (^)</MudButton>
+           
+        </MudPaper>
+    </MudItem>
+
+
+
+    <!-- Result -->
+    <MudItem xs="12">
+        <MudPaper Class="pa-4" Elevation="4">
+            <MudText Typo="Typo.h6">Result</MudText>
+            <MudText >
+            左移 (SHL):高位丢弃，低位补 0。数学上相当于乘以 $2^n$。
+            算术右移 (SHR_A):低位丢弃，高位补符号位（正数补 0，负数补 1）。保证了数值的符号不变，数学上相当于除以 $2^n$。
+            逻辑右移(SHR_L):低位丢弃，高位一律补 0。在 C# 中通常需要先转成 ulong 处理。
+            </MudText>
+            <MudButton Variant="@(ViewModel.SelectedOperation == "NOT" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation("NOT"))">NOT (~)</MudButton>
+            <MudButton Variant="@(ViewModel.SelectedOperation == "SHL" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation2("SHL"))">SHL (&lt;&lt;)</MudButton>
+            <MudButton Variant="@(ViewModel.SelectedOperation == "SHR_A" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation2("SHR_A"))">SHR Arith (&gt;&gt;)</MudButton>
+            <MudButton Variant="@(ViewModel.SelectedOperation == "SHR_L" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation2("SHR_L"))">SHR Log (&gt;&gt;&gt;)</MudButton>
+            <MudGrid>
+                <MudItem xs="12">
+                     <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center">@ViewModel.ResultDisplay</MudText>
+                     <MudText Typo="Typo.caption" Align="Align.Center">Decimal Value</MudText>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField ReadOnly="true" Value="ViewModel.ResultHex" Label="Hex" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="0x" />
+                </MudItem>
+                <MudItem xs="6">
+                     <MudTextField ReadOnly="true" Value="ViewModel.ResultBinary" Label="Binary String" Variant="Variant.Outlined" />
+                </MudItem>
+                 <MudItem xs="12">
+                    <div class="d-flex flex-wrap gap-1">
+                        @for (int i = ViewModel.BitWidth - 1; i >= 0; i--)
+                        {
+                            var bitIndex = i;
+                            var isSet = ViewModel.GetBitResult(bitIndex);
+                            <MudButton Variant="@(isSet ? Variant.Filled : Variant.Outlined)" 
+                                       Color="@(isSet ? Color.Success : Color.Default)"
+                                       Size="Size.Small"
+                                       Disabled="true"
+                                       Class="px-1"
+                                       Style="min-width: 32px;">
+                                @(bitIndex)
+                            </MudButton>
+                            @if (i > 0 && i % 8 == 0)
+                            {
+                                <div style="width: 8px;"></div>
+                            }
+                        }
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+
+
+</MudGrid>
+

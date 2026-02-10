@@ -1,0 +1,33 @@
+@namespace ToolBox.Components.Pages.Converters
+@inherits MvvmComponentBase<FormatConverterVM>
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudSelect T="string" @bind-Value="ViewModel.SourceFormat" Label="Source Format" Variant="Variant.Outlined">
+            <MudSelectItem Value="@("JSON")" />
+            <MudSelectItem Value="@("YAML")" />
+            <MudSelectItem Value="@("XML")" />
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="ViewModel.Input" Label="Input" Lines="15" Variant="Variant.Outlined" Class="mt-2" />
+    </MudItem>
+    
+    <MudItem xs="12" md="2" Class="d-flex justify-center align-center">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.ConvertFormat">Convert</MudButton>
+    </MudItem>
+    
+    <MudItem xs="12" md="5">
+        <MudSelect T="string" @bind-Value="ViewModel.TargetFormat" Label="Target Format" Variant="Variant.Outlined">
+            <MudSelectItem Value="@("JSON")" />
+            <MudSelectItem Value="@("YAML")" />
+            <MudSelectItem Value="@("XML")" />
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="ViewModel.Output" Label="Output" Lines="15" Variant="Variant.Outlined" ReadOnly="true" Class="mt-2" />
+    </MudItem>
+    
+    @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Error">@ViewModel.ErrorMessage</MudAlert>
+        </MudItem>
+    }
+</MudGrid>

@@ -1,0 +1,130 @@
+@page "/request-to-curl"
+
+@namespace ToolBox.Components.Pages.Network
+
+@inherits MvvmComponentBase<RequestToCurlVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">请求转 cURL</MudText>
+    <MudText>将原始 HTTP 请求转换为 cURL 命令。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudTabs>
+        <MudTabPanel Text="原始请求">
+            <MudText Typo="Typo.h6" GutterBottom="true">原始请求</MudText>
+            <MudSelect T="string" Label="输出格式" @bind-Value="ViewModel.OutputFormat" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                @foreach (var format in ViewModel.OutputFormats)
+                {
+                    <MudSelectItem T="string" Value="@format.Key">@format.Label</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField T="string"
+                          @bind-Value="ViewModel.RawRequest"
+                          Variant="Variant.Outlined"
+                          TextFieldType="TextFieldType.MultiLine"
+                          Lines="10"
+                          Immediate="true"
+                          Placeholder="示例：&#10;POST /api/user HTTP/1.1&#10;Host: example.com&#10;Content-Type: application/json&#10;&#10;{&quot;name&quot;:&quot;Tom&quot;}" />
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.ConvertRaw">转换</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="ViewModel.ClearRaw">清空</MudButton>
+                 <MudCheckBox  Label="http or https"  @bind-Value="ViewModel.IsHttps" />
+            </MudStack>
+        </MudTabPanel>
+        <MudTabPanel Text="表单输入">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="string" Label="方法" @bind-Value="ViewModel.FormMethod" Variant="Variant.Outlined" Dense="true">
+                        @foreach (var method in ViewModel.HttpMethods)
+                        {
+                            <MudSelectItem T="string" Value="@method">@method</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    <MudTextField T="string" Label="URL" @bind-Value="ViewModel.FormUrl" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudSelect T="string" Label="输出格式" @bind-Value="ViewModel.OutputFormat" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                @foreach (var format in ViewModel.OutputFormats)
+                {
+                    <MudSelectItem T="string" Value="@format.Key">@format.Label</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField T="string"
+                          Label="Headers（每行一条：Key: Value）"
+                          @bind-Value="ViewModel.FormHeaders"
+                          Variant="Variant.Outlined"
+                          TextFieldType="TextFieldType.MultiLine"
+                          Lines="5"
+                          Class="mt-3" />
+            <MudTextField T="string"
+                          Label="Body"
+                          @bind-Value="ViewModel.FormBody"
+                          Variant="Variant.Outlined"
+                          TextFieldType="TextFieldType.MultiLine"
+                          Lines="6"
+                          Class="mt-3" />
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.ConvertForm">转换</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="ViewModel.ClearForm">清空</MudButton>
+                <MudCheckBox  Label="http or https"  @bind-Value="ViewModel.IsHttps" />
+                
+            </MudStack>
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.h6" GutterBottom="true">cURL</MudText>
+    <MudTextField T="string"
+                  Value="@ViewModel.CurlCommand"
+                  Variant="Variant.Outlined"
+                  TextFieldType="TextFieldType.MultiLine"
+                  Lines="6"
+                  ReadOnly="true" />
+    <MudStack Row="true" Class="mt-3" AlignItems="AlignItems.Center">
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Secondary" 
+                   OnClick="ViewModel.ExecuteRequest" 
+                   Disabled="@(string.IsNullOrEmpty(ViewModel.CurlCommand) || ViewModel.IsLoading)">
+            @if (ViewModel.IsLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            运行测试
+        </MudButton>
+        <MudCheckBox T="bool" @bind-Value="ViewModel.UseSystemCurl" Label="使用系统 cURL (System Command)" Dense="true" Color="Color.Primary" Disabled="@(!ViewModel.IsSystemCurlSupported)" />
+    </MudStack>
+</MudPaper>
+
+@if (ViewModel.ResponseStatusCode != null || ViewModel.IsLoading)
+{
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6" GutterBottom="true">响应</MudText>
+        @if (ViewModel.IsLoading)
+        {
+            <MudText>正在发送请求...</MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle1" Color="@(ViewModel.ResponseStatusCode?.StartsWith("2") == true ? Color.Success : Color.Error)" Class="mb-2">
+                @ViewModel.ResponseStatusCode
+            </MudText>
+            <MudTabs Elevation="0" Outlined="true">
+                <MudTabPanel Text="Body">
+                    <MudTextField Value="@ViewModel.ResponseBody" Variant="Variant.Outlined" Lines="10" ReadOnly="true" Class="mt-2" />
+                </MudTabPanel>
+                <MudTabPanel Text="Headers">
+                    <MudTextField Value="@ViewModel.ResponseHeaders" Variant="Variant.Outlined" Lines="10" ReadOnly="true" Class="mt-2" />
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </MudPaper>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@ViewModel.ErrorMessage</MudAlert>
+}

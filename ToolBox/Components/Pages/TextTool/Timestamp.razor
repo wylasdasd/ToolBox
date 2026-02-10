@@ -1,0 +1,45 @@
+@page "/timestamp"
+
+@namespace ToolBox.Components.Pages.TextTool
+
+@inherits MvvmComponentBase<TimestampVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">时间戳转换</MudText>
+    <MudText>Unix 秒/毫秒与本地时间/UTC 互转。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ViewModel.SetNow()">当前时间</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="() => ViewModel.Clear()">清空</MudButton>
+    </MudStack>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Unix 时间戳</MudText>
+            <MudTextField T="string" Label="秒 (s)" @bind-Value="ViewModel.UnixSeconds" 
+                          Variant="Variant.Outlined" Immediate="true" Class="ts-input" />
+            <MudTextField T="string" Label="毫秒 (ms)" @bind-Value="ViewModel.UnixMilliseconds" 
+                          Variant="Variant.Outlined" Immediate="true" Class="ts-input mt-3" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="() => ViewModel.FromUnix()">
+                转换为时间
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">日期时间</MudText>
+            <MudTextField T="string" Label="本地时间" @bind-Value="ViewModel.LocalTime" 
+                          Variant="Variant.Outlined" Immediate="true" Class="ts-input" />
+            <MudTextField T="string" Label="UTC 时间" @bind-Value="ViewModel.UtcTime"
+                          Variant="Variant.Outlined" Immediate="true" Class="ts-input mt-3" />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-3" OnClick="() => ViewModel.FromTime()">
+                转换为时间戳
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true">@ViewModel.ErrorMessage</MudAlert>
+}

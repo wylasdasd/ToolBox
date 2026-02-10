@@ -1,0 +1,23 @@
+@page "/converters"
+@using ToolBox.Components.Pages.Converters
+@namespace ToolBox.Components.Pages.Converters
+
+<MudText Typo="Typo.h4" Class="mb-4">常用转换器</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="进制转换" Icon="@Icons.Material.Filled.Numbers">
+        <NumberBaseConverter />
+    </MudTabPanel>
+    
+    <MudTabPanel Text="颜色转换" Icon="@Icons.Material.Filled.ColorLens">
+        <ColorConverter />
+    </MudTabPanel>
+    
+    <MudTabPanel Text="格式转换 (YAML/JSON/XML)" Icon="@Icons.Material.Filled.Transform">
+        <FormatConverter />
+    </MudTabPanel>
+    
+    <MudTabPanel Text="单位转换" Icon="@Icons.Material.Filled.Scale">
+        <MudText>🚧 单位转换功能开发中...</MudText>
+    </MudTabPanel>
+</MudTabs>

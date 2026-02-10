@@ -1,0 +1,28 @@
+@namespace ToolBox.Components.Pages.Converters
+@inherits MvvmComponentBase<ColorConverterVM>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4 d-flex justify-center align-center" Elevation="0" Outlined="true" Height="150px" Style="@($"background-color: {ViewModel.Hex};")">
+             <MudText Typo="Typo.h5" Style="@($"color: {(ViewModel.L > 50 ? "black" : "white")}")">@ViewModel.Hex</MudText>
+        </MudPaper>
+    </MudItem>
+    
+    <MudItem xs="12" md="8">
+        <MudTextField @bind-Value="ViewModel.Hex" Label="HEX Color" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="#" Immediate="true" />
+        
+        <MudText Typo="Typo.subtitle2" Class="mt-4">RGB</MudText>
+        <MudStack Row="true">
+            <MudSlider @bind-Value="ViewModel.R" Min="0" Max="255" Color="Color.Error">R: @ViewModel.R</MudSlider>
+            <MudSlider @bind-Value="ViewModel.G" Min="0" Max="255" Color="Color.Success">G: @ViewModel.G</MudSlider>
+            <MudSlider @bind-Value="ViewModel.B" Min="0" Max="255" Color="Color.Primary">B: @ViewModel.B</MudSlider>
+        </MudStack>
+        
+        <MudText Typo="Typo.subtitle2" Class="mt-4">HSL</MudText>
+        <MudGrid>
+            <MudItem xs="4"><MudText>H: @Math.Round(ViewModel.H, 1)°</MudText></MudItem>
+            <MudItem xs="4"><MudText>S: @Math.Round(ViewModel.S, 1)%</MudText></MudItem>
+            <MudItem xs="4"><MudText>L: @Math.Round(ViewModel.L, 1)%</MudText></MudItem>
+        </MudGrid>
+    </MudItem>
+</MudGrid>

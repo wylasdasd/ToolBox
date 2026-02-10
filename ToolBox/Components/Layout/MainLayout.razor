@@ -1,0 +1,52 @@
+﻿@inherits LayoutComponentBase
+@namespace ToolBox.Components.Layout
+
+<MudThemeProvider Theme="_theme"/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<MudLayout >
+    <MudAppBar >
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="ToggleDrawer"/>
+        <MudText Typo="Typo.h6">ToolBox</MudText>
+    
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" idth="260px" >
+        <NavMenu/>
+    </MudDrawer>
+
+<MudMainContent Class="mt-4 mb-4">
+        @* 使用 Container 可以自动处理响应式宽度，并提供更好的间距控制 *@
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pb-8">
+          
+                @Body
+          
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#111111",
+            Secondary = "#0E7490",
+            Tertiary = "#F59E0B",
+            Background = "#F6F7FB",
+            Surface = "#FFFFFF",
+            TextPrimary = "#0F172A",
+            TextSecondary = "#475569",
+            Divider = "#E2E8F0",
+        }
+    };
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

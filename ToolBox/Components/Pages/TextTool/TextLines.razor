@@ -1,0 +1,82 @@
+@page "/text-lines"
+
+@namespace ToolBox.Components.Pages.TextTool
+
+@inherits MvvmComponentBase<TextLinesVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">文本整理</MudText>
+    <MudText>去重、排序、去空行，并统计文本信息。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudCheckBox T="bool" @bind-Value="ViewModel.TrimLines" Label="裁剪行首尾空白" />
+        <MudCheckBox T="bool" @bind-Value="ViewModel.IgnoreEmptyLines" Label="忽略空行" />
+        <MudCheckBox T="bool" @bind-Value="ViewModel.IgnoreCase" Label="忽略大小写" />
+        <MudCheckBox T="bool" @bind-Value="ViewModel.KeepOrder" Label="去重保持顺序" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Clear">清空</MudButton>
+    </MudStack>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">输入</MudText>
+            <MudTextField T="string" @bind-Value="ViewModel.InputText"
+                          Variant="Variant.Outlined"
+                          TextFieldType="TextFieldType.MultiLine"
+                          Lines="12"
+                          Immediate="true" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">输出</MudText>
+            <MudTextField T="string" Value="@ViewModel.OutputText"
+                          Variant="Variant.Outlined"
+                          TextFieldType="TextFieldType.MultiLine"
+                          Lines="12"
+                          ReadOnly="true" />
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.Deduplicate">去重</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.SortAsc">排序 A→Z</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.SortDesc">排序 Z→A</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.RemoveEmptyLines">去空行</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.TrimOnly">仅裁剪空白</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.UseOutputAsInput">输出覆盖输入</MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(ViewModel.StatusMessage))
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@ViewModel.StatusMessage</MudAlert>
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.h6" GutterBottom="true">统计</MudText>
+    <MudStack>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">输入</MudText>
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudChip T="string" Variant="Variant.Outlined">行数 @ViewModel.InputLineCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">非空行 @ViewModel.InputNonEmptyLineCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">唯一行 @ViewModel.InputUniqueLineCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">字数 @ViewModel.InputWordCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">字符 @ViewModel.InputCharCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">去空白字符 @ViewModel.InputCharNoWhitespaceCount</MudChip>
+            </MudStack>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">输出</MudText>
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudChip T="string" Variant="Variant.Outlined">行数 @ViewModel.OutputLineCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">非空行 @ViewModel.OutputNonEmptyLineCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">唯一行 @ViewModel.OutputUniqueLineCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">字数 @ViewModel.OutputWordCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">字符 @ViewModel.OutputCharCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined">去空白字符 @ViewModel.OutputCharNoWhitespaceCount</MudChip>
+            </MudStack>
+        </MudItem>
+    </MudStack>
+</MudPaper>

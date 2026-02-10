@@ -1,0 +1,14 @@
+.jwt-textarea {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}
+
+.jwt-output {
+    min-height: 10rem;
+    padding: 12px;
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 6px;
+    background: var(--mud-palette-surface);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}

@@ -1,0 +1,40 @@
+@page "/json-to-csharp"
+@namespace ToolBox.Components.Pages
+@inherits MvvmComponentBase<JsonToCSharpVM>
+
+<MudText Typo="Typo.h4" Class="mb-4">JSON 转 C# Model</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudTextField T="string" Label="JSON Input" Variant="Variant.Outlined" Lines="25" @bind-Value="ViewModel.JsonInput" />
+    </MudItem>
+    
+    <MudItem xs="12" md="2" Class="d-flex flex-column gap-2 justify-center">
+         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.ConvertJson" FullWidth="true">转换</MudButton>
+         
+         <MudPaper Class="pa-3 mt-4" Elevation="0" Outlined="true">
+             <MudText Typo="Typo.subtitle2">选项</MudText>
+             <MudCheckBox T="bool" @bind-Value="ViewModel.IsLowerCase" Label="全小写" Dense="true" Color="Color.Primary" />
+             <MudCheckBox T="bool" @bind-Value="ViewModel.IsCSharpStyle" Label="C# 风格 (Pascal)" Dense="true" Color="Color.Primary" />
+             <MudCheckBox T="bool" @bind-Value="ViewModel.IsNullable" Label="允许可空 (?)" Dense="true" Color="Color.Primary" />
+             <MudCheckBox T="bool" @bind-Value="ViewModel.DetectTypes" Label="智能类型检测" Dense="true" Color="Color.Primary" Tooltip="自动识别 DateTime 和 Guid" />
+             <MudCheckBox T="bool" @bind-Value="ViewModel.IsRecordType" Label="生成 Record" Dense="true" Color="Color.Primary" />
+             <MudCheckBox T="bool" @bind-Value="ViewModel.MergeArrays" Label="合并数组样本" Dense="true" Color="Color.Primary" Tooltip="扫描数组中所有对象以合并属性" />
+             
+             <MudSelect T="string" Label="小数类型" @bind-Value="ViewModel.SelectedNumberType" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Class="mt-2">
+                <MudSelectItem Value="@("double")">double</MudSelectItem>
+                <MudSelectItem Value="@("decimal")">decimal</MudSelectItem>
+                <MudSelectItem Value="@("float")">float</MudSelectItem>
+             </MudSelect>
+         </MudPaper>
+
+         @if(!string.IsNullOrEmpty(ViewModel.ErrorMessage)) {
+             <MudAlert Severity="Severity.Error" Class="mt-2">@ViewModel.ErrorMessage</MudAlert>
+         }
+    </MudItem>
+    
+    <MudItem xs="12" md="5">
+        <MudTextField T="string" Label="C# Output" Variant="Variant.Outlined" Lines="25" ReadOnly="true" @bind-Value="ViewModel.CSharpOutput" />
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="ViewModel.CopyToClipboard" Class="mt-2" FullWidth="true">复制到剪贴板</MudButton>
+    </MudItem>
+</MudGrid>

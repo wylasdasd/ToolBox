@@ -1,0 +1,33 @@
+@namespace ToolBox.Components.Pages.Converters
+@inherits MvvmComponentBase<NumberBaseConverterVM>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6">实时进制转换</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">输入任意一个框，其他框会自动更新。</MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="ViewModel.Decimal" Label="Decimal (10)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="10" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="ViewModel.Hex" Label="Hexadecimal (16)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="0x" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="ViewModel.Binary" Label="Binary (2)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="0b" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="ViewModel.Octal" Label="Octal (8)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="0o" Immediate="true" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.ClearAll" Color="Color.Secondary">清空</MudButton>
+    </MudItem>
+
+    @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Error">@ViewModel.ErrorMessage</MudAlert>
+        </MudItem>
+    }
+</MudGrid>

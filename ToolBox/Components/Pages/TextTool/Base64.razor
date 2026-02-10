@@ -1,0 +1,49 @@
+@page "/base64"
+
+@namespace ToolBox.Components.Pages
+
+@inherits MvvmComponentBase<Base64VM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">Base64 编解码</MudText>
+    <MudText>将明文转换为 Base64，并将 Base64 解码回文本。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudCheckBox T="bool" @bind-Value="ViewModel.UseUrlSafe" Label="URL-safe Base64" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Clear">Clear</MudButton>
+    </MudStack>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Plain Text</MudText>
+            <MudTextField T="string" @bind-Value="ViewModel.PlainText" 
+                          Variant="Variant.Outlined"
+                          Lines="10"
+                          Immediate="true"
+                          Class="base64-textarea" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="ViewModel.Encode">
+                Encode to Base64
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Base64</MudText>
+            <MudTextField T="string" @bind-Value="ViewModel.Base64Text"
+                          Variant="Variant.Outlined"
+                          Lines="10"
+                          Immediate="true"
+                          Class="base64-textarea" />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-3" OnClick="ViewModel.Decode">
+                Decode to Text
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true">@ViewModel.ErrorMessage</MudAlert>
+}
+
