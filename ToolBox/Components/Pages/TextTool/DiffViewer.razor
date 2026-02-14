@@ -5,53 +5,9 @@
 
 <MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
     <MudText Typo="Typo.h4">文本差异对比</MudText>
-    <MudText>对比两段文本差异，并支持替换。</MudText>
+    <MudText>对比两段文本差异</MudText>
 </MudStack>
-<MudPaper Class="pa-4 mt-4" Elevation="1">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.h6">文本替换</MudText>
-        <MudIconButton Icon="@(ViewModel.ReplaceExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                       Color="Color.Default"
-                       OnClick="@(() => ViewModel.ReplaceExpanded = !ViewModel.ReplaceExpanded)" />
-    </MudStack>
-    <MudCollapse Expanded="@ViewModel.ReplaceExpanded">
-        <MudGrid Class="mt-2">
-            <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="查找内容 / 正则" @bind-Value="ViewModel.ReplacePattern"
-                              Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="替换为" @bind-Value="ViewModel.ReplaceWith"
-                              Variant="Variant.Outlined" />
-            </MudItem>
-        </MudGrid>
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
-            <MudCheckBox T="bool" @bind-Value="ViewModel.UseRegex" Label="使用正则" />
-            <MudCheckBox T="bool" @bind-Value="ViewModel.ReplaceIgnoreCase" Label="忽略大小写" />
-            <MudCheckBox T="bool" @bind-Value="ViewModel.ReplaceMultiline" Label="多行 (^ $)" />
-            <MudCheckBox T="bool" @bind-Value="ViewModel.ReplaceSingleline" Label="单行 (.)" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.ReplaceInText1">替换文本1</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ViewModel.ReplaceInText2">替换文本2</MudButton>
-            <MudButton Variant="Variant.Outlined" OnClick="ViewModel.ReplaceInBoth">两边替换</MudButton>
-        </MudStack>
 
-        <MudText Typo="Typo.subtitle2" Class="mt-4">批量替换（每行一条：pattern => replacement）</MudText>
-        <MudTextField T="string" @bind-Value="ViewModel.BatchRules"
-                      Variant="Variant.Outlined"
-                      TextFieldType="TextFieldType.MultiLine"
-                      Lines="3" />
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.BatchReplaceInText1">批量替换文本1</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ViewModel.BatchReplaceInText2">批量替换文本2</MudButton>
-            <MudButton Variant="Variant.Outlined" OnClick="ViewModel.BatchReplaceInBoth">批量替换两边</MudButton>
-        </MudStack>
-
-        @if (!string.IsNullOrWhiteSpace(ViewModel.ReplaceMessage))
-        {
-            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@ViewModel.ReplaceMessage</MudAlert>
-        }
-    </MudCollapse>
-</MudPaper>
 <MudGrid Spacing="2">
     <MudItem xs="12" md="6">
         <MudTextField T="string" @bind-Value="ViewModel.Text1"
