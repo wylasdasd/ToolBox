@@ -58,6 +58,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\CommonHelp\CommonHelp.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Blazing.Mvvm" Version="3.2.1" />
         <PackageReference Include="BlazorTextDiff" Version="2025.8.7.33170" />
         <PackageReference Include="DiffPlex" Version="1.9.0" />

@@ -1,0 +1,193 @@
+@page "/clipboard-sequence"
+@namespace ToolBox.Components.Pages
+@inherits MvvmComponentBase<ClipboardSequenceVM>
+@using CommonHelp.WindowsHelp
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="3" Class="mb-4">
+    <MudText Typo="Typo.h4">剪贴板固定序列输入</MudText>
+    <MudText>通过 Windows 系统剪贴板读取内容，延时后模拟键盘输入到目标窗口（如 PVE Console）。</MudText>
+</MudStack>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Outlined="true">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ReadClipboardAsync">读取系统剪贴板</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="@ViewModel.ImportSequencesFromClipboardLines">按文本框行导入序列</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="@ViewModel.AddClipboardAsOneSequence">文本框整段导入序列</MudButton>
+            </MudStack>
+
+            <MudTextField T="string"
+                          @bind-Value="ViewModel.ClipboardText"
+                          Label="剪贴板内容（可编辑）"
+                          Variant="Variant.Outlined"
+                          Lines="10"
+                          Immediate="true"
+                          Class="mt-3" />
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Outlined="true">
+            <MudText Typo="Typo.h6">固定序列</MudText>
+
+            <MudSelect T="string"
+                       Label="选择序列"
+                       @bind-Value="ViewModel.SelectedSequence"
+                       Variant="Variant.Outlined"
+                       Class="mt-3">
+                @foreach (var seq in ViewModel.Sequences)
+                {
+                    <MudSelectItem T="string" Value="@seq">@seq</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField T="string"
+                          @bind-Value="ViewModel.SelectedSequence"
+                          Label="当前选中序列"
+                          Variant="Variant.Outlined"
+                          Lines="5"
+                          ReadOnly="true"
+                          Class="mt-2" />
+
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="@ViewModel.RemoveSelectedSequence">删除所选</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="@ViewModel.ClearSequences">清空序列</MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4 mt-4" Outlined="true">
+    <MudText Typo="Typo.h6">输入参数</MudText>
+
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudNumericField T="int" @bind-Value="ViewModel.StartDelayMs" Label="开始延迟(ms)" Min="0" Variant="Variant.Outlined" />
+        <MudNumericField T="int" @bind-Value="ViewModel.CharIntervalMs" Label="字符间隔(ms)" Min="0" Variant="Variant.Outlined" />
+    </MudStack>
+
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudCheckBox T="bool" @bind-Value="ViewModel.EnableBatchInput" Label="批量输入（按序列列表逐条输入）" />
+        <MudNumericField T="int" @bind-Value="ViewModel.BatchItemIntervalMs" Label="条目间隔(ms)" Min="0" Variant="Variant.Outlined" />
+    </MudStack>
+
+    <MudText Class="mt-2">点击开始后，在延时期间切换到目标窗口（例如 PVE Console）。</MudText>
+    <MudText>批量输入会在每条后自动回车。</MudText>
+
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TypeSelectedSequenceAsync" Disabled="@ViewModel.IsTyping">开始输入（延时）</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="CancelTypingAsync" Disabled="@(!ViewModel.IsTyping)">中断输入</MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(ViewModel.StatusMessage))
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@ViewModel.StatusMessage</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    private CancellationTokenSource? _typingCts;
+
+    private async Task ReadClipboardAsync()
+    {
+        try
+        {
+            ViewModel.StatusMessage = "正在读取 Windows 系统剪贴板...";
+            await InvokeAsync(StateHasChanged);
+
+            var text = await MainThread.InvokeOnMainThreadAsync(async () => await Clipboard.Default.GetTextAsync());
+            ViewModel.SetClipboardText(text ?? string.Empty);
+            ViewModel.StatusMessage = string.IsNullOrEmpty(text)
+                ? "已读取系统剪贴板，但当前没有文本内容。"
+                : "已读取 Windows 系统剪贴板。";
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            ViewModel.StatusMessage = $"读取剪贴板失败: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task TypeSelectedSequenceAsync()
+    {
+        if (ViewModel.IsTyping)
+        {
+            ViewModel.StatusMessage = "输入任务正在执行中。";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ViewModel.SelectedSequence))
+        {
+            ViewModel.StatusMessage = "请先选择一个序列。";
+            return;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            ViewModel.StatusMessage = "当前平台不是 Windows，无法使用系统键盘模拟输入。";
+            return;
+        }
+
+        try
+        {
+            _typingCts?.Dispose();
+            _typingCts = new CancellationTokenSource();
+            ViewModel.IsTyping = true;
+
+            if (ViewModel.EnableBatchInput)
+            {
+                var items = ViewModel.GetBatchItems();
+                if (items.Count == 0)
+                {
+                    ViewModel.StatusMessage = "序列列表为空，无法批量输入。";
+                    return;
+                }
+
+                ViewModel.StatusMessage = $"将在 {ViewModel.StartDelayMs}ms 后开始批量输入 {items.Count} 条，请切换到目标窗口。";
+                await KeyboardInputHelp.TypeBatchAsync(
+                    items,
+                    ViewModel.StartDelayMs,
+                    ViewModel.CharIntervalMs,
+                    ViewModel.BatchItemIntervalMs,
+                    pressEnterAfterEach: true,
+                    cancellationToken: _typingCts.Token);
+                ViewModel.StatusMessage = "批量模拟输入完成。";
+            }
+            else
+            {
+                ViewModel.StatusMessage = $"将在 {ViewModel.StartDelayMs}ms 后开始输入，请切换到目标窗口。";
+                await KeyboardInputHelp.TypeTextAsync(ViewModel.SelectedSequence, ViewModel.StartDelayMs, ViewModel.CharIntervalMs, _typingCts.Token);
+                ViewModel.StatusMessage = "模拟输入完成。";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            ViewModel.StatusMessage = "输入已中断。";
+        }
+        catch (Exception ex)
+        {
+            ViewModel.StatusMessage = $"模拟输入失败: {ex.Message}";
+        }
+        finally
+        {
+            ViewModel.IsTyping = false;
+            _typingCts?.Dispose();
+            _typingCts = null;
+        }
+    }
+
+    private Task CancelTypingAsync()
+    {
+        if (!ViewModel.IsTyping || _typingCts == null)
+        {
+            ViewModel.StatusMessage = "当前没有正在执行的输入任务。";
+            return Task.CompletedTask;
+        }
+
+        _typingCts.Cancel();
+        ViewModel.StatusMessage = "正在中断输入...";
+        return Task.CompletedTask;
+    }
+}
