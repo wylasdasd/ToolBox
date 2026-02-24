@@ -14,8 +14,10 @@
     
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" idth="260px" >
-        <NavMenu/>
+    <MudDrawer @bind-Open="_drawerOpen" Width="260px" Class="app-drawer">
+        <div class="app-drawer-scroll">
+            <NavMenu/>
+        </div>
     </MudDrawer>
 
 <MudMainContent Class="mt-4 mb-4">

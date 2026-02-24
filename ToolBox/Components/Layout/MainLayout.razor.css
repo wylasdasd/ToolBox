@@ -1,0 +1,15 @@
+::deep .app-drawer .mud-drawer-content {
+    height: 100%;
+    overflow: hidden;
+}
+
+.app-drawer-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+}
+
+.app-drawer-scroll ::deep .mud-navmenu {
+    padding-bottom: 24px;
+}

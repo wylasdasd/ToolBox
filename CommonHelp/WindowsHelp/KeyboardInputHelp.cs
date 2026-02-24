@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CommonHelp.WindowsHelp;
 
@@ -28,26 +29,26 @@ public static class KeyboardInputHelp
         }
 
         var normalized = text.Replace("\r\n", "\n");
-        foreach (var ch in normalized)
+        foreach (var rune in normalized.EnumerateRunes())
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (ch == '\r')
+            if (rune.Value == '\r')
             {
                 continue;
             }
 
-            if (ch == '\n')
+            if (rune.Value == '\n')
             {
                 SendVirtualKey(VkReturn);
             }
-            else if (ch == '\t')
+            else if (rune.Value == '\t')
             {
                 SendVirtualKey(VkTab);
             }
             else
             {
-                SendUnicodeChar(ch);
+                SendUnicodeRune(rune);
             }
 
             if (charIntervalMs > 0)
@@ -97,41 +98,47 @@ public static class KeyboardInputHelp
         }
     }
 
-    private static void SendUnicodeChar(char ch)
+    private static void SendUnicodeRune(Rune rune)
     {
-        var inputs = new[]
+        Span<char> utf16Buffer = stackalloc char[2];
+        var units = rune.EncodeToUtf16(utf16Buffer);
+        var inputs = new Input[units * 2];
+
+        for (var i = 0; i < units; i++)
         {
-            new Input
+            var unit = utf16Buffer[i];
+            inputs[i * 2] = new Input
             {
                 Type = InputKeyboard,
                 Union = new InputUnion
                 {
                     KeyboardInput = new KeybdInput
                     {
-                        WScan = ch,
+                        WScan = unit,
                         DwFlags = KeyeventfUnicode
                     }
                 }
-            },
-            new Input
+            };
+
+            inputs[i * 2 + 1] = new Input
             {
                 Type = InputKeyboard,
                 Union = new InputUnion
                 {
                     KeyboardInput = new KeybdInput
                     {
-                        WScan = ch,
+                        WScan = unit,
                         DwFlags = KeyeventfUnicode | KeyeventfKeyup
                     }
                 }
-            }
-        };
+            };
+        }
 
         var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>());
         if (sent != inputs.Length)
         {
             var error = Marshal.GetLastWin32Error();
-            throw new InvalidOperationException($"SendInput failed for char '{ch}'. Win32Error={error}.");
+            throw new InvalidOperationException($"SendInput failed for rune '{rune}'. Win32Error={error}.");
         }
     }
 
