@@ -1,0 +1,59 @@
+既然你在使用 VS Code 的 Codex 插件（通常指 OpenAI 官方推出的那款或其衍生版本），要让它在新会话里依然“记得”项目背景，Markdown 文件引导是目前公认最稳、最有效的“黑客”技巧。
+
+Codex 插件的设计逻辑是：它会自动读取工作区根目录下的特定文件作为“灵魂指令”。
+
+以下是为你整理的三个保命秘诀：
+
+1. 终极杀招：创建 AGENTS.md (项目指南针)
+这是 Codex 插件的一个隐藏特性（或社区惯例）：在项目根目录下创建一个名为 AGENTS.md 的文件。
+
+秘诀：Codex 每次开启新会话时，都会优先扫描并加载这个文件的内容。
+
+内容模板：
+
+Markdown
+# Project Context: [项目名]
+## Tech Stack
+- Frontend: React + Tailwind
+- Backend: Go (Gin)
+## Structure
+- /api: REST routes
+- /internal/logic: Core business rules
+## Custom Rules
+- 始终使用中文回答。
+- 错误处理必须包含 Error ID。
+效果：新开会话后，直接问“分析一下我的登录逻辑”，它会自动结合 AGENTS.md 里的结构来作答，无需重复粘贴。
+
+2. 使用 Memory Bank (记忆银行模式)
+如果你觉得一个文件放不下，可以模仿近期流行的 Cline/Memory Bank 模式。在项目中建立一个 .codex 或 memory-bank 文件夹：
+
+activeContext.md: 记录当前正在忙什么（比如：正在重构支付模块）。
+
+projectbrief.md: 记录项目的长期目标。
+
+如何唤醒：在新会话开始时，输入 / 命令（如果插件支持）或直接输入：
+
+"Read my memory bank in .codex/ and get ready."
+
+3. 利用 VS Code 的 # 提及功能
+如果你安装的是较新版本的插件（或是基于 Copilot 架构的 Codex），你可以使用 Context Mention:
+
+操作：在新会话框里输入 #codebase。
+
+秘诀：这会强制 AI 扫描当前整个文件夹的索引。
+
+进阶：如果你只想让它看某个特定分析文档，输入 #file:analysis_results.md。
+
+4. 解决“反复登录/丢失进度”的玄学 Bug
+如果你发现新开窗口后 Codex 完全“失忆”或者让你重新登录：
+
+本地存储路径：Codex 的会话通常保存在本地 ~/.codex/sessions/ 目录下（Windows 在用户目录下的相关文件夹）。
+
+手动恢复：如果插件里找不到历史，去这个文件夹找最新的 .jsonl 或 .md 文件，直接拖进对话框对它说：“这是我们之前的进度，继续。”
+
+💡 建议操作
+你可以现在在 VS Code 里新建一个 AGENTS.md，然后对 AI 说：
+
+“根据我们刚才的分析结果，帮我写一份 AGENTS.md 的内容，包含项目的核心架构和目前的开发进度，以便我下次新开会话使用。”
+
+需要我帮你把刚才聊的内容直接整理成这个文件的格式吗？
