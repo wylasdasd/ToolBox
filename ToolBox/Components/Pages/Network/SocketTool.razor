@@ -16,6 +16,23 @@
                         <MudRadio Value="@("UDP")" Color="Color.Secondary" Disabled="@(!ViewModel.Client.CanEditSettings)">UDP</MudRadio>
                     </MudRadioGroup>
 
+                    <MudSelect T="string" Label="Auth Mode" @bind-Value="ViewModel.Client.AuthMode" Variant="Variant.Outlined" Dense="true" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)">
+                        @foreach (var mode in ViewModel.Client.AuthModes)
+                        {
+                            <MudSelectItem T="string" Value="@mode">@mode</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (ViewModel.Client.AuthMode == "SharedToken")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Client.AuthToken" Label="Token" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                    }
+                    else if (ViewModel.Client.AuthMode == "UsernamePassword")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Client.AuthUsername" Label="Username" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                        <MudTextField @bind-Value="ViewModel.Client.AuthPassword" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                    }
+
                     <MudTextField @bind-Value="ViewModel.Client.IpAddress" Label="Target IP" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)"/>
                     <MudNumericField @bind-Value="ViewModel.Client.Port" Label="Target Port" Variant="Variant.Outlined" Class="mb-3" Min="1" Max="65535" Disabled="@(!ViewModel.Client.CanEditSettings)"/>
 
@@ -77,6 +94,23 @@
                         <MudRadio Value="@("UDP")" Color="Color.Secondary" Disabled="@(!ViewModel.Server.CanEditSettings)">UDP</MudRadio>
                     </MudRadioGroup>
 
+                    <MudSelect T="string" Label="Auth Mode" @bind-Value="ViewModel.Server.AuthMode" Variant="Variant.Outlined" Dense="true" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)">
+                        @foreach (var mode in ViewModel.Server.AuthModes)
+                        {
+                            <MudSelectItem T="string" Value="@mode">@mode</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (ViewModel.Server.AuthMode == "SharedToken")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Server.AuthToken" Label="Token" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                    }
+                    else if (ViewModel.Server.AuthMode == "UsernamePassword")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Server.AuthUsername" Label="Username" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                        <MudTextField @bind-Value="ViewModel.Server.AuthPassword" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                    }
+
                     <MudTextField @bind-Value="ViewModel.Server.IpAddress" Label="Bind IP" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)"/>
                     <MudNumericField @bind-Value="ViewModel.Server.Port" Label="Listen Port" Variant="Variant.Outlined" Class="mb-3" Min="1" Max="65535" Disabled="@(!ViewModel.Server.CanEditSettings)"/>
 
@@ -116,8 +150,7 @@
                              <MudButton Variant="Variant.Filled" 
                                         Color="Color.Primary" 
                                         OnClick="@(async () => await ViewModel.Server.SendMessage())" 
-                                        FullWidth="true" 
-                                        ">
+                                        FullWidth="true">
                                 Send
                              </MudButton>
                         </MudItem>

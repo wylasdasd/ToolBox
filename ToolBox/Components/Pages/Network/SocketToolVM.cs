@@ -22,6 +22,10 @@ public class SocketToolVM : ViewModelBase, IDisposable
 public abstract class SocketSessionVM : ViewModelBase, IDisposable
 {
     protected string _protocol = "TCP";
+    protected string _authMode = "None";
+    protected string _authToken = "test-token";
+    protected string _authUsername = "user";
+    protected string _authPassword = "pass";
     protected string _ipAddress = "127.0.0.1";
     protected int _port = 8080;
     protected bool _isConnected;
@@ -33,6 +37,32 @@ public abstract class SocketSessionVM : ViewModelBase, IDisposable
     {
         get => _protocol;
         set => SetProperty(ref _protocol, value);
+    }
+
+    public IReadOnlyList<string> AuthModes { get; } = ["None", "SharedToken", "UsernamePassword"];
+
+    public string AuthMode
+    {
+        get => _authMode;
+        set => SetProperty(ref _authMode, value);
+    }
+
+    public string AuthToken
+    {
+        get => _authToken;
+        set => SetProperty(ref _authToken, value);
+    }
+
+    public string AuthUsername
+    {
+        get => _authUsername;
+        set => SetProperty(ref _authUsername, value);
+    }
+
+    public string AuthPassword
+    {
+        get => _authPassword;
+        set => SetProperty(ref _authPassword, value);
     }
 
     public string IpAddress
@@ -100,6 +130,120 @@ public abstract class SocketSessionVM : ViewModelBase, IDisposable
         ReceivedLog += $"[{entry.Timestamp:HH:mm:ss}] [{type}] {content}{Environment.NewLine}";
     }
 
+    protected string BuildTcpAuthMessage()
+    {
+        if (AuthMode == "SharedToken")
+        {
+            return $"AUTH TOKEN {AuthToken}";
+        }
+
+        if (AuthMode == "UsernamePassword")
+        {
+            return $"AUTH BASIC {AuthUsername}:{AuthPassword}";
+        }
+
+        return string.Empty;
+    }
+
+    protected bool TryValidateTcpAuthMessage(string message, out string reason)
+    {
+        reason = string.Empty;
+        if (AuthMode == "None")
+        {
+            return true;
+        }
+
+        if (AuthMode == "SharedToken")
+        {
+            var expected = $"AUTH TOKEN {AuthToken}";
+            if (string.Equals(message.Trim(), expected, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            reason = "Invalid token.";
+            return false;
+        }
+
+        if (AuthMode == "UsernamePassword")
+        {
+            var expected = $"AUTH BASIC {AuthUsername}:{AuthPassword}";
+            if (string.Equals(message.Trim(), expected, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            reason = "Invalid username or password.";
+            return false;
+        }
+
+        reason = "Unknown auth mode.";
+        return false;
+    }
+
+    protected string BuildUdpPayloadWithAuth(string message)
+    {
+        if (AuthMode == "SharedToken")
+        {
+            return $"TOKEN:{AuthToken}|{message}";
+        }
+
+        if (AuthMode == "UsernamePassword")
+        {
+            return $"BASIC:{AuthUsername}:{AuthPassword}|{message}";
+        }
+
+        return message;
+    }
+
+    protected bool TryParseUdpPayload(string input, out string payload, out string reason)
+    {
+        payload = input;
+        reason = string.Empty;
+
+        if (AuthMode == "None")
+        {
+            return true;
+        }
+
+        var split = input.IndexOf('|');
+        if (split <= 0)
+        {
+            reason = "Missing auth prefix.";
+            return false;
+        }
+
+        var authPart = input[..split];
+        payload = input[(split + 1)..];
+
+        if (AuthMode == "SharedToken")
+        {
+            var expected = $"TOKEN:{AuthToken}";
+            if (string.Equals(authPart, expected, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            reason = "Invalid token.";
+            return false;
+        }
+
+        if (AuthMode == "UsernamePassword")
+        {
+            var expected = $"BASIC:{AuthUsername}:{AuthPassword}";
+            if (string.Equals(authPart, expected, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            reason = "Invalid username or password.";
+            return false;
+        }
+
+        reason = "Unknown auth mode.";
+        return false;
+    }
+
     public new void Dispose()
     {
         _cts?.Cancel();
@@ -128,6 +272,14 @@ public class SocketClientVM : SocketSessionVM
                 await _tcpClient.ConnectAsync(IpAddress, Port);
                 _tcpStream = _tcpClient.GetStream();
                 _ = ReceiveLoopTcp(_cts.Token);
+
+                if (AuthMode != "None")
+                {
+                    var authMessage = BuildTcpAuthMessage();
+                    var authData = Encoding.UTF8.GetBytes(authMessage);
+                    await _tcpStream.WriteAsync(authData);
+                    AddLog("Auth", $"Auth handshake sent ({AuthMode}).");
+                }
             }
             else // UDP
             {
@@ -169,7 +321,10 @@ public class SocketClientVM : SocketSessionVM
 
         try
         {
-            byte[] data = Encoding.UTF8.GetBytes(MessageToSend);
+            var finalMessage = Protocol == "UDP"
+                ? BuildUdpPayloadWithAuth(MessageToSend)
+                : MessageToSend;
+            byte[] data = Encoding.UTF8.GetBytes(finalMessage);
             if (Protocol == "TCP" && _tcpStream != null)
             {
                 await _tcpStream.WriteAsync(data);
@@ -233,7 +388,7 @@ public class SocketClientVM : SocketSessionVM
 public class SocketServerVM : SocketSessionVM
 {
     private TcpListener? _tcpListener;
-    private List<TcpClient> _clients = new();
+    private List<ServerTcpClientState> _clients = new();
     private UdpClient? _udpServer;
     private IPEndPoint? _lastUdpClient;
 
@@ -283,7 +438,7 @@ public class SocketServerVM : SocketSessionVM
         
         lock(_clients)
         {
-            foreach(var c in _clients) try { c.Close(); } catch {}
+            foreach(var c in _clients) try { c.Client.Close(); } catch {}
             _clients.Clear();
         }
 
@@ -309,18 +464,23 @@ public class SocketServerVM : SocketSessionVM
             byte[] data = Encoding.UTF8.GetBytes(MessageToSend);
             if (Protocol == "TCP")
             {
-                TcpClient[] currentClients;
+                ServerTcpClientState[] currentClients;
                 lock (_clients) currentClients = _clients.ToArray();
+
+                if (AuthMode != "None")
+                {
+                    currentClients = currentClients.Where(c => c.Authenticated).ToArray();
+                }
 
                 if (currentClients.Length == 0)
                 {
-                    AddLog("Info", "No connected clients to broadcast to.");
+                    AddLog("Info", AuthMode == "None" ? "No connected clients to broadcast to." : "No authenticated clients to broadcast to.");
                     return;
                 }
 
                 foreach (var client in currentClients)
                 {
-                    try { await client.GetStream().WriteAsync(data); } catch { }
+                    try { await client.Client.GetStream().WriteAsync(data); } catch { }
                 }
                 AddLog("Sent", $"Broadcast: {MessageToSend}");
             }
@@ -351,17 +511,19 @@ public class SocketServerVM : SocketSessionVM
             while (!token.IsCancellationRequested && _tcpListener != null)
             {
                 var client = await _tcpListener.AcceptTcpClientAsync(token);
-                lock (_clients) _clients.Add(client);
+                var state = new ServerTcpClientState(client, AuthMode == "None");
+                lock (_clients) _clients.Add(state);
                 AddLog("System", $"Client connected: {client.Client.RemoteEndPoint}");
-                _ = ReceiveLoopTcpClient(client, token);
+                _ = ReceiveLoopTcpClient(state, token);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { if (!token.IsCancellationRequested) AddLog("Error", $"Accept error: {ex.Message}"); }
     }
 
-    private async Task ReceiveLoopTcpClient(TcpClient client, CancellationToken token)
+    private async Task ReceiveLoopTcpClient(ServerTcpClientState clientState, CancellationToken token)
     {
+        var client = clientState.Client;
         try
         {
             using var stream = client.GetStream();
@@ -371,13 +533,31 @@ public class SocketServerVM : SocketSessionVM
                 int bytesRead = await stream.ReadAsync(buffer, token);
                 if (bytesRead == 0) break;
                 string msg = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                if (!clientState.Authenticated)
+                {
+                    if (TryValidateTcpAuthMessage(msg, out var reason))
+                    {
+                        clientState.Authenticated = true;
+                        AddLog("Auth", $"Client authenticated: {client.Client.RemoteEndPoint} ({AuthMode})");
+                        var okData = Encoding.UTF8.GetBytes("AUTH_OK");
+                        await stream.WriteAsync(okData, token);
+                        continue;
+                    }
+
+                    AddLog("Auth", $"Auth failed: {client.Client.RemoteEndPoint} ({reason})");
+                    var failData = Encoding.UTF8.GetBytes($"AUTH_FAIL {reason}");
+                    await stream.WriteAsync(failData, token);
+                    break;
+                }
+
                 AddLog("Received", $"[{client.Client.RemoteEndPoint}] {msg}");
             }
         }
         catch { }
         finally
         {
-            lock (_clients) _clients.Remove(client);
+            lock (_clients) _clients.Remove(clientState);
             try 
             { 
                 AddLog("System", $"Client disconnected: {client.Client.RemoteEndPoint}");
@@ -394,13 +574,31 @@ public class SocketServerVM : SocketSessionVM
             {
                 var result = await _udpServer.ReceiveAsync(token);
                 _lastUdpClient = result.RemoteEndPoint;
-                string msg = Encoding.UTF8.GetString(result.Buffer);
+                string raw = Encoding.UTF8.GetString(result.Buffer);
+                if (!TryParseUdpPayload(raw, out var msg, out var reason))
+                {
+                    AddLog("Auth", $"UDP auth failed [{result.RemoteEndPoint}]: {reason}");
+                    continue;
+                }
+
                 AddLog("Received", $"[{result.RemoteEndPoint}] {msg}");
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { if (!token.IsCancellationRequested) AddLog("Error", $"UDP Receive error: {ex.Message}"); }
     }
+}
+
+public sealed class ServerTcpClientState
+{
+    public ServerTcpClientState(TcpClient client, bool authenticated)
+    {
+        Client = client;
+        Authenticated = authenticated;
+    }
+
+    public TcpClient Client { get; }
+    public bool Authenticated { get; set; }
 }
 
 public class LogEntry
