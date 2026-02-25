@@ -1,0 +1,180 @@
+@page "/websocket-tool"
+
+@namespace ToolBox.Components.Pages.Network
+
+@inherits MvvmComponentBase<WebSocketToolVM>
+
+<MudText Typo="Typo.h5" GutterBottom="true">WebSocket 测试</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4" KeepPanelsAlive="true">
+    <MudTabPanel Text="Client">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6">客户端设置</MudText>
+
+                    <MudTextField @bind-Value="ViewModel.Client.Url" Label="WebSocket URL (ws/wss)" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+
+                    <MudSelect T="string" Label="鉴权模式" @bind-Value="ViewModel.Client.AuthMode" Variant="Variant.Outlined" Dense="true" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)">
+                        @foreach (var item in ViewModel.Client.AuthModes)
+                        {
+                            <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (ViewModel.Client.AuthMode == "Bearer")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Client.AuthToken" Label="Bearer Token" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                    }
+                    else if (ViewModel.Client.AuthMode == "ApiKeyHeader")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Client.AuthHeaderName" Label="Header Name" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                        <MudTextField @bind-Value="ViewModel.Client.AuthToken" Label="Header Value" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                    }
+                    else if (ViewModel.Client.AuthMode == "QueryToken")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Client.QueryTokenName" Label="Query Name" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                        <MudTextField @bind-Value="ViewModel.Client.AuthToken" Label="Query Value" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Client.CanEditSettings)" />
+                    }
+
+                    <MudTextField @bind-Value="ViewModel.Client.HeadersInput"
+                                  Label="额外 Headers（每行 Key: Value）"
+                                  Variant="Variant.Outlined"
+                                  Lines="4"
+                                  Class="mb-3"
+                                  Disabled="@(!ViewModel.Client.CanEditSettings)" />
+
+                    <MudCheckBox T="bool"
+                                 @bind-Value="ViewModel.Client.IgnoreServerCertificateErrors"
+                                 Label="wss 忽略证书错误（仅测试）"
+                                 Disabled="@(!ViewModel.Client.CanEditSettings)" />
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="@(ViewModel.Client.IsConnected ? Color.Error : Color.Success)"
+                               OnClick="@(async () => await ViewModel.Client.ToggleConnection())"
+                               FullWidth="true"
+                               Class="mt-3">
+                        @ViewModel.Client.ActionName
+                    </MudButton>
+
+                    <MudText Class="mt-2" Color="@(ViewModel.Client.IsConnected ? Color.Success : Color.Error)">
+                        Status: @ViewModel.Client.ConnectionStatusText
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4 d-flex flex-column">
+                    <MudText Typo="Typo.h6">客户端日志</MudText>
+
+                    <MudTextField @bind-Value="ViewModel.Client.ReceivedLog"
+                                  Label="Log"
+                                  Variant="Variant.Outlined"
+                                  Lines="20"
+                                  ReadOnly="true"
+                                  Style="flex-grow: 1; font-family: monospace;" />
+
+                    <MudGrid Class="mt-2">
+                        <MudItem xs="10">
+                            <MudTextField @bind-Value="ViewModel.Client.MessageToSend"
+                                          Label="Message"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          OnKeyDown="@(async (args) => { if (args.Key == "Enter") await ViewModel.Client.SendMessage(); })" />
+                        </MudItem>
+                        <MudItem xs="2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="@(async () => await ViewModel.Client.SendMessage())"
+                                       FullWidth="true">
+                                Send
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Server">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6">服务端设置</MudText>
+
+                    <MudTextField @bind-Value="ViewModel.Server.Prefix"
+                                  Label="HttpListener Prefix (http/https)"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-3"
+                                  Disabled="@(!ViewModel.Server.CanEditSettings)" />
+
+                    <MudSelect T="string" Label="鉴权模式" @bind-Value="ViewModel.Server.AuthMode" Variant="Variant.Outlined" Dense="true" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)">
+                        @foreach (var item in ViewModel.Server.AuthModes)
+                        {
+                            <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (ViewModel.Server.AuthMode == "Bearer")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Server.AuthToken" Label="Bearer Token" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                    }
+                    else if (ViewModel.Server.AuthMode == "ApiKeyHeader")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Server.AuthHeaderName" Label="Header Name" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                        <MudTextField @bind-Value="ViewModel.Server.AuthToken" Label="Header Value" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                    }
+                    else if (ViewModel.Server.AuthMode == "QueryToken")
+                    {
+                        <MudTextField @bind-Value="ViewModel.Server.QueryTokenName" Label="Query Name" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                        <MudTextField @bind-Value="ViewModel.Server.AuthToken" Label="Query Value" Variant="Variant.Outlined" Class="mb-3" Disabled="@(!ViewModel.Server.CanEditSettings)" />
+                    }
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="@(ViewModel.Server.IsRunning ? Color.Error : Color.Success)"
+                               OnClick="@(async () => await ViewModel.Server.ToggleServer())"
+                               FullWidth="true">
+                        @ViewModel.Server.ActionName
+                    </MudButton>
+
+                    <MudText Class="mt-2" Color="@(ViewModel.Server.IsRunning ? Color.Success : Color.Error)">
+                        Status: @ViewModel.Server.ConnectionStatusText
+                    </MudText>
+                    <MudText Class="mt-1">Clients: @ViewModel.Server.ClientCount</MudText>
+                    <MudText Class="mt-1" Typo="Typo.caption">https 前缀可用于 wss；证书需提前绑定到端口。</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4 d-flex flex-column">
+                    <MudText Typo="Typo.h6">服务端日志</MudText>
+
+                    <MudTextField @bind-Value="ViewModel.Server.ReceivedLog"
+                                  Label="Log"
+                                  Variant="Variant.Outlined"
+                                  Lines="20"
+                                  ReadOnly="true"
+                                  Style="flex-grow: 1; font-family: monospace;" />
+
+                    <MudGrid Class="mt-2">
+                        <MudItem xs="10">
+                            <MudTextField @bind-Value="ViewModel.Server.MessageToSend"
+                                          Label="Broadcast Message"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          OnKeyDown="@(async (args) => { if (args.Key == "Enter") await ViewModel.Server.SendMessage(); })" />
+                        </MudItem>
+                        <MudItem xs="2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="@(async () => await ViewModel.Server.SendMessage())"
+                                       FullWidth="true">
+                                Send
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudTabPanel>
+</MudTabs>
