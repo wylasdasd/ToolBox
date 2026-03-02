@@ -1,0 +1,42 @@
+@page "/svg-preview"
+
+@namespace ToolBox.Components.Pages.TextTool
+
+@inherits MvvmComponentBase<SvgPreviewVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">SVG 预览</MudText>
+    <MudText>输入 SVG 文本并直接显示图形。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudTextField T="string"
+                  @bind-Value="ViewModel.SvgInput"
+                  Label="SVG 内容"
+                  Variant="Variant.Outlined"
+                  Lines="12"
+                  Immediate="true" />
+
+    <MudStack Row="true" Spacing="2" Class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ViewModel.Render()">
+            显示
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="() => ViewModel.Clear()">
+            清空
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.RenderedSvg))
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <div style="max-width: 100%; overflow: auto;">
+            @((Microsoft.AspNetCore.Components.MarkupString)ViewModel.RenderedSvg)
+        </div>
+    </MudPaper>
+}
