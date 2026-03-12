@@ -1,0 +1,148 @@
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.summary-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    background: #FFFFFF;
+    padding: 10px 12px;
+}
+
+.summary-title {
+    color: #475569;
+    font-size: 12px;
+}
+
+.summary-value {
+    color: #0F172A;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.lane-wrap {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 10px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+}
+
+.lane-row {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.lane-label {
+    color: #0F172A;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lane-type {
+    color: #64748B;
+    margin-left: 6px;
+    font-size: 12px;
+}
+
+.lane-track {
+    position: relative;
+    height: 20px;
+    border-radius: 7px;
+    border: 1px dashed #CBD5E1;
+    background: repeating-linear-gradient(90deg, #FFFFFF 0 18px, #F8FAFC 18px 36px);
+}
+
+.lane-bar {
+    position: absolute;
+    top: 2px;
+    height: 14px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .65);
+}
+
+.byte-grid-wrap {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    background: #FFFFFF;
+    padding: 8px;
+    max-height: 360px;
+    overflow: auto;
+}
+
+.byte-row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 10px;
+    align-items: start;
+    margin-bottom: 8px;
+}
+
+.row-offset {
+    color: #475569;
+    font-size: 12px;
+    padding-top: 6px;
+}
+
+.row-bytes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.byte-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 7px;
+    background: #FFFFFF;
+    padding: 4px;
+    width: 78px;
+}
+
+.byte-index {
+    text-align: center;
+    color: #64748B;
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.bit-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+}
+
+.bit-cell {
+    width: 100%;
+    height: 14px;
+    border-radius: 2px;
+    border: 1px solid #94A3B8;
+}
+
+.bit-cell.padding {
+    border-color: #CBD5E1;
+}
+
+.bit-cell.overlap {
+    box-shadow: inset 0 0 0 1px #0F172A;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+@media (max-width: 960px) {
+    .lane-row {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,140 @@
+@page "/struct-layout"
+@namespace ToolBox.Components.Pages.Calculation
+@inherits MvvmComponentBase<StructLayoutVisualizerVM>
+
+<MudText Typo="Typo.h5" Class="mb-3">C++ 结构体 / Union 内存布局</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudTextField T="string"
+                      Label="输入 C/C++ 定义"
+                      Variant="Variant.Outlined"
+                      Lines="22"
+                      Immediate="true"
+                      @bind-Value="ViewModel.StructDefinition" />
+        <MudText Typo="Typo.caption" Class="mt-2">
+            支持：`struct/class/union`、`const/volatile/static/...`、数组、指针、`alignas`、`#pragma pack`、位域（含 `:0`）。
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-3">
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int"
+                                     Label="Pack（0=自动）"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="16"
+                                     @bind-Value="ViewModel.Pack" />
+                </MudItem>
+                <MudItem xs="12" sm="8" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.Calculate">重新解析</MudButton>
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@ViewModel.ErrorMessage</MudAlert>
+            }
+            else
+            {
+                <div class="summary-row">
+                    <div class="summary-card">
+                        <div class="summary-title">布局类型</div>
+                        <div class="summary-value">@ViewModel.LayoutKindText</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">原始长度</div>
+                        <div class="summary-value">@ViewModel.RawSize B</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">总长度</div>
+                        <div class="summary-value">@ViewModel.TotalSize B</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">对齐</div>
+                        <div class="summary-value">@ViewModel.StructAlignment B</div>
+                    </div>
+                </div>
+
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">字段轨道图</MudText>
+                @if (ViewModel.LayoutKindText.StartsWith("union", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                        union 成员共享同一地址起点（offset=0），轨道图显示的是“重叠”而非顺排。
+                    </MudAlert>
+                }
+                <div class="lane-wrap">
+                    @foreach (var field in ViewModel.Fields)
+                    {
+                        var left = ViewModel.GetFieldLeftPercent(field).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                        var width = ViewModel.GetFieldWidthPercent(field).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                        var title = $"{field.Name} | offset={field.OffsetByte}B | size={field.SizeByte}B";
+                        <div class="lane-row">
+                            <div class="lane-label">
+                                <span class="legend-dot" style="@($"background:{field.Color}")"></span>
+                                @field.Name
+                                <span class="lane-type">@field.TypeDisplay</span>
+                            </div>
+                            <div class="lane-track">
+                                <div class="lane-bar"
+                                     title="@title"
+                                     style="@($"left:{left}%;width:{width}%;background:{field.Color};")">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">位级网格（每行 8 Byte）</MudText>
+                <div class="byte-grid-wrap">
+                    @foreach (var row in ViewModel.ByteRows)
+                    {
+                        <div class="byte-row">
+                            <div class="row-offset">0x@row.StartOffset.ToString("X4")</div>
+                            <div class="row-bytes">
+                                @foreach (var byteCell in row.Bytes)
+                                {
+                                    <div class="byte-card">
+                                        <div class="byte-index">@byteCell.ByteOffset</div>
+                                        <div class="bit-grid">
+                                            @foreach (var bit in byteCell.Bits)
+                                            {
+                                                <div class="@($"bit-cell {(bit.IsOverlap ? "overlap" : string.Empty)} {(bit.IsPadding ? "padding" : string.Empty)}")"
+                                                     title="@($"{bit.Tooltip} / bit{bit.BitIndex}")"
+                                                     style="@($"background:{bit.Background};")"></div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">字段明细</MudText>
+                <MudTable Items="ViewModel.Fields" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>字段</MudTh>
+                        <MudTh>类型</MudTh>
+                        <MudTh>偏移</MudTh>
+                        <MudTh>大小</MudTh>
+                        <MudTh>位域</MudTh>
+                        <MudTh>对齐</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <span class="legend-dot" style="@($"background:{context.Color}")"></span>@context.Name
+                        </MudTd>
+                        <MudTd>@context.TypeDisplay</MudTd>
+                        <MudTd>@context.OffsetByte B</MudTd>
+                        <MudTd>@context.SizeByte B</MudTd>
+                        <MudTd>@(context.BitWidth is null ? "-" : $"bit@{context.BitOffsetInByte} w={context.BitWidth}")</MudTd>
+                        <MudTd>@context.Alignment B</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
