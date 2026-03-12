@@ -14,12 +14,51 @@ public partial class StructLayoutVisualizerVM : ViewModelBase
     ];
 
     private string _structDefinition = """
-        union Packet
+        #pragma pack(push, 2)
+
+        alignas(8) struct PacketHeader
         {
-            uint32_t raw;
-            uint32_t flags : 12;
-            uint8_t bytes[4];
+            // struct + const/volatile + 位域（含 :0）
+            const uint16_t version : 4;
+            volatile uint16_t type : 6;
+            uint16_t flags : 6;
+            uint16_t : 0; // 强制到下一个对齐单元
+
+            // union（重叠存储）
+            union
+            {
+                uint32_t raw;
+                struct
+                {
+                    uint32_t length : 12;
+                    uint32_t opcode : 8;
+                    uint32_t reserved : 12;
+                } bits;
+                uint8_t bytes[4];
+            } u;
+
+            // class（作为成员类型）
+            class Meta
+            {
+            public:
+                uint8_t tag;
+                uint8_t level;
+            };
+
+            Meta meta;
+
+            // 数组
+            uint8_t payload[16];
+
+            // 指针 + 关键字
+            const char* namePtr;
+            volatile uint32_t* dataPtr;
+
+            // static 成员（不计入对象内存布局，放这里用于语法覆盖）
+            static uint32_t globalCounter;
         };
+
+        #pragma pack(pop)
         """;
     private int _pack;
     private string _layoutKind = "struct";
@@ -724,6 +763,13 @@ public partial class StructLayoutVisualizerVM : ViewModelBase
 
                 var alignAs = ParseAndStripAlignAs(ref statement);
                 statement = StripAttributes(statement);
+
+                // static 数据成员属于类型级存储，不属于对象实例布局。
+                if (Regex.IsMatch(statement, @"^\s*static\b", RegexOptions.IgnoreCase))
+                {
+                    continue;
+                }
+
                 statement = StripPrefixKeywords(statement);
                 if (string.IsNullOrWhiteSpace(statement))
                 {

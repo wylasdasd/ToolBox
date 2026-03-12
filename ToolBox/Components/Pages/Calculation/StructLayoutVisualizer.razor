@@ -92,7 +92,7 @@
                     @foreach (var row in ViewModel.ByteRows)
                     {
                         <div class="byte-row">
-                            <div class="row-offset">0x@row.StartOffset.ToString("X4")</div>
+                            <div class="row-offset">@($"0x{row.StartOffset:X4}")</div>
                             <div class="row-bytes">
                                 @foreach (var byteCell in row.Bytes)
                                 {
