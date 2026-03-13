@@ -1,0 +1,127 @@
+@page "/multi-task-runner"
+@namespace ToolBox.Components.Pages.TaskSystem
+@inherits MvvmComponentBase<MultiTaskRunnerVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+    <MudText Typo="Typo.h4">多任务系统</MudText>
+    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">任务管理 + 队列调度 + 日志面板</MudChip>
+</MudStack>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@ViewModel.ErrorMessage</MudAlert>
+}
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4 mb-3" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">新增任务</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="任务名称" Variant="Variant.Outlined" Immediate="true" @bind-Value="ViewModel.NewTaskName" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="引用程序集" Variant="Variant.Outlined" Immediate="true" @bind-Value="ViewModel.ReferenceInput" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="任务代码"
+                                  Variant="Variant.Outlined"
+                                  Lines="8"
+                                  Immediate="true"
+                                  @bind-Value="ViewModel.NewTaskCode" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.AddTask">加入队列</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                <MudText Typo="Typo.h6">任务队列</MudText>
+                <MudNumericField T="int"
+                                 Label="并发数"
+                                 Variant="Variant.Outlined"
+                                 Min="1"
+                                 Max="32"
+                                 Style="max-width:120px;"
+                                 @bind-Value="ViewModel.MaxConcurrency" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Disabled="ViewModel.IsSchedulerRunning"
+                           OnClick="ViewModel.StartSchedulerAsync">
+                    启动调度
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Disabled="!ViewModel.IsSchedulerRunning"
+                           OnClick="ViewModel.StopScheduler">
+                    停止调度
+                </MudButton>
+            </MudStack>
+
+            <MudTable Items="ViewModel.Tasks" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>任务</MudTh>
+                    <MudTh>状态</MudTh>
+                    <MudTh>结果</MudTh>
+                    <MudTh>操作</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Id</MudTd>
+                    <MudTd>
+                        <MudLink Href="#" OnClick="@(() => ViewModel.SelectedTaskId = context.Id)">@context.Name</MudLink>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @if (!string.IsNullOrWhiteSpace(context.ErrorMessage))
+                        {
+                            <span style="color:#DC2626">失败</span>
+                        }
+                        else
+                        {
+                            @context.ResultText
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ViewModel.CancelTask(context.Id))">取消</MudButton>
+                            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ViewModel.RequeueTask(context.Id))">重排</MudButton>
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="@(() => ViewModel.RemoveTask(context.Id))">删除</MudButton>
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4 mb-3" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                <MudText Typo="Typo.h6">全局日志</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="ViewModel.ClearGlobalLogs">清空</MudButton>
+            </MudStack>
+            <pre class="log-panel">@ViewModel.GlobalLogText</pre>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">任务日志（ID: @ViewModel.SelectedTaskId）</MudText>
+            <pre class="log-panel">@ViewModel.SelectedTaskLogText</pre>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private static Color GetStatusColor(TaskRunStatus status) => status switch
+    {
+        TaskRunStatus.Pending => Color.Default,
+        TaskRunStatus.Running => Color.Info,
+        TaskRunStatus.Completed => Color.Success,
+        TaskRunStatus.Failed => Color.Error,
+        TaskRunStatus.Canceled => Color.Warning,
+        _ => Color.Default
+    };
+}

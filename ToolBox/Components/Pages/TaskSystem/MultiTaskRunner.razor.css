@@ -1,0 +1,15 @@
+.log-panel {
+    margin: 0;
+    padding: 10px;
+    min-height: 220px;
+    max-height: 360px;
+    overflow: auto;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
