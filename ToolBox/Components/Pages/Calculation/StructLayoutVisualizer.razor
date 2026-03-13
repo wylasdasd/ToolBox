@@ -15,6 +15,22 @@
         <MudText Typo="Typo.caption" Class="mt-2">
             支持：`struct/class/union`、`const/volatile/static/...`、数组、指针、`alignas`、`#pragma pack`、位域（含 `:0`）。
         </MudText>
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            <MudText Typo="Typo.subtitle2">概念解析与图表说明</MudText>
+            <div class="mt-2">
+                <MudText Typo="Typo.caption" Class="d-block"><b>Pack</b>：最大对齐上限（类似 <code>#pragma pack(n)</code>）。字段对齐通常按 <code>min(自然对齐, Pack)</code>；<code>0</code> 表示自动。</MudText>
+                <MudText Typo="Typo.caption" Class="d-block"><b>原始长度</b>：成员排布完成后的长度（含中间填充，不含尾部补齐）。</MudText>
+                <MudText Typo="Typo.caption" Class="d-block"><b>总长度</b>：最终 <code>sizeof</code> 语义长度（原始长度按结构体对齐补齐后）。</MudText>
+                <MudText Typo="Typo.caption" Class="d-block"><b>对齐</b>：结构体/union 的对齐要求（通常取成员最大对齐，再受 Pack 约束）。</MudText>
+                <MudText Typo="Typo.caption" Class="d-block"><b>位域</b>：按位宽定义的字段（如 <code>uint32_t a:3</code>），<code>bit@x w=y</code> 表示起始位与位宽。</MudText>
+            </div>
+            <MudDivider Class="my-2" />
+            <div>
+                <MudText Typo="Typo.caption" Class="d-block"><b>字段轨道图</b>：用于观察字段在整体地址空间中的起始位置、长度和重叠关系（union 更直观）。</MudText>
+                <MudText Typo="Typo.caption" Class="d-block"><b>位级网格</b>：用于查看每个字节内部 bit 的归属（字段/位域/填充/重叠），便于排查对齐和位域边界问题。</MudText>
+                <MudText Typo="Typo.caption" Class="d-block"><b>目的</b>：帮助在协议、驱动、硬件寄存器、二进制序列化等场景下快速验证布局是否符合预期。</MudText>
+            </div>
+        </MudPaper>
     </MudItem>
 
     <MudItem xs="12" md="7">
