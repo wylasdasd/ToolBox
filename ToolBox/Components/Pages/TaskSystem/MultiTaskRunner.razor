@@ -31,6 +31,13 @@
                                   @bind-Value="ViewModel.NewTaskCode" />
                 </MudItem>
                 <MudItem xs="12">
+                    <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                        取消为“协作取消”：<code>Task.Delay(...)</code>、<code>await</code> 等可中断等待会响应取消。
+                        若脚本是 <code>while(true)</code> 且不检查 <code>Token</code>，无法立即停止。建议在循环中加入
+                        <code>Token.ThrowIfCancellationRequested()</code> 或 <code>if(Token.IsCancellationRequested) break;</code>。
+                    </MudAlert>
+                </MudItem>
+                <MudItem xs="12">
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.AddTask">加入队列</MudButton>
                 </MudItem>
             </MudGrid>

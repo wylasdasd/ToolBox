@@ -1,8 +1,8 @@
 using Blazing.Mvvm.ComponentModel;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
-using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace ToolBox.Components.Pages.TaskSystem;
 
@@ -300,7 +300,9 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         {
             var options = BuildScriptOptions();
             var globals = new ScriptTaskGlobals(taskItem.Id, msg => AppendTaskLog(taskItem, msg), taskToken);
-            var result = await CSharpScript.EvaluateAsync(taskItem.Code, options, globals, cancellationToken: taskToken);
+            // 对常见的 Task.Delay(x) 做协作取消增强，避免“取消按钮无效”的体验。
+            var preparedCode = RewriteForCooperativeCancellation(taskItem.Code);
+            var result = await CSharpScript.EvaluateAsync(preparedCode, options, globals, cancellationToken: taskToken);
             taskItem.ResultText = result?.ToString();
             taskItem.Status = TaskRunStatus.Completed;
             AppendTaskLog(taskItem, $"completed result={taskItem.ResultText ?? "<null>"}");
@@ -417,6 +419,30 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .ToArray();
+    }
+
+    private static string RewriteForCooperativeCancellation(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return code;
+        }
+
+        // 仅改写单参数 Task.Delay(...)，若原本已有 token 参数则保持不变。
+        // 示例：Task.Delay(1000) -> Task.Delay(1000, Token)
+        return Regex.Replace(
+            code,
+            @"Task\s*\.\s*Delay\s*\(\s*([^) ,][^)]*?)\s*\)",
+            match =>
+            {
+                var inner = match.Groups[1].Value.Trim();
+                if (inner.Contains(',', StringComparison.Ordinal))
+                {
+                    return match.Value;
+                }
+
+                return $"Task.Delay({inner}, Token)";
+            });
     }
 }
 
