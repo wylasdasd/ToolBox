@@ -1,9 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 
 using Blazing.Mvvm;
 using DiffPlex;
 using DiffPlex.DiffBuilder;
 using MudBlazor.Services;
+using ToolBox.Services.Ai;
+using ToolBox.Services.Ocr;
+using ToolBox.Services.Picker;
 
 namespace ToolBox
 {
@@ -27,6 +30,10 @@ namespace ToolBox
             });
             builder.Services.AddScoped<ISideBySideDiffBuilder, SideBySideDiffBuilder>();
             builder.Services.AddScoped<IDiffer, Differ>();
+            builder.Services.AddScoped<IImageOcrService, WindowsImageOcrService>();
+            builder.Services.AddScoped<IFolderPickerService, FolderPickerService>();
+            builder.Services.AddScoped<IGeminiApiKeyService, GeminiApiKeyService>();
+            builder.Services.AddScoped<IGeminiAskService, GeminiAskService>();
 
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();

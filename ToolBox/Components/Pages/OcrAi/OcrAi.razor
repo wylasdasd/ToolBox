@@ -1,0 +1,87 @@
+@page "/ocr-ai"
+@namespace ToolBox.Components.Pages.OcrAi
+@inherits MvvmComponentBase<OcrAiVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">Windows OCR + Gemini 分析</MudText>
+    <MudText>使用 Windows 自带 OCR 识别图片文本，再按你的 Prompt 调用 Gemini。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="ViewModel.SourceFileName"
+                          Label="图片文件名"
+                          Variant="Variant.Outlined"
+                          HelperText="默认读取 Resources/Raw/111.jpg（打包后文件名为 111.jpg）" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" @bind-Value="ViewModel.OcrLanguage" Label="OCR 语言" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("zh-Hans")">中文</MudSelectItem>
+                <MudSelectItem Value="@("en-US")">英文</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex align-center">
+            <MudCheckBox @bind-Value="ViewModel.RemoveSpaces" Label="归一化时去掉空格" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="ViewModel.GeminiModel"
+                          Label="Gemini 模型"
+                          Variant="Variant.Outlined"
+                          HelperText="示例：gemini 3 flash（小写且不含 -）" />
+        </MudItem>
+        <MudItem xs="12" md="10">
+            <MudTextField @bind-Value="ViewModel.GeminiApiKey"
+                          Label="Gemini API Key"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          HelperText="由独立配置服务保存，可供其他页面复用" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="ViewModel.IsBusy"
+                       OnClick="ViewModel.SaveApiKeyAsync">
+                保存 Key
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="ViewModel.Prompt"
+                          Label="Prompt"
+                          Variant="Variant.Outlined"
+                          Lines="4" />
+        </MudItem>
+    </MudGrid>
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="ViewModel.IsBusy"
+                   OnClick="ViewModel.RunOcrAndAskAsync">
+            @(ViewModel.IsBusy ? "处理中..." : "OCR + AI 分析")
+        </MudButton>
+    </MudStack>
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+        @ViewModel.StatusMessage
+    </MudAlert>
+</MudPaper>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-2">OCR 文本</MudText>
+            <MudTextField Value="ViewModel.OcrText"
+                          Variant="Variant.Outlined"
+                          Lines="16"
+                          ReadOnly="true" />
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Gemini 回答</MudText>
+            <MudTextField Value="ViewModel.AiResult"
+                          Variant="Variant.Outlined"
+                          Lines="16"
+                          ReadOnly="true" />
+        </MudPaper>
+    </MudItem>
+</MudGrid>

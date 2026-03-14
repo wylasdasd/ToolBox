@@ -1,0 +1,90 @@
+@page "/ocr-regex-extract"
+@namespace ToolBox.Components.Pages.OcrRegexExtract
+@inherits MvvmComponentBase<OcrRegexExtractVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">OCR + 正则提取</MudText>
+    <MudText>支持配置多条正则规则，提取多个字段并输出 JSON。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudTextField @bind-Value="ViewModel.SourceFileName"
+                          Label="图片文件名"
+                          Variant="Variant.Outlined"
+                          HelperText="默认读取 Resources/Raw/111.jpg（打包后文件名为 111.jpg）" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="string" @bind-Value="ViewModel.OcrLanguage" Label="OCR 语言" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("zh-Hans")">中文</MudSelectItem>
+                <MudSelectItem Value="@("en-US")">英文</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudCheckBox @bind-Value="ViewModel.IgnoreCase" Label="IgnoreCase" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudCheckBox @bind-Value="ViewModel.RemoveSpaces" Label="去掉空格" />
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-3" />
+    <MudStack Row="true" Spacing="2" Class="mb-2">
+        <MudText Typo="Typo.h6">正则规则</MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ViewModel.AddRule">新增规则</MudButton>
+    </MudStack>
+
+    <MudTable Items="ViewModel.Rules" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>字段名 Key</MudTh>
+            <MudTh>Regex Pattern</MudTh>
+            <MudTh>操作</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="字段名">
+                <MudTextField @bind-Value="context.Key" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudTd>
+            <MudTd DataLabel="Pattern">
+                <MudTextField @bind-Value="context.Pattern" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudTd>
+            <MudTd DataLabel="操作">
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => ViewModel.RemoveRule(context))">删除</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <MudStack Row="true" Spacing="2" Class="mt-4">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="ViewModel.IsBusy"
+                   OnClick="ViewModel.RunAsync">
+            @(ViewModel.IsBusy ? "处理中..." : "OCR + 正则提取")
+        </MudButton>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+        @ViewModel.StatusMessage
+    </MudAlert>
+</MudPaper>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-2">OCR 文本</MudText>
+            <MudTextField Value="ViewModel.OcrText"
+                          Variant="Variant.Outlined"
+                          Lines="18"
+                          ReadOnly="true" />
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-2">JSON 输出</MudText>
+            <MudTextField Value="ViewModel.JsonResult"
+                          Variant="Variant.Outlined"
+                          Lines="18"
+                          ReadOnly="true" />
+        </MudPaper>
+    </MudItem>
+</MudGrid>
