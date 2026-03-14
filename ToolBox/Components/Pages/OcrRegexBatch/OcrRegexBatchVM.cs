@@ -3,20 +3,16 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Blazing.Mvvm.ComponentModel;
 using CommonTool.FileHelps;
-using CommonTool.StringHelp;
-using ToolBox.Services.Ocr;
 using ToolBox.Services.Picker;
 
 namespace ToolBox.Components.Pages.OcrRegexBatch;
 
 public sealed class OcrRegexBatchVM : ViewModelBase
 {
-    private readonly IImageOcrService _imageOcrService;
     private readonly IFolderPickerService _folderPickerService;
     private string _folderPath = string.Empty;
-    private string _ocrLanguage = "zh-Hans";
     private bool _ignoreCase = true;
-    private bool _removeSpaces;
+    private bool _outputOnlyRegexFields;
     private bool _isBusy;
     private int _processedCount;
     private int _totalCount;
@@ -33,13 +29,11 @@ public sealed class OcrRegexBatchVM : ViewModelBase
     ];
     private List<BatchExtractItem> _results = [];
 
-    private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"];
+    private static readonly string[] TextExtensions = [".txt", ".log", ".csv", ".json", ".xml", ".md"];
 
     public OcrRegexBatchVM(
-        IImageOcrService imageOcrService,
         IFolderPickerService folderPickerService)
     {
-        _imageOcrService = imageOcrService;
         _folderPickerService = folderPickerService;
     }
 
@@ -49,22 +43,16 @@ public sealed class OcrRegexBatchVM : ViewModelBase
         set => SetProperty(ref _folderPath, value);
     }
 
-    public string OcrLanguage
-    {
-        get => _ocrLanguage;
-        set => SetProperty(ref _ocrLanguage, value);
-    }
-
     public bool IgnoreCase
     {
         get => _ignoreCase;
         set => SetProperty(ref _ignoreCase, value);
     }
 
-    public bool RemoveSpaces
+    public bool OutputOnlyRegexFields
     {
-        get => _removeSpaces;
-        set => SetProperty(ref _removeSpaces, value);
+        get => _outputOnlyRegexFields;
+        set => SetProperty(ref _outputOnlyRegexFields, value);
     }
 
     public bool IsBusy
@@ -174,12 +162,12 @@ public sealed class OcrRegexBatchVM : ViewModelBase
 
         var files = Directory
             .EnumerateFiles(FolderPath, "*.*", SearchOption.AllDirectories)
-            .Where(path => ImageExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+            .Where(path => TextExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             .ToList();
 
         if (files.Count == 0)
         {
-            StatusMessage = "未找到图片文件。";
+            StatusMessage = "未找到文本文件。";
             return;
         }
 
@@ -193,7 +181,7 @@ public sealed class OcrRegexBatchVM : ViewModelBase
             ProcessedCount = 0;
             ProgressPercent = 0;
 
-            AppendLog($"开始批量处理，共 {files.Count} 个文件。");
+            AppendLog($"开始批量处理文本文件，共 {files.Count} 个。");
 
             foreach (var file in files)
             {
@@ -201,16 +189,14 @@ public sealed class OcrRegexBatchVM : ViewModelBase
                 try
                 {
                     AppendLog($"[开始] {displayName}");
-                    await using var fs = File.OpenRead(file);
-                    var ocrRaw = await _imageOcrService.RecognizeTextAsync(fs, OcrLanguage);
-                    var normalized = OcrTextNormalizeHelp.NormalizeSymbolsToAscii(ocrRaw, RemoveSpaces);
-                    var extract = ExtractByRules(normalized, _rules, IgnoreCase);
+                    var content = await File.ReadAllTextAsync(file);
+                    var extract = ExtractByRules(content, _rules, IgnoreCase);
 
                     _results.Add(new BatchExtractItem
                     {
                         FileName = displayName,
                         FilePath = file,
-                        OcrText = normalized,
+                        SourceText = content,
                         Extracted = extract.Extracted,
                         Errors = extract.Errors
                     });
@@ -222,7 +208,7 @@ public sealed class OcrRegexBatchVM : ViewModelBase
                     {
                         FileName = displayName,
                         FilePath = file,
-                        OcrText = string.Empty,
+                        SourceText = string.Empty,
                         Extracted = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase),
                         Errors = [new RegexRuleError { Key = "system", Pattern = string.Empty, Error = ex.Message }]
                     });
@@ -233,7 +219,7 @@ public sealed class OcrRegexBatchVM : ViewModelBase
                 ProgressPercent = TotalCount == 0 ? 0 : ProcessedCount * 100d / TotalCount;
             }
 
-            JsonResult = JsonSerializer.Serialize(_results, new JsonSerializerOptions { WriteIndented = true });
+            JsonResult = BuildJsonResult(_results, OutputOnlyRegexFields);
             OnPropertyChanged(nameof(HasResult));
             StatusMessage = $"批量处理完成：{ProcessedCount}/{TotalCount}";
             AppendLog("全部处理完成。");
@@ -261,7 +247,9 @@ public sealed class OcrRegexBatchVM : ViewModelBase
         {
             var fileName = $"ocr_regex_batch_{DateTime.Now:yyyyMMdd_HHmmss}.json";
             var outputPath = Path.Combine(FileSystem.Current.AppDataDirectory, fileName);
-            await FileHelp.WriteAllTextAsync(outputPath, JsonResult, Encoding.UTF8);
+            var json = BuildJsonResult(_results, OutputOnlyRegexFields);
+            JsonResult = json;
+            await FileHelp.WriteAllTextAsync(outputPath, json, Encoding.UTF8);
             StatusMessage = $"JSON 已导出：{outputPath}";
             AppendLog($"[导出] JSON -> {outputPath}");
         }
@@ -284,7 +272,7 @@ public sealed class OcrRegexBatchVM : ViewModelBase
         {
             var fileName = $"ocr_regex_batch_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
             var outputPath = Path.Combine(FileSystem.Current.AppDataDirectory, fileName);
-            var csv = BuildCsv(_results, _rules);
+            var csv = BuildCsv(_results, _rules, OutputOnlyRegexFields);
             // 写入 UTF8 BOM，Excel 打开中文更稳。
             var utf8Bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
             await FileHelp.WriteAllTextAsync(outputPath, csv, utf8Bom);
@@ -346,13 +334,13 @@ public sealed class OcrRegexBatchVM : ViewModelBase
 
         return new RegexExtractionResult
         {
-            Source = "ocr",
+            Source = "text",
             Extracted = extracted,
             Errors = errors
         };
     }
 
-    private static string BuildCsv(IReadOnlyList<BatchExtractItem> data, IReadOnlyList<RegexRuleItem> rules)
+    private static string BuildCsv(IReadOnlyList<BatchExtractItem> data, IReadOnlyList<RegexRuleItem> rules, bool outputOnlyRegexFields)
     {
         var keys = rules
             .Select(rule => (rule.Key ?? string.Empty).Trim())
@@ -361,7 +349,10 @@ public sealed class OcrRegexBatchVM : ViewModelBase
             .ToList();
 
         var sb = new StringBuilder(4096);
-        sb.Append("FileName,FilePath");
+        if (!outputOnlyRegexFields)
+        {
+            sb.Append("FileName,FilePath");
+        }
         foreach (var key in keys)
         {
             sb.Append(',');
@@ -371,9 +362,12 @@ public sealed class OcrRegexBatchVM : ViewModelBase
 
         foreach (var item in data)
         {
-            sb.Append(EscapeCsv(item.FileName));
-            sb.Append(',');
-            sb.Append(EscapeCsv(item.FilePath));
+            if (!outputOnlyRegexFields)
+            {
+                sb.Append(EscapeCsv(item.FileName));
+                sb.Append(',');
+                sb.Append(EscapeCsv(item.FilePath));
+            }
 
             foreach (var key in keys)
             {
@@ -410,13 +404,24 @@ public sealed class OcrRegexBatchVM : ViewModelBase
         var line = $"[{DateTime.Now:HH:mm:ss}] {message}";
         LogText = string.IsNullOrEmpty(LogText) ? line : $"{LogText}{Environment.NewLine}{line}";
     }
+
+    private static string BuildJsonResult(IReadOnlyList<BatchExtractItem> results, bool outputOnlyRegexFields)
+    {
+        if (outputOnlyRegexFields)
+        {
+            var extractedOnly = results.Select(item => item.Extracted).ToList();
+            return JsonSerializer.Serialize(extractedOnly, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        return JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true });
+    }
 }
 
 public sealed class BatchExtractItem
 {
     public string FileName { get; init; } = string.Empty;
     public string FilePath { get; init; } = string.Empty;
-    public string OcrText { get; init; } = string.Empty;
+    public string SourceText { get; init; } = string.Empty;
     public Dictionary<string, List<string>> Extracted { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public List<RegexRuleError> Errors { get; init; } = [];
 }

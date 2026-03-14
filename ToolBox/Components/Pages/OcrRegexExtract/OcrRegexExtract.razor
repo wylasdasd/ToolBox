@@ -11,9 +11,18 @@
     <MudGrid>
         <MudItem xs="12" md="5">
             <MudTextField @bind-Value="ViewModel.SourceFileName"
-                          Label="图片文件名"
+                          Label="图片路径"
                           Variant="Variant.Outlined"
-                          HelperText="默认读取 Resources/Raw/111.jpg（打包后文件名为 111.jpg）" />
+                          ReadOnly="true"
+                          HelperText="优先使用按钮选择本地图片；也支持 Resources/Raw 中的文件名。" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="ViewModel.IsBusy"
+                       OnClick="ViewModel.PickImageAsync">
+                选择图片
+            </MudButton>
         </MudItem>
         <MudItem xs="12" md="3">
             <MudSelect T="string" @bind-Value="ViewModel.OcrLanguage" Label="OCR 语言" Variant="Variant.Outlined">
@@ -27,7 +36,47 @@
         <MudItem xs="12" md="2" Class="d-flex align-center">
             <MudCheckBox @bind-Value="ViewModel.RemoveSpaces" Label="去掉空格" />
         </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudCheckBox @bind-Value="ViewModel.EnableCropRegion" Label="启用区域裁剪" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int" @bind-Value="ViewModel.CropX" Label="X" Variant="Variant.Outlined" Disabled="@(!ViewModel.EnableCropRegion)" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int" @bind-Value="ViewModel.CropY" Label="Y" Variant="Variant.Outlined" Disabled="@(!ViewModel.EnableCropRegion)" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int" @bind-Value="ViewModel.CropWidth" Label="宽" Variant="Variant.Outlined" Disabled="@(!ViewModel.EnableCropRegion)" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int" @bind-Value="ViewModel.CropHeight" Label="高" Variant="Variant.Outlined" Disabled="@(!ViewModel.EnableCropRegion)" />
+        </MudItem>
     </MudGrid>
+
+    <MudPaper Class="pa-3 mt-3" Outlined="true">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudText Typo="Typo.h6">图片预览（裁剪区域可视化）</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ViewModel.LoadPreviewAsync">
+                刷新预览
+            </MudButton>
+        </MudStack>
+        @if (!string.IsNullOrWhiteSpace(ViewModel.ImagePreviewDataUrl))
+        {
+            <div style="overflow:auto;max-height:420px;border:1px solid #E2E8F0;padding:8px;">
+                <div style="position:relative;display:inline-block;">
+                    <img src="@ViewModel.ImagePreviewDataUrl" alt="preview" style="display:block;max-width:none;" />
+                    @if (ViewModel.EnableCropRegion)
+                    {
+                        <div style="position:absolute;border:2px solid #F59E0B;background:rgba(245,158,11,0.18);pointer-events:none;@ViewModel.CropPreviewStyle"></div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">暂无预览，请点击“加载图片预览”或先执行一次识别。</MudText>
+        }
+    </MudPaper>
 
     <MudDivider Class="my-3" />
     <MudStack Row="true" Spacing="2" Class="mb-2">

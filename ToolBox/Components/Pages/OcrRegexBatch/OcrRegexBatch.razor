@@ -3,18 +3,18 @@
 @inherits MvvmComponentBase<OcrRegexBatchVM>
 
 <MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
-    <MudText Typo="Typo.h4">批量 OCR + 正则提取</MudText>
-    <MudText>输入图片文件夹，批量识别并提取，支持导出 Excel(CSV) 与 JSON。</MudText>
+    <MudText Typo="Typo.h4">文本批量正则提取</MudText>
+    <MudText>输入文本文件夹，批量执行正则提取，支持导出 Excel(CSV) 与 JSON。</MudText>
 </MudStack>
 
 <MudPaper Class="pa-4 mb-4">
     <MudGrid>
         <MudItem xs="12" md="8">
             <MudTextField @bind-Value="ViewModel.FolderPath"
-                          Label="图片文件夹路径"
+                          Label="文本文件夹路径"
                           Variant="Variant.Outlined"
                           ReadOnly="true"
-                          HelperText="示例：C:\\data\\imgs（会递归扫描 jpg/png/bmp/tif/webp）" />
+                          HelperText="示例：C:\\data\\logs（会递归扫描 txt/log/csv/json/xml/md）" />
         </MudItem>
         <MudItem xs="12" md="2" Class="d-flex align-center">
             <MudButton Variant="Variant.Outlined"
@@ -24,20 +24,16 @@
                 选择文件夹
             </MudButton>
         </MudItem>
-        <MudItem xs="12" md="2">
-            <MudSelect T="string" @bind-Value="ViewModel.OcrLanguage" Label="OCR 语言" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("zh-Hans")">中文</MudSelectItem>
-                <MudSelectItem Value="@("en-US")">英文</MudSelectItem>
-            </MudSelect>
-        </MudItem>
+
+    </MudGrid>
+    <MudGrid>
         <MudItem xs="12" md="2" Class="d-flex align-center">
             <MudCheckBox @bind-Value="ViewModel.IgnoreCase" Label="IgnoreCase" />
         </MudItem>
         <MudItem xs="12" md="2" Class="d-flex align-center">
-            <MudCheckBox @bind-Value="ViewModel.RemoveSpaces" Label="去掉空格" />
+            <MudCheckBox @bind-Value="ViewModel.OutputOnlyRegexFields" Label="仅输出正则字段" />
         </MudItem>
     </MudGrid>
-
     <MudDivider Class="my-3" />
     <MudStack Row="true" Spacing="2" Class="mb-2">
         <MudText Typo="Typo.h6">正则规则</MudText>
