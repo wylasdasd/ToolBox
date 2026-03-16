@@ -6,183 +6,125 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace ToolBox.Services.Ai;
 
-public sealed class GeminiAskService : IGeminiAskService
+public sealed class SemanticKernelAiAskService : IAiAskService
 {
     private const int MaxAttempts = 4;
     private static readonly TimeSpan BaseBackoffDelay = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan MaxBackoffDelay = TimeSpan.FromSeconds(30);
+    private static readonly Regex ModelIdRegex = new("^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$", RegexOptions.Compiled);
 
-    public async Task<string> AskByOcrAsync(
-        string apiKey,
-        string model,
-        string userPrompt,
-        string ocrText,
-        CancellationToken cancellationToken = default)
+    public async Task<string> AskByOcrAsync(AiAskRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(apiKey))
+        if (request is null)
         {
-            throw new InvalidOperationException("Gemini API Key 未配置。");
+            throw new ArgumentNullException(nameof(request));
         }
 
-        if (string.IsNullOrWhiteSpace(userPrompt))
+        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        {
+            throw new InvalidOperationException($"{AiProviderCatalog.GetDisplayName(request.Provider)} API Key 未配置。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.UserPrompt))
         {
             throw new InvalidOperationException("Prompt 不能为空。");
         }
 
-        if (string.IsNullOrWhiteSpace(ocrText))
+        if (string.IsNullOrWhiteSpace(request.OcrText))
         {
             throw new InvalidOperationException("OCR 文本为空，无法提问。");
         }
 
-        var targetModel = string.IsNullOrWhiteSpace(model) ? "gemini 3 flash" : model.Trim();
-        var modelCandidates = BuildModelCandidates(targetModel);
+        var provider = request.Provider;
+        var providerName = AiProviderCatalog.GetDisplayName(provider);
+        var model = string.IsNullOrWhiteSpace(request.Model)
+            ? AiProviderCatalog.GetDefaultModel(provider)
+            : request.Model.Trim();
+        ValidateModelId(model);
+
         var finalPrompt = $"""
 你会收到一段 OCR 识别文本，请严格基于 OCR 文本回答。
 如果 OCR 文本中没有证据，请明确说“未在 OCR 文本中找到”。
 
 用户要求：
-{userPrompt.Trim()}
+{request.UserPrompt.Trim()}
 
 OCR 文本：
-{ocrText.Trim()}
+{request.OcrText.Trim()}
 """;
 
-        string? lastError = null;
-        foreach (var candidateModel in modelCandidates)
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
         {
-            for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+            try
             {
-                try
+                var result = await AskViaSemanticKernelAsync(
+                    provider,
+                    request.ApiKey.Trim(),
+                    model,
+                    finalPrompt,
+                    cancellationToken);
+
+                if (string.IsNullOrWhiteSpace(result))
                 {
-                    var apiModel = ToApiModelId(candidateModel);
-                    var result = await AskViaSemanticKernelAsync(
-                        apiKey.Trim(),
-                        apiModel,
-                        finalPrompt,
-                        cancellationToken);
-
-                    if (string.IsNullOrWhiteSpace(result))
-                    {
-                        throw new InvalidOperationException("Gemini 返回文本为空。");
-                    }
-
-                    return result.Trim();
+                    throw new InvalidOperationException($"{providerName} 返回文本为空。");
                 }
-                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+
+                return result.Trim();
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                var context = ParseErrorContext(ex);
+                var canRetry = ShouldRetry(context);
+                if (canRetry && attempt < MaxAttempts)
                 {
-                    var context = ParseErrorContext(ex);
-
-                    // 当前模型不存在则尝试下一个候选模型，不在同一模型上继续重试。
-                    if (context.StatusCode == 404)
-                    {
-                        lastError = BuildFriendlyErrorMessage(candidateModel, context, attempt);
-                        break;
-                    }
-
-                    var canRetry = ShouldRetry(context);
-                    if (canRetry && attempt < MaxAttempts)
-                    {
-                        var delay = GetNextDelay(context.RetryDelay, attempt);
-                        await Task.Delay(delay, cancellationToken);
-                        continue;
-                    }
-
-                    throw new InvalidOperationException(
-                        BuildFriendlyErrorMessage(candidateModel, context, attempt),
-                        ex);
+                    var delay = GetNextDelay(context.RetryDelay, attempt);
+                    await Task.Delay(delay, cancellationToken);
+                    continue;
                 }
+
+                throw new InvalidOperationException(
+                    BuildFriendlyErrorMessage(providerName, model, context, attempt),
+                    ex);
             }
         }
 
-        throw new InvalidOperationException(lastError ?? "Gemini 调用失败：达到最大重试次数。");
+        throw new InvalidOperationException($"{providerName} 调用失败：达到最大重试次数。");
     }
 
-    private static IReadOnlyList<string> BuildModelCandidates(string model)
+    private static void ValidateModelId(string model)
     {
-        var candidates = new List<string>();
-        var normalized = NormalizeModelId(model);
-        AddIfNotExists(candidates, normalized);
-        AddIfNotExists(candidates, ToAlternateModelId(normalized));
-
-        // 默认优先 gemini 3 flash（用户输入格式），请求时会自动映射为 API 模型 ID。
-        if (normalized.Equals("gemini 3 flash", StringComparison.OrdinalIgnoreCase))
+        if (!ModelIdRegex.IsMatch(model))
         {
-            AddIfNotExists(candidates, "gemini 2.5 flash");
-
-            AddIfNotExists(candidates, "gemini 2.0 flash");
-     
+            throw new InvalidOperationException(
+                $"模型名不符合 OpenAI Chat Completion 规范：{model}。示例：gpt-4.1-mini、deepseek-chat、gemini-2.5-flash。");
         }
-
-        return candidates;
-    }
-
-    private static void AddIfNotExists(ICollection<string> candidates, string model)
-    {
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            return;
-        }
-
-        if (candidates.Contains(model, StringComparer.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        candidates.Add(model.Trim());
-    }
-
-    private static string NormalizeModelId(string model)
-    {
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            return "gemini 3 flash";
-        }
-
-        var compact = Regex.Replace(model.Trim().ToLowerInvariant(), @"\s+", " ");
-        return compact switch
-        {
-            "gemini-3-flash" => "gemini 3 flash",
-            "gemini-2.5-flash" => "gemini 2.5 flash",
-            "gemini-2-flash" => "gemini 2.0 flash",
-            "gemini-2.0-flash" => "gemini 2.0 flash",
-            _ => compact.Replace("-", " ")
-        };
-    }
-
-    private static string ToAlternateModelId(string model)
-    {
-        // 约束：用户输入模型名统一小写且不含 '-'，不再生成连字符候选。
-        return NormalizeModelId(model);
-    }
-
-    private static string ToApiModelId(string userModel)
-    {
-        if (string.IsNullOrWhiteSpace(userModel))
-        {
-            return "gemini-3-flash";
-        }
-
-        // Gemini OpenAI 兼容接口需要 API 模型 ID，这里把用户输入格式转为接口格式。
-        var normalized = NormalizeModelId(userModel);
-        return normalized.Replace(" ", "-");
     }
 
     private static async Task<string> AskViaSemanticKernelAsync(
+        AiProviderKind provider,
         string apiKey,
         string model,
         string prompt,
         CancellationToken cancellationToken)
     {
         var builder = Kernel.CreateBuilder();
-        // 通过 Gemini 的 OpenAI 兼容端点接入 SK（稳定连接器版本）。
+        var endpoint = AiProviderCatalog.GetEndpoint(provider);
 #pragma warning disable SKEXP0010
-        builder.AddOpenAIChatCompletion(
-            modelId: model,
-            apiKey: apiKey,
-            endpoint: new Uri("https://generativelanguage.googleapis.com/v1beta/openai/"));
+        if (endpoint is null)
+        {
+            builder.AddOpenAIChatCompletion(
+                modelId: model,
+                apiKey: apiKey);
+        }
+        else
+        {
+            builder.AddOpenAIChatCompletion(
+                modelId: model,
+                apiKey: apiKey,
+                endpoint: endpoint);
+        }
 #pragma warning restore SKEXP0010
         var kernel = builder.Build();
-
         var chatService = kernel.Services.GetRequiredService<IChatCompletionService>();
         var chatHistory = new ChatHistory();
         chatHistory.AddUserMessage(prompt);
@@ -194,7 +136,7 @@ OCR 文本：
         return response.Content ?? string.Empty;
     }
 
-    private static bool ShouldRetry(GeminiErrorContext context)
+    private static bool ShouldRetry(ApiErrorContext context)
     {
         if (context.IsQuotaZero)
         {
@@ -222,46 +164,46 @@ OCR 文本：
         return exponential + TimeSpan.FromMilliseconds(jitterMs);
     }
 
-    private static string BuildFriendlyErrorMessage(string model, GeminiErrorContext context, int attempts)
+    private static string BuildFriendlyErrorMessage(string providerName, string model, ApiErrorContext context, int attempts)
     {
         if (context.StatusCode == 429)
         {
             var retryText = TryFormatRetryDelay(context.RetryDelay);
             if (context.IsQuotaZero)
             {
-                return $"Gemini 配额不足：当前 Key/项目在模型 {model} 上可用额度为 0。请检查计费与配额设置。{retryText}";
+                return $"{providerName} 配额不足：当前 Key 在模型 {model} 上可用额度可能为 0。请检查计费与配额设置。{retryText}";
             }
 
-            return $"Gemini 请求过于频繁（429）。已重试 {attempts} 次。{retryText}";
+            return $"{providerName} 请求过于频繁（429）。已重试 {attempts} 次。{retryText}";
         }
 
         if (context.StatusCode == 401 || context.StatusCode == 403)
         {
-            return $"Gemini 鉴权失败（HTTP {context.StatusCode}）。请检查 API Key 是否正确、是否启用 Gemini API、是否有权限访问模型 {model}。";
+            return $"{providerName} 鉴权失败（HTTP {context.StatusCode}）。请检查 API Key 与模型权限：{model}。";
         }
 
         if (context.StatusCode == 404)
         {
-            return $"Gemini 资源不存在（404）。请检查模型名是否可用：当前为 {model}。";
+            return $"{providerName} 资源不存在（404）。请检查模型名是否可用：{model}。";
         }
 
         if (context.StatusCode == 400)
         {
             var detail = string.IsNullOrWhiteSpace(context.Message) ? string.Empty : $" 详情：{context.Message}";
-            return $"Gemini 请求参数错误（400）。已按输入模型 {model} 自动转换为 API 模型 ID 后调用；请检查该模型是否在你的项目中可用，或缩短 Prompt/OCR 文本重试。{detail}";
+            return $"{providerName} 请求参数错误（400）。请确认模型名符合 OpenAI Chat Completion 规范并且服务端可用。{detail}";
         }
 
         if (!string.IsNullOrWhiteSpace(context.Message))
         {
-            return $"Gemini 调用失败：{context.Message}";
+            return $"{providerName} 调用失败：{context.Message}";
         }
 
         if (context.StatusCode.HasValue)
         {
-            return $"Gemini 调用失败：HTTP {context.StatusCode.Value}";
+            return $"{providerName} 调用失败：HTTP {context.StatusCode.Value}";
         }
 
-        return "Gemini 调用失败。";
+        return $"{providerName} 调用失败。";
     }
 
     private static string TryFormatRetryDelay(TimeSpan? retryDelay)
@@ -275,7 +217,7 @@ OCR 文本：
         return $"建议等待 {seconds} 秒后重试。";
     }
 
-    private static GeminiErrorContext ParseErrorContext(Exception ex)
+    private static ApiErrorContext ParseErrorContext(Exception ex)
     {
         var flattened = FlattenException(ex);
         var raw = flattened.Raw;
@@ -284,10 +226,11 @@ OCR 文本：
         var statusCode = ParseStatusCode(raw, message);
         var retryDelay = ParseRetryDelay(raw);
         var isQuotaZero = raw.Contains("limit: 0", StringComparison.OrdinalIgnoreCase)
-            || raw.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase);
+            || raw.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase)
+            || raw.Contains("insufficient_quota", StringComparison.OrdinalIgnoreCase);
 
         var shortMessage = ExtractFirstLine(message);
-        return new GeminiErrorContext
+        return new ApiErrorContext
         {
             StatusCode = statusCode,
             RetryDelay = retryDelay,
@@ -322,7 +265,6 @@ OCR 文本：
             return string.Empty;
         }
 
-        // 过滤过于泛化的外层异常提示，尽量展示底层真实原因。
         foreach (var message in messages)
         {
             if (message.Equals("Service request failed.", StringComparison.OrdinalIgnoreCase))
@@ -384,7 +326,7 @@ OCR 文本：
         return index < 0 ? text.Trim() : text[..index].Trim();
     }
 
-    private sealed class GeminiErrorContext
+    private sealed class ApiErrorContext
     {
         public int? StatusCode { get; init; }
         public TimeSpan? RetryDelay { get; init; }

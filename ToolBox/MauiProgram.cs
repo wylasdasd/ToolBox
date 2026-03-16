@@ -33,8 +33,8 @@ namespace ToolBox
             builder.Services.AddScoped<IImageOcrService, WindowsImageOcrService>();
             builder.Services.AddScoped<IFolderPickerService, FolderPickerService>();
             builder.Services.AddScoped<IImagePickerService, ImagePickerService>();
-            builder.Services.AddScoped<IGeminiApiKeyService, GeminiApiKeyService>();
-            builder.Services.AddScoped<IGeminiAskService, GeminiAskService>();
+            builder.Services.AddScoped<IAiApiKeyService, AiApiKeyService>();
+            builder.Services.AddScoped<IAiAskService, SemanticKernelAiAskService>();
 
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();

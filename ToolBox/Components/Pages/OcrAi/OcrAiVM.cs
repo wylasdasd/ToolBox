@@ -8,28 +8,29 @@ namespace ToolBox.Components.Pages.OcrAi;
 public sealed class OcrAiVM : ViewModelBase
 {
     private readonly IImageOcrService _imageOcrService;
-    private readonly IGeminiApiKeyService _geminiApiKeyService;
-    private readonly IGeminiAskService _geminiAskService;
+    private readonly IAiApiKeyService _aiApiKeyService;
+    private readonly IAiAskService _aiAskService;
 
     private string _sourceFileName = "111.jpg";
     private string _ocrLanguage = "zh-Hans";
-    private string _geminiApiKey = string.Empty;
-    private string _geminiModel = "gemini 3 flash";
+    private AiProviderKind _selectedProvider = AiProviderKind.Gemini;
+    private string _apiKey = string.Empty;
+    private string _model = AiProviderCatalog.GetDefaultModel(AiProviderKind.Gemini);
     private string _prompt = "请基于 OCR 文本提取关键信息，并给出简洁结论。";
     private bool _removeSpaces;
     private string _ocrText = string.Empty;
     private string _aiResult = string.Empty;
-    private string _statusMessage = "请先配置 Gemini API Key。";
+    private string _statusMessage = "请先配置 API Key。";
     private bool _isBusy;
 
     public OcrAiVM(
         IImageOcrService imageOcrService,
-        IGeminiApiKeyService geminiApiKeyService,
-        IGeminiAskService geminiAskService)
+        IAiApiKeyService aiApiKeyService,
+        IAiAskService aiAskService)
     {
         _imageOcrService = imageOcrService;
-        _geminiApiKeyService = geminiApiKeyService;
-        _geminiAskService = geminiAskService;
+        _aiApiKeyService = aiApiKeyService;
+        _aiAskService = aiAskService;
     }
 
     public string SourceFileName
@@ -38,16 +39,33 @@ public sealed class OcrAiVM : ViewModelBase
         set => SetProperty(ref _sourceFileName, value);
     }
 
-    public string GeminiApiKey
+    public AiProviderKind SelectedProvider
     {
-        get => _geminiApiKey;
-        set => SetProperty(ref _geminiApiKey, value);
+        get => _selectedProvider;
+        set
+        {
+            if (!SetProperty(ref _selectedProvider, value))
+            {
+                return;
+            }
+
+            Model = AiProviderCatalog.GetDefaultModel(value);
+            _ = LoadApiKeyForSelectedProviderAsync();
+        }
     }
 
-    public string GeminiModel
+    public string ProviderDisplayName => AiProviderCatalog.GetDisplayName(SelectedProvider);
+
+    public string ApiKey
     {
-        get => _geminiModel;
-        set => SetProperty(ref _geminiModel, value);
+        get => _apiKey;
+        set => SetProperty(ref _apiKey, value);
+    }
+
+    public string Model
+    {
+        get => _model;
+        set => SetProperty(ref _model, value);
     }
 
     public string Prompt
@@ -94,24 +112,19 @@ public sealed class OcrAiVM : ViewModelBase
 
     public override async Task OnInitializedAsync()
     {
-        var saved = await _geminiApiKeyService.GetApiKeyAsync();
-        if (!string.IsNullOrWhiteSpace(saved))
-        {
-            GeminiApiKey = saved;
-            StatusMessage = "已加载保存的 Gemini API Key。";
-        }
+        await LoadApiKeyForSelectedProviderAsync();
     }
 
     public async Task SaveApiKeyAsync()
     {
-        if (string.IsNullOrWhiteSpace(GeminiApiKey))
+        if (string.IsNullOrWhiteSpace(ApiKey))
         {
             StatusMessage = "API Key 不能为空。";
             return;
         }
 
-        await _geminiApiKeyService.SaveApiKeyAsync(GeminiApiKey);
-        StatusMessage = "Gemini API Key 保存成功。";
+        await _aiApiKeyService.SaveApiKeyAsync(SelectedProvider, ApiKey);
+        StatusMessage = $"{ProviderDisplayName} API Key 保存成功。";
     }
 
     public async Task RunOcrAndAskAsync()
@@ -137,18 +150,21 @@ public sealed class OcrAiVM : ViewModelBase
             var recognized = await _imageOcrService.RecognizeTextAsync(imageStream, OcrLanguage);
             OcrText = OcrTextNormalizeHelp.NormalizeSymbolsToAscii(recognized, RemoveSpaces);
 
-            StatusMessage = "OCR 完成，正在调用 Gemini...";
-            var apiKey = await _geminiApiKeyService.GetApiKeyAsync();
+            StatusMessage = $"OCR 完成，正在调用 {ProviderDisplayName}...";
+            var apiKey = await _aiApiKeyService.GetApiKeyAsync(SelectedProvider);
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                apiKey = GeminiApiKey;
+                apiKey = ApiKey;
             }
 
-            var result = await _geminiAskService.AskByOcrAsync(
-                apiKey ?? string.Empty,
-                GeminiModel,
-                Prompt,
-                OcrText);
+            var result = await _aiAskService.AskByOcrAsync(new AiAskRequest
+            {
+                Provider = SelectedProvider,
+                ApiKey = apiKey ?? string.Empty,
+                Model = Model,
+                UserPrompt = Prompt,
+                OcrText = OcrText
+            });
 
             AiResult = result;
             StatusMessage = "处理完成。";
@@ -168,5 +184,19 @@ public sealed class OcrAiVM : ViewModelBase
         {
             IsBusy = false;
         }
+    }
+
+    private async Task LoadApiKeyForSelectedProviderAsync()
+    {
+        var saved = await _aiApiKeyService.GetApiKeyAsync(SelectedProvider);
+        if (!string.IsNullOrWhiteSpace(saved))
+        {
+            ApiKey = saved;
+            StatusMessage = $"已加载保存的 {ProviderDisplayName} API Key。";
+            return;
+        }
+
+        ApiKey = string.Empty;
+        StatusMessage = $"请先配置 {ProviderDisplayName} API Key。";
     }
 }

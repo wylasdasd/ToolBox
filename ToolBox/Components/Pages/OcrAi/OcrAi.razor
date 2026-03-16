@@ -1,10 +1,11 @@
 @page "/ocr-ai"
 @namespace ToolBox.Components.Pages.OcrAi
 @inherits MvvmComponentBase<OcrAiVM>
+@using ToolBox.Services.Ai
 
 <MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
-    <MudText Typo="Typo.h4">Windows OCR + Gemini 分析</MudText>
-    <MudText>使用 Windows 自带 OCR 识别图片文本，再按你的 Prompt 调用 Gemini。</MudText>
+    <MudText Typo="Typo.h4">Windows OCR + 多厂商 AI 分析</MudText>
+    <MudText>使用 Windows OCR 识别文本，再按 OpenAI Chat Completion 风格参数调用 OpenAI / DeepSeek / Gemini。</MudText>
 </MudStack>
 
 <MudPaper Class="pa-4 mb-4">
@@ -25,17 +26,27 @@
             <MudCheckBox @bind-Value="ViewModel.RemoveSpaces" Label="归一化时去掉空格" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudTextField @bind-Value="ViewModel.GeminiModel"
-                          Label="Gemini 模型"
+            <MudSelect T="AiProviderKind"
+                       @bind-Value="ViewModel.SelectedProvider"
+                       Label="AI 厂商"
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="AiProviderKind.OpenAI">OpenAI</MudSelectItem>
+                <MudSelectItem Value="AiProviderKind.DeepSeek">DeepSeek</MudSelectItem>
+                <MudSelectItem Value="AiProviderKind.Gemini">Gemini</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="ViewModel.Model"
+                          Label="模型名"
                           Variant="Variant.Outlined"
-                          HelperText="示例：gemini 3 flash（小写且不含 -）" />
+                          HelperText="按 OpenAI Chat Completion 模型 ID 填写，例如 gpt-4.1-mini / deepseek-chat / gemini-2.5-flash" />
         </MudItem>
         <MudItem xs="12" md="10">
-            <MudTextField @bind-Value="ViewModel.GeminiApiKey"
-                          Label="Gemini API Key"
+            <MudTextField @bind-Value="ViewModel.ApiKey"
+                          Label="@($"{ViewModel.ProviderDisplayName} API Key")"
                           Variant="Variant.Outlined"
                           InputType="InputType.Password"
-                          HelperText="由独立配置服务保存，可供其他页面复用" />
+                          HelperText="按厂商分别安全保存，可供当前页面复用" />
         </MudItem>
         <MudItem xs="12" md="2" Class="d-flex align-center">
             <MudButton Variant="Variant.Outlined"
@@ -77,7 +88,7 @@
     </MudItem>
     <MudItem xs="12" md="6">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Gemini 回答</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">AI 回答</MudText>
             <MudTextField Value="ViewModel.AiResult"
                           Variant="Variant.Outlined"
                           Lines="16"
