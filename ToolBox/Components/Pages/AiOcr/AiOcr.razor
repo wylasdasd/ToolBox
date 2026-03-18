@@ -1,0 +1,118 @@
+@page "/ai-ocr"
+@namespace ToolBox.Components.Pages.AiOcr
+@inherits MvvmComponentBase<AiOcrVM>
+@using ToolBox.Services.Ai
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">第三方 AI OCR</MudText>
+    <MudText>上传或选择图片，使用 OpenAI / DeepSeek / Gemini 的 OpenAI 兼容接口直接识别文本。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" md="9">
+            <MudTextField @bind-Value="ViewModel.SourceFileName"
+                          Label="图片路径"
+                          Variant="Variant.Outlined"
+                          HelperText="优先使用按钮选择本地图片；也支持 Resources/Raw 中的文件名。" />
+        </MudItem>
+        <MudItem xs="12" md="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="ViewModel.IsBusy"
+                       OnClick="ViewModel.PickImageAsync">
+                选择图片
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="AiProviderKind"
+                       @bind-Value="ViewModel.SelectedProvider"
+                       Label="AI 厂商"
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="AiProviderKind.OpenAI">OpenAI</MudSelectItem>
+                <MudSelectItem Value="AiProviderKind.DeepSeek">DeepSeek</MudSelectItem>
+                <MudSelectItem Value="AiProviderKind.Gemini">Gemini</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        @if (ViewModel.SelectedProvider == AiProviderKind.DeepSeek)
+        {
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Warning" Dense="true">
+                    DeepSeek 当前 OpenAI 兼容 Chat Completions 接口不支持图片输入（image_url），本页无法直接做 AI OCR。
+                </MudAlert>
+            </MudItem>
+        }
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="ViewModel.Model"
+                          Label="模型名"
+                          Variant="Variant.Outlined"
+                          HelperText="请填写支持图片输入的模型 ID，例如 gpt-4.1-mini / gemini-2.5-flash。" />
+        </MudItem>
+        <MudItem xs="12" md="10">
+            <MudTextField @bind-Value="ViewModel.ApiKey"
+                          Label="@($"{ViewModel.ProviderDisplayName} API Key")"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          HelperText="按厂商分别保存，可在本页复用。" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="ViewModel.IsBusy"
+                       OnClick="ViewModel.SaveApiKeyAsync">
+                保存 Key
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="ViewModel.Prompt"
+                          Label="OCR 指令"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          HelperText="可以要求返回纯文本、保留换行、按表格整理等。" />
+        </MudItem>
+    </MudGrid>
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="ViewModel.IsBusy"
+                   OnClick="ViewModel.RunAiOcrAsync">
+            @(ViewModel.IsBusy ? "处理中..." : "AI OCR 识别")
+        </MudButton>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Disabled="ViewModel.IsBusy"
+                   OnClick="ViewModel.LoadPreviewAsync">
+            加载图片预览
+        </MudButton>
+    </MudStack>
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+        @ViewModel.StatusMessage
+    </MudAlert>
+</MudPaper>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-2">图片预览</MudText>
+            @if (string.IsNullOrWhiteSpace(ViewModel.ImagePreviewDataUrl))
+            {
+                <MudText Typo="Typo.body2">暂无预览，请先选择图片或点击“加载图片预览”。</MudText>
+            }
+            else
+            {
+                <img src="@ViewModel.ImagePreviewDataUrl"
+                     alt="preview"
+                     style="max-width:100%;max-height:420px;object-fit:contain;border:1px solid #E2E8F0;border-radius:8px;" />
+            }
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-2">OCR 文本</MudText>
+            <MudTextField Value="ViewModel.OcrText"
+                          Variant="Variant.Outlined"
+                          Lines="16"
+                          ReadOnly="true" />
+        </MudPaper>
+    </MudItem>
+</MudGrid>

@@ -21,7 +21,25 @@
                     <MudTextField Label="任务名称" Variant="Variant.Outlined" Immediate="true" @bind-Value="ViewModel.NewTaskName" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField Label="引用程序集" Variant="Variant.Outlined" Immediate="true" @bind-Value="ViewModel.ReferenceInput" />
+                    <MudTextField Label="引用程序集名称（支持多个）"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  Immediate="true"
+                                  @bind-Value="ViewModel.ReferenceInput"
+                                  HelperText="可用逗号、分号或换行分隔多个程序集名，例如：System.Text.Json, System.Data" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="引用 DLL 路径（每行一个）"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  Immediate="true"
+                                  @bind-Value="ViewModel.ReferencePaths"
+                                  HelperText="用于加载本地或第三方 DLL 完整路径，例如：D:\\libs\\MyCompany.Tools.dll" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                        区别说明：程序集名称用于系统可解析的库（无需路径，跨机器更稳）；DLL 路径用于本地自定义库（按文件精确加载）。
+                    </MudAlert>
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField Label="任务代码"
@@ -118,6 +136,19 @@
             <MudText Typo="Typo.h6" Class="mb-2">任务日志（ID: @ViewModel.SelectedTaskId）</MudText>
             <pre class="log-panel">@ViewModel.SelectedTaskLogText</pre>
         </MudPaper>
+
+        @if (ViewModel.ActiveReferences.Count > 0)
+        {
+            <MudPaper Class="pa-4 mt-3" Elevation="1">
+                <MudText Typo="Typo.h6" Class="mb-2">已加载引用</MudText>
+                <MudChipSet T="string" ReadOnly="true">
+                    @foreach (var reference in ViewModel.ActiveReferences)
+                    {
+                        <MudChip T="string" Variant="Variant.Outlined">@reference</MudChip>
+                    }
+                </MudChipSet>
+            </MudPaper>
+        }
     </MudItem>
 </MudGrid>
 

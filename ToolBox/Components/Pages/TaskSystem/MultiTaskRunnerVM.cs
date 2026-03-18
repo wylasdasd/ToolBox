@@ -26,6 +26,8 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         """;
     private int? _selectedTaskId;
     private string _referenceInput = "System.Text.Json";
+    private string _referencePaths = string.Empty;
+    private IReadOnlyList<string> _activeReferences = Array.Empty<string>();
     private CancellationTokenSource? _schedulerCts;
     private string _globalLogText = string.Empty;
     private string _selectedTaskLogText = string.Empty;
@@ -59,6 +61,18 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     {
         get => _referenceInput;
         set => SetProperty(ref _referenceInput, value);
+    }
+
+    public string ReferencePaths
+    {
+        get => _referencePaths;
+        set => SetProperty(ref _referencePaths, value);
+    }
+
+    public IReadOnlyList<string> ActiveReferences
+    {
+        get => _activeReferences;
+        private set => SetProperty(ref _activeReferences, value);
     }
 
     public int? SelectedTaskId
@@ -367,6 +381,29 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             }
         }
 
+        foreach (var path in ParseReferencePaths(ReferencePaths))
+        {
+            if (!File.Exists(path))
+            {
+                AppendGlobalLog($"[Ref] Skip missing dll: {path}");
+                continue;
+            }
+
+            try
+            {
+                refs.Add(Assembly.LoadFrom(path));
+            }
+            catch (Exception ex)
+            {
+                AppendGlobalLog($"[Ref] Failed to load dll: {path} ({ex.Message})");
+            }
+        }
+
+        ActiveReferences = refs
+            .Distinct()
+            .Select(a => a.FullName ?? a.GetName().Name ?? a.ToString())
+            .ToArray();
+
         return ScriptOptions.Default
             .WithImports(
                 "System",
@@ -417,6 +454,19 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
 
         return value
             .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToArray();
+    }
+
+    private static IReadOnlyList<string> ParseReferencePaths(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Array.Empty<string>();
+        }
+
+        return value
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .ToArray();
     }

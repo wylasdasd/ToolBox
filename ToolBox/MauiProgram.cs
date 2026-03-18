@@ -35,6 +35,7 @@ namespace ToolBox
             builder.Services.AddScoped<IImagePickerService, ImagePickerService>();
             builder.Services.AddScoped<IAiApiKeyService, AiApiKeyService>();
             builder.Services.AddScoped<IAiAskService, SemanticKernelAiAskService>();
+            builder.Services.AddScoped<IAiOcrService, OpenAiCompatAiOcrService>();
 
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();

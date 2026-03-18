@@ -45,4 +45,13 @@ public static class AiProviderCatalog
             _ => null
         };
     }
+
+    public static bool SupportsImageInChatCompletions(AiProviderKind provider)
+    {
+        return provider switch
+        {
+            AiProviderKind.DeepSeek => false,
+            _ => true
+        };
+    }
 }

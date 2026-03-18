@@ -3,39 +3,50 @@
 <MudNavMenu>
     <MudText Typo="Typo.h6" Align="Align.Center">ToolBox</MudText>
     <MudDivider />
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
 
+    <MudNavGroup title="AI 与 OCR" Icon="@Icons.Material.Filled.AutoAwesome" Expanded="true">
+        <MudNavLink Href="ocr-ai" Icon="@Icons.Material.Filled.DocumentScanner">OCR + AI 分析</MudNavLink>
+        <MudNavLink Href="ai-ocr" Icon="@Icons.Material.Filled.ImageSearch">第三方 AI OCR</MudNavLink>
+        <MudNavLink Href="ocr-regex-extract" Icon="@Icons.Material.Filled.Rule">OCR + 正则提取</MudNavLink>
+        <MudNavLink Href="ocr-regex-batch" Icon="@Icons.Material.Filled.BatchPrediction">文本正则批量处理</MudNavLink>
+    </MudNavGroup>
 
-    <MudNavLink Href="csharp-run" Icon="@Icons.Material.Filled.Code">C# Runner</MudNavLink>
-    <MudNavLink Href="multi-task-runner" Icon="@Icons.Material.Filled.Queue">多任务系统</MudNavLink>
-
-    <MudNavGroup title="网络" Icon="@Icons.Material.Filled.Public" Expanded="true">
+    <MudNavGroup title="网络调试" Icon="@Icons.Material.Filled.Public" Expanded="true">
         <MudNavLink Href="request-to-curl" Icon="@Icons.Material.Filled.SwapHoriz">请求转 cURL</MudNavLink>
         <MudNavLink Href="socket-tool" Icon="@Icons.Material.Filled.SettingsEthernet">Socket 测试</MudNavLink>
         <MudNavLink Href="websocket-tool" Icon="@Icons.Material.Filled.Wifi">WebSocket 测试</MudNavLink>
     </MudNavGroup>
+
+    <MudNavGroup title="文本处理" Icon="@Icons.Material.Filled.EditNote" Expanded="true">
+        <MudNavLink Href="text-lines" Icon="@Icons.Material.Filled.FormatListBulleted">文本整理</MudNavLink>
+        <MudNavLink Href="regex" Icon="@Icons.Material.Filled.Search">正则匹配</MudNavLink>
+        <MudNavLink Href="diff" Icon="@Icons.Material.Filled.Difference">文本差异对比</MudNavLink>
+        <MudNavLink Href="clipboard-sequence" Icon="@Icons.Material.Filled.Keyboard">剪贴板固定序列输入</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup title="编码与安全" Icon="@Icons.Material.Filled.Lock" Expanded="true">
+        <MudNavLink Href="base64" Icon="@Icons.Material.Filled.SwapHoriz">Base64 编解码</MudNavLink>
+        <MudNavLink Href="url-codec" Icon="@Icons.Material.Filled.Link">URL 编解码</MudNavLink>
+        <MudNavLink Href="jwt" Icon="@Icons.Material.Filled.Key">JWT 解析</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup title="格式与生成" Icon="@Icons.Material.Filled.DataObject" Expanded="true">
+        <MudNavLink Href="json-format" Icon="@Icons.Material.Filled.DataObject">JSON 格式化/压缩</MudNavLink>
+        <MudNavLink Href="json-to-csharp" Icon="@Icons.Material.Filled.IntegrationInstructions">JSON 转 C# Model</MudNavLink>
+        <MudNavLink Href="timestamp" Icon="@Icons.Material.Filled.Schedule">时间戳转换</MudNavLink>
+        <MudNavLink Href="uuid" Icon="@Icons.Material.Filled.Fingerprint">UUID/GUID 批量生成</MudNavLink>
+        <MudNavLink Href="base64-image" Icon="@Icons.Material.Filled.Image">Base64 图片预览</MudNavLink>
+        <MudNavLink Href="svg-preview" Icon="@Icons.Material.Filled.ImageSearch">SVG 预览</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup title="开发效率" Icon="@Icons.Material.Filled.Code" Expanded="true">
+        <MudNavLink Href="csharp-run" Icon="@Icons.Material.Filled.Code">C# Runner</MudNavLink>
+        <MudNavLink Href="multi-task-runner" Icon="@Icons.Material.Filled.Queue">多任务系统</MudNavLink>
+    </MudNavGroup>
+
     <MudNavGroup title="计算工具" Icon="@Icons.Material.Filled.Calculate" Expanded="true">
         <MudNavLink Href="bitwise" Icon="@Icons.Material.Filled.Memory">位运算</MudNavLink>
         <MudNavLink Href="struct-layout" Icon="@Icons.Material.Filled.ViewModule">结构体内存布局</MudNavLink>
         <MudNavLink Href="converters" Icon="@Icons.Material.Filled.CompareArrows">常用转换</MudNavLink>
-    </MudNavGroup>
-
-    <MudNavGroup title="文本工具" Icon="@Icons.Material.Filled.Build" Expanded="true">
-        <MudNavLink Href="ocr-ai" Icon="@Icons.Material.Filled.DocumentScanner">OCR + AI 分析</MudNavLink>
-        <MudNavLink Href="ocr-regex-extract" Icon="@Icons.Material.Filled.Rule">OCR + 正则提取</MudNavLink>
-        <MudNavLink Href="ocr-regex-batch" Icon="@Icons.Material.Filled.BatchPrediction">文本正则批量处理</MudNavLink>
-        <MudNavLink Href="text-lines" Icon="@Icons.Material.Filled.FormatListBulleted">文本整理</MudNavLink>
-        <MudNavLink Href="regex" Icon="@Icons.Material.Filled.Search">正则匹配</MudNavLink>
-        <MudNavLink Href="base64" Icon="@Icons.Material.Filled.SwapHoriz">Base64 编解码</MudNavLink>
-        <MudNavLink Href="url-codec" Icon="@Icons.Material.Filled.Link">URL 编解码</MudNavLink>
-        <MudNavLink Href="jwt" Icon="@Icons.Material.Filled.Key">JWT 解析</MudNavLink>
-        <MudNavLink Href="timestamp" Icon="@Icons.Material.Filled.Schedule">时间戳转换</MudNavLink>
-        <MudNavLink Href="json-format" Icon="@Icons.Material.Filled.DataObject">JSON 格式化/压缩</MudNavLink>
-        <MudNavLink Href="json-to-csharp" Icon="@Icons.Material.Filled.IntegrationInstructions">JSON 转 C# Model</MudNavLink>
-        <MudNavLink Href="uuid" Icon="@Icons.Material.Filled.Fingerprint">UUID或GUID批量生成生成</MudNavLink>
-        <MudNavLink Href="diff" Icon="@Icons.Material.Filled.Difference">文本差异对比</MudNavLink>
-        <MudNavLink Href="base64-image" Icon="@Icons.Material.Filled.Image">Base64 图片预览</MudNavLink>
-        <MudNavLink Href="svg-preview" Icon="@Icons.Material.Filled.ImageSearch">SVG 预览</MudNavLink>
-        <MudNavLink Href="clipboard-sequence" Icon="@Icons.Material.Filled.Keyboard">剪贴板固定序列输入</MudNavLink>
     </MudNavGroup>
 </MudNavMenu>
