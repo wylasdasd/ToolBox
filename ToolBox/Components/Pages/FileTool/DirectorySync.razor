@@ -1,0 +1,106 @@
+@page "/directory-sync"
+@namespace ToolBox.Components.Pages.FileTool
+@inherits MvvmComponentBase<DirectorySyncVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">目录同步</MudText>
+    <MudText>Windows 下的单向目录同步，适合把源目录镜像到目标目录。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudTextField @bind-Value="ViewModel.SourcePath"
+                          Label="源目录"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          HelperText="示例：C:\\work\\source" />
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="ViewModel.IsBusy"
+                       OnClick="ViewModel.PickSourceFolderAsync">
+                选择源目录
+            </MudButton>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudTextField @bind-Value="ViewModel.TargetPath"
+                          Label="目标目录"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          HelperText="示例：D:\\backup\\source-mirror" />
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="ViewModel.IsBusy"
+                       OnClick="ViewModel.PickTargetFolderAsync">
+                选择目标目录
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+        <MudCheckBox @bind-Value="ViewModel.DeleteExtraFiles" Label="删除目标目录中多余文件" />
+        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Warning">单向同步：源 -> 目标</MudChip>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined" Class="mt-3">
+        为避免误操作，源目录和目标目录不能相同，也不能互相嵌套。
+    </MudAlert>
+
+    <MudStack Row="true" Spacing="2" Class="mt-4">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Secondary"
+                   Disabled="ViewModel.IsBusy"
+                   OnClick="ViewModel.PreviewAsync">
+            预检查
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="ViewModel.IsBusy"
+                   OnClick="ViewModel.SyncAsync">
+            @(ViewModel.IsBusy ? "同步中..." : "开始同步")
+        </MudButton>
+    </MudStack>
+
+    <MudProgressLinear Class="mt-3" Color="Color.Primary" Value="ViewModel.ProgressPercent" />
+    <MudText Typo="Typo.caption" Class="mt-1">
+        进度：@ViewModel.ProgressPercent.ToString("0.##")% ，已复制/覆盖 @ViewModel.CopiedFiles 个，已删除 @ViewModel.DeletedFiles 个，已写入 @ViewModel.CopiedBytes.ToString("N0") 字节
+    </MudText>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+        @ViewModel.StatusMessage
+    </MudAlert>
+</MudPaper>
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">预检查结果</MudText>
+            <MudText>@ViewModel.PreviewSummary</MudText>
+
+            @if (ViewModel.HasPreview && ViewModel.Preview is not null)
+            {
+                <MudList T="string" Dense="true" Class="mt-3">
+                    <MudListItem T="string">源文件数：@ViewModel.Preview.SourceFileCount</MudListItem>
+                    <MudListItem T="string">目标文件数：@ViewModel.Preview.TargetFileCount</MudListItem>
+                    <MudListItem T="string">待复制/覆盖：@ViewModel.Preview.FilesToCopyCount</MudListItem>
+                    <MudListItem T="string">待删除：@ViewModel.Preview.FilesToDeleteCount</MudListItem>
+                    <MudListItem T="string">预计写入：@ViewModel.Preview.EstimatedCopyBytes.ToString("N0") 字节</MudListItem>
+                </MudList>
+            }
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">同步日志</MudText>
+            <MudTextField Value="ViewModel.LogText"
+                          Variant="Variant.Outlined"
+                          Lines="18"
+                          ReadOnly="true" />
+        </MudPaper>
+    </MudItem>
+</MudGrid>

@@ -5,6 +5,7 @@ using DiffPlex;
 using DiffPlex.DiffBuilder;
 using MudBlazor.Services;
 using ToolBox.Services.Ai;
+using ToolBox.Services.DirectorySync;
 using ToolBox.Services.Ocr;
 using ToolBox.Services.Picker;
 
@@ -32,6 +33,7 @@ namespace ToolBox
             builder.Services.AddScoped<IDiffer, Differ>();
             builder.Services.AddScoped<IImageOcrService, WindowsImageOcrService>();
             builder.Services.AddScoped<IFolderPickerService, FolderPickerService>();
+            builder.Services.AddScoped<IDirectorySyncService, DirectorySyncService>();
             builder.Services.AddScoped<IImagePickerService, ImagePickerService>();
             builder.Services.AddScoped<IAiApiKeyService, AiApiKeyService>();
             builder.Services.AddScoped<IAiAskService, SemanticKernelAiAskService>();
