@@ -2,19 +2,49 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "ToolBox (Windows)",
+            "name": ".NET MAUI Windows (ToolBox)",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build ToolBox (Windows)",
+            "preLaunchTask": "build",
             "program": "${workspaceFolder}/ToolBox/bin/Debug/net10.0-windows10.0.19041.0/win-x64/ToolBox.exe",
-            "cwd": "${workspaceFolder}/ToolBox/bin/Debug/net10.0-windows10.0.19041.0/win-x64",
+            "args": [],
+            "cwd": "${workspaceFolder}/ToolBox",
+            "console": "internalConsole",
             "stopAtEntry": false
         },
         {
-            "name": "ToolBox (Attach)",
+            "name": "Cursor: .NET MAUI Windows (ToolBox)",
             "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}"
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/ToolBox/ToolBox.csproj",
+                "-f",
+                "net10.0-windows10.0.19041.0",
+                "--no-build"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": ".NET Core Launch (console) - Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tests",
+            "program": "${workspaceFolder}/TestCommonHelp/bin/Debug/net10.0/TestCommonHelp.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/TestCommonHelp",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach"
         }
     ]
 }

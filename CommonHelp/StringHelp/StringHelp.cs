@@ -43,20 +43,10 @@ namespace CommonTool.StringHelp
             if (!File.Exists(filePath))
                 return (0, 0);
 
+            var countCharacters = encoding == null;
             encoding ??= Encoding.UTF8;
-            long lines = 0;
-            long count = 0;
-            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var sr = new StreamReader(fs, encoding);
-            string? line;
-            while ((line = sr.ReadLine()) != null)
-            {
-                lines++;
-                count += encoding.GetByteCount(line) + encoding.GetByteCount(Environment.NewLine);
-            }
-
-            // 如果文件非空且没有换行结尾，上面的逻辑已正确统计每行；如果需要仅统计内容字节数可以另外返回
-            return (lines, count);
+            var text = File.ReadAllText(filePath, encoding);
+            return (CountLogicalLines(text), countCharacters ? text.Length : encoding.GetByteCount(text));
         }
 
         /// <summary>
@@ -66,21 +56,38 @@ namespace CommonTool.StringHelp
         {
             if (!File.Exists(filePath))
                 return 0;
+
+            var countCharacters = encoding == null;
             encoding ??= Encoding.UTF8;
-            // 更高效的方式是按块读取并累加字节数
-            long total = 0;
-            var buffer = new char[8192];
-            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var sr = new StreamReader(fs, encoding);
-            int read;
-            while ((read = sr.Read(buffer, 0, buffer.Length)) > 0)
+            var text = File.ReadAllText(filePath, encoding);
+            return countCharacters ? text.Length : encoding.GetByteCount(text);
+        }
+
+        private static long CountLogicalLines(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return 0;
+
+            long lines = 1;
+            for (var i = 0; i < text.Length; i++)
             {
-                if (encoding == null)
-                    total += read;
-                else
-                    total += encoding.GetByteCount(buffer, 0, read);
+                if (text[i] == '\r')
+                {
+                    lines++;
+                    if (i + 1 < text.Length && text[i + 1] == '\n')
+                    {
+                        i++;
+                    }
+                    continue;
+                }
+
+                if (text[i] == '\n')
+                {
+                    lines++;
+                }
             }
-            return total;
+
+            return lines;
         }
     }
 }

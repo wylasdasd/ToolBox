@@ -23,20 +23,20 @@ namespace CommonTool.FileHelps
         /// </summary>
         public sealed class AtomicFileHandle<T> : IDisposable where T : class
         {
-            private readonly string _filePath;
             private readonly object _fileLock;
             private FileStream _stream;
             private bool _committed;
+            private bool _disposed;
 
-            public T Data { get; }
+            public T? Data { get; }
 
-            internal AtomicFileHandle(string filePath, object fileLock, FileStream stream, T data)
+            internal AtomicFileHandle(object fileLock, FileStream stream, T? data)
             {
-                _filePath = filePath;
                 _fileLock = fileLock;
                 _stream = stream;
                 Data = data;
                 _committed = false;
+                _disposed = false;
             }
 
             /// <summary>
@@ -44,6 +44,8 @@ namespace CommonTool.FileHelps
             /// </summary>
             public void Commit()
             {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+
                 if (_committed) return;
 
                 try
@@ -58,7 +60,7 @@ namespace CommonTool.FileHelps
                     // 截断并写入
                     _stream.SetLength(0);
                     _stream.Seek(0, SeekOrigin.Begin);
-                    JsonSerializer.Serialize(_stream, Data.JsonSeToLow(), options);
+                    JsonSerializer.Serialize(_stream, Data, options);
                     _stream.Flush();
                     _committed = true;
                 }
@@ -70,6 +72,11 @@ namespace CommonTool.FileHelps
 
             public void Dispose()
             {
+                if (_disposed)
+                {
+                    return;
+                }
+
                 try
                 {
                     if (_stream != null)
@@ -80,8 +87,9 @@ namespace CommonTool.FileHelps
                 }
                 finally
                 {
+                    _disposed = true;
                     // 释放进程内锁
-                    try { System.Threading.Monitor.Exit(_fileLock); } catch { }
+                    System.Threading.Monitor.Exit(_fileLock);
                 }
             }
         }
@@ -111,6 +119,7 @@ namespace CommonTool.FileHelps
         /// </summary>
         public static AtomicFileHandle<T> ReadAtomic<T>(string filePath) where T : class
         {
+            FileHelp.EnsureDirectoryExists(filePath);
             var fileLock = fileLocks.GetOrAdd(filePath, _ => new object());
             // 获取进程内的监视器锁并保持，直到 handle 被释放
             System.Threading.Monitor.Enter(fileLock);
@@ -118,7 +127,7 @@ namespace CommonTool.FileHelps
             try
             {
                 stream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-                T data;
+                T? data;
                 var options1 = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true,
@@ -135,7 +144,7 @@ namespace CommonTool.FileHelps
                 }
 
                 // 构造并返回句柄（句柄负责最终的写回与释放锁）
-                return new AtomicFileHandle<T>(filePath, fileLock, stream, data);
+                return new AtomicFileHandle<T>(fileLock, stream, data);
             }
             catch
             {
@@ -164,7 +173,7 @@ namespace CommonTool.FileHelps
             };
             // 使用独占打开，仅在写入期间阻止其他访问
             using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            JsonSerializer.Serialize(stream, data.JsonSeToLow(), options);
+            JsonSerializer.Serialize(stream, data, options);
             stream.Flush();
         }
 

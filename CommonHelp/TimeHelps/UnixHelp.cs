@@ -80,8 +80,10 @@
 
         // 将外部传入的秒戳转为本地时间
         public DateTime ConvertToLocal(long unixSeconds)
-            => DateTimeOffset.FromUnixTimeSeconds(unixSeconds)
-                               .ToOffset(timeProvider.LocalTimeZone.GetUtcOffset(DateTimeOffset.UtcNow))
-                               .DateTime;
+        {
+            var utcTime = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+            var localTime = TimeZoneInfo.ConvertTime(utcTime, timeProvider.LocalTimeZone);
+            return localTime.DateTime;
+        }
     }
 }

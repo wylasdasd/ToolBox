@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build ToolBox (Windows)",
+            "label": "build",
             "type": "process",
             "command": "dotnet",
             "args": [
@@ -12,6 +12,19 @@
                 "Debug",
                 "-f",
                 "net10.0-windows10.0.19041.0"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "build-tests",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "TestCommonHelp/TestCommonHelp.csproj",
+                "-c",
+                "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"

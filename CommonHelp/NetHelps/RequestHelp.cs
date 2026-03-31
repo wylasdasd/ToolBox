@@ -1,7 +1,6 @@
 ﻿using global::CommonTool.JsonHelps;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text;
 
 namespace CommonTool.NetHelps
@@ -17,7 +16,7 @@ namespace CommonTool.NetHelps
         /// <param name="body"></param>
         /// <param name="action">修改请求头</param>
         /// <returns></returns>
-        public static async Task<int> SendRequestAsync(string url, string body, Action<HttpRequestHeaders> action)
+        public static async Task<int> SendRequestAsync(string url, string body, Action<HttpRequestHeaders>? action = null)
         {
             // 1. 创建请求消息对象，指明方法和地址
             using var request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -26,7 +25,7 @@ namespace CommonTool.NetHelps
             //request.Headers.Add("X-Custom-Header", "client");
             //request.Headers.Add("Authorization", "Bearer token_here");
 
-            action.Invoke(request.Headers);
+            action?.Invoke(request.Headers);
 
             // 3. 设置内容
             request.Content = new StringContent(body, Encoding.UTF8, "application/json");
@@ -84,14 +83,14 @@ namespace CommonTool.NetHelps
             }
             catch (OperationCanceledException)
             {
-                logger.LogError("在请求里面捕获 OperationCanceledException");
+                logger.LogError("PostRequestAsync timed out or was canceled.");
                 // 3. 专门捕获超时异常
 
                 return default;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "在请求里面捕获 OperationCanceledException");
+                logger.LogError(ex, "PostRequestAsync failed.");
                 return default;
             }
         }
@@ -127,12 +126,12 @@ namespace CommonTool.NetHelps
             }
             catch (OperationCanceledException)
             {
-                // 3. 专门捕获超时异常
-                throw;
-                //return default;
+                logger.LogError("PutRequestAsync timed out or was canceled.");
+                return default;
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "PutRequestAsync failed.");
                 return default;
             }
         }
@@ -167,14 +166,14 @@ namespace CommonTool.NetHelps
             }
             catch (OperationCanceledException)
             {
-                logger.LogError("在请求里面捕获 OperationCanceledException");
+                logger.LogError("DeleteRequestAsync timed out or was canceled.");
                 // 3. 专门捕获超时异常
 
                 return default;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "在请求里面捕获 OperationCanceledException");
+                logger.LogError(ex, "DeleteRequestAsync failed.");
                 return default;
             }
         }
@@ -209,14 +208,14 @@ namespace CommonTool.NetHelps
             }
             catch (OperationCanceledException)
             {
-                logger.LogError("在请求里面捕获 OperationCanceledException");
+                logger.LogError("GetRequestAsync timed out or was canceled.");
                 // 3. 专门捕获超时异常
 
                 return default;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "在请求里面捕获 OperationCanceledException");
+                logger.LogError(ex, "GetRequestAsync failed.");
                 return default;
             }
         }

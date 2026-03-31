@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace CommonHelp.WindowsHelp;
+namespace CommonTool.WindowsHelp;
 
 public static class KeyboardInputHelp
 {

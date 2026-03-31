@@ -18,4 +18,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CommonHelp\CommonHelp.csproj" />
+  </ItemGroup>
+
 </Project>
