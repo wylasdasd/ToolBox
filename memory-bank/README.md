@@ -10,6 +10,7 @@
 - `techContext.md`：技术栈、构建运行命令、环境依赖
 - `activeContext.md`：当前工作焦点、最近改动、下一步
 - `progress.md`：里程碑、变更日志、待办项
+- `token消耗结论.md`：C# vs React+TS 的 AI token 消耗分析与文献综述
 
 ## 建议使用方式
 

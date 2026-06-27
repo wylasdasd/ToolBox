@@ -1,0 +1,113 @@
+@namespace ToolBox.Components.Pages.Converters
+@inherits MvvmComponentBase<UnitConverterVM>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.body2" Class="mb-2">
+            程序员常用单位换算；网络类区分 <strong>bit/s</strong>（带宽标称）与 <strong>Byte/s</strong>（吞吐/下载速度），存储区分 <strong>IEC 1024</strong> 与 <strong>SI 1000</strong>。
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudSelect T="string" @bind-Value="ViewModel.CategoryId" Label="类别" Variant="Variant.Outlined" Dense="true">
+            @foreach (var cat in ViewModel.CategoryList)
+            {
+                <MudSelectItem Value="@cat.Id">@cat.Label</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudTextField @bind-Value="ViewModel.Input" Label="数值" Variant="Variant.Outlined" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudSelect T="string" @bind-Value="ViewModel.FromUnitId" Label="输入单位" Variant="Variant.Outlined" Dense="true">
+            @foreach (var unit in ViewModel.CurrentCategory.Units)
+            {
+                <MudSelectItem Value="@unit.Id">@unit.Label</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudText Typo="Typo.caption">@ViewModel.CurrentCategory.BaseHint</MudText>
+        @if (!string.IsNullOrEmpty(ViewModel.NetworkHint))
+        {
+            <MudText Typo="Typo.caption" Class="mt-1">@ViewModel.NetworkHint</MudText>
+        }
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="true">
+            <thead>
+                <tr>
+                    <th>单位</th>
+                    <th>换算结果</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in ViewModel.ConversionRows)
+                {
+                    <tr class="@(row.IsActive ? "mud-theme-primary" : null)" style="@(row.IsActive ? "font-weight:600" : null)">
+                        <td>@row.Label</td>
+                        <td>@row.Value</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ViewModel.ClearInput">清空</MudButton>
+    </MudItem>
+
+    @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Error">@ViewModel.ErrorMessage</MudAlert>
+        </MudItem>
+    }
+
+    <MudItem xs="12" Class="mt-4">
+        <MudDivider Class="mb-4" />
+        <MudText Typo="Typo.h6" GutterBottom="true">传输时间估算</MudText>
+        <MudText Typo="Typo.caption" Class="mb-3">
+            文件大小 ÷ 带宽 → 耗时（理论值，未计 TCP 开销）。例：100 MB @@ 100 Mbps ≈ 8 s。
+        </MudText>
+        <MudGrid>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="ViewModel.FileSize" Label="文件大小" Variant="Variant.Outlined" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect T="string" @bind-Value="ViewModel.FileSizeUnitId" Label="大小单位" Variant="Variant.Outlined" Dense="true">
+                    @foreach (var u in ViewModel.FileSizeUnits)
+                    {
+                        <MudSelectItem Value="@u.Id">@u.Label</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="ViewModel.Bandwidth" Label="带宽" Variant="Variant.Outlined" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect T="string" @bind-Value="ViewModel.BandwidthUnitId" Label="带宽单位" Variant="Variant.Outlined" Dense="true">
+                    @foreach (var u in ViewModel.BandwidthUnits)
+                    {
+                        <MudSelectItem Value="@u.Id">@u.Label</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    预计耗时：<strong>@(string.IsNullOrEmpty(ViewModel.TransferTime) ? "—" : ViewModel.TransferTime)</strong>
+                </MudAlert>
+            </MudItem>
+        </MudGrid>
+    </MudItem>
+</MudGrid>
+
+@code {
+    protected override void OnInitialized()
+    {
+        ViewModel.RecalculateTransferTime();
+    }
+}

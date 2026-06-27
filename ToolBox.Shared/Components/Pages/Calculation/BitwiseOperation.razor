@@ -16,8 +16,13 @@
             <MudRadio Value="64" Color="Color.Primary">64-bit</MudRadio>
         </MudRadioGroup>
     </MudItem>
-    <MudItem xs="12" md="6" Class="d-flex align-center">
+    <MudItem xs="12" md="6" Class="d-flex flex-column justify-center">
         <MudSwitch @bind-Value="ViewModel.IsSigned" Label="Signed Mode (有符号)" Color="Color.Primary" />
+        <MudText Typo="Typo.caption" Class="mt-1">
+            开启：按 n 位<strong>二进制补码</strong>解释；<strong>符号位在最高位</strong>（如 8-bit 为 bit 7，左侧第一位；MSB=1 表示负数）。
+            A/B/Result 十进制按有符号显示；SHR_A 右移时左侧补符号位。
+            关闭：MSB 仅作数值高位，按无符号 0～2ⁿ−1 显示；SHR_A 等同逻辑右移。
+        </MudText>
     </MudItem>
 
     <!-- Operand A -->
@@ -84,6 +89,17 @@
                     </div>
                 </MudItem>
             </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mt-4">Operand C（移位量）</MudText>
+            <MudGrid>
+                <MudItem xs="6" md="4">
+                    <MudTextField @bind-Value="ViewModel.OperandCDisplay"
+                                  Label="Decimal（0～位宽，用于 SHL / SHR）"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Number"
+                                  Immediate="true" />
+                </MudItem>
+            </MudGrid>
         </MudPaper>
     </MudItem>
 
@@ -103,15 +119,20 @@
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="4">
             <MudText Typo="Typo.h6">Result</MudText>
-            <MudText >
-            左移 (SHL):高位丢弃，低位补 0。数学上相当于乘以 $2^n$。
-            算术右移 (SHR_A):低位丢弃，高位补符号位（正数补 0，负数补 1）。保证了数值的符号不变，数学上相当于除以 $2^n$。
-            逻辑右移(SHR_L):低位丢弃，高位一律补 0。在 C# 中通常需要先转成 ulong 处理。
-            </MudText>
+            <MudStack Row="true" Spacing="2" Class="mb-3 flex-wrap">
             <MudButton Variant="@(ViewModel.SelectedOperation == "NOT" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation("NOT"))">NOT (~)</MudButton>
             <MudButton Variant="@(ViewModel.SelectedOperation == "SHL" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation2("SHL"))">SHL (&lt;&lt;)</MudButton>
             <MudButton Variant="@(ViewModel.SelectedOperation == "SHR_A" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation2("SHR_A"))">SHR Arith (&gt;&gt;)</MudButton>
             <MudButton Variant="@(ViewModel.SelectedOperation == "SHR_L" ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(() => ViewModel.SetOperation2("SHR_L"))">SHR Log (&gt;&gt;&gt;)</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => ViewModel.ResetShiftFromA())">重置移位（恢复初始 A）</MudButton>
+            </MudStack>
+            <MudText Typo="Typo.caption" Class="mb-3" Style="line-height: 1.6;">
+                移位可<strong>叠加</strong>：每次点击移位按钮，对当前 <strong>Result</strong> 再移一次（如 (A&gt;&gt;&gt;C)&gt;&gt;C&lt;&lt;C）；首次从 A 开始。「重置移位」恢复为<strong>本链开始时</strong>的 A 值（非再移一次）；修改 A/C 也会更新初始值并恢复。<br />
+                <strong>C</strong> 为移位量 n；AND/OR/XOR 使用 A、B。<br />
+                <strong>左移 SHL (&lt;&lt;)</strong>：右侧补 0，超出位宽的高位丢弃；无溢出时等价于 ×2ⁿ。<em>逻辑左移与算术左移位操作相同。</em><br />
+                <strong>算术右移 SHR_A (&gt;&gt;)</strong>：有符号模式下左侧补符号位（如 -3&gt;&gt;1 = -2）；无符号模式下与逻辑右移相同（等同 C# <code>uint &gt;&gt;</code>）。<br />
+                <strong>逻辑右移 SHR_L (&gt;&gt;&gt;)</strong>：左侧一律补 0（等同 C# 无符号右移；有符号 -3 得 126 而非 -2）。
+            </MudText>
             <MudGrid>
                 <MudItem xs="12">
                      <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center">@ViewModel.ResultDisplay</MudText>

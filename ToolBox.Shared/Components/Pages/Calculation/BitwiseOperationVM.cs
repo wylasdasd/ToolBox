@@ -5,12 +5,18 @@ namespace ToolBox.Components.Pages.Calculation;
 
 public partial class BitwiseOperationVM : ViewModelBase
 {
-    private int _bitWidth = 32;
+    private int _bitWidth = 8;
     private bool _isSigned = true;
     private long _operandA = 0;
     private long _operandB = 0;
+    private int _operandC = 1;
     private long _result = 0;
     private string _selectedOperation = "AND";
+    private bool _shiftChainActive;
+    private long _shiftBaseValue;
+    private bool _shiftBaseCaptured;
+
+    private static bool IsShiftOp(string op) => op is "SHL" or "SHR_A" or "SHR_L";
 
     public int BitWidth
     {
@@ -19,8 +25,9 @@ public partial class BitwiseOperationVM : ViewModelBase
         {
             if (SetProperty(ref _bitWidth, value))
             {
+                if (_operandC > value) OperandC = value;
                 MaskValues();
-                Calculate();
+                OnShiftInputsChanged();
             }
         }
     }
@@ -32,10 +39,12 @@ public partial class BitwiseOperationVM : ViewModelBase
         {
             if (SetProperty(ref _isSigned, value))
             {
-                Calculate();
-                OnPropertyChanged(nameof(OperandADisplay));
-                OnPropertyChanged(nameof(OperandBDisplay));
-                OnPropertyChanged(nameof(ResultDisplay));
+                MaskValues();
+                if (IsShiftOp(SelectedOperation))
+                    OnShiftInputsChanged();
+                else
+                    Calculate();
+                NotifyAllDisplayProperties();
             }
         }
     }
@@ -48,7 +57,7 @@ public partial class BitwiseOperationVM : ViewModelBase
             if (SetProperty(ref _operandA, value))
             {
                 MaskValues();
-                Calculate();
+                OnShiftInputsChanged();
             }
         }
     }
@@ -131,13 +140,45 @@ public partial class BitwiseOperationVM : ViewModelBase
         }
     }
 
+    /// <summary>Shift amount for SHL / SHR_A / SHR_L (manual input, not bit-masked).</summary>
+    public int OperandC
+    {
+        get => _operandC;
+        set
+        {
+            int clamped = Math.Clamp(value, 0, BitWidth);
+            if (SetProperty(ref _operandC, clamped))
+            {
+                OnPropertyChanged(nameof(OperandCDisplay));
+                OnShiftInputsChanged();
+            }
+        }
+    }
+
+    public string OperandCDisplay
+    {
+        get => _operandC.ToString();
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            if (int.TryParse(value.Trim(), out int val))
+                OperandC = val;
+        }
+    }
+
     public string SelectedOperation
     {
         get => _selectedOperation;
         set
         {
-            if (SetProperty(ref _selectedOperation, value))
+            if (!SetProperty(ref _selectedOperation, value))
+                return;
+
+            if (IsShiftOp(value))
+                ApplyShift(fromResult: _shiftChainActive);
+            else
             {
+                ResetShiftChain();
                 Calculate();
             }
         }
@@ -194,15 +235,32 @@ public partial class BitwiseOperationVM : ViewModelBase
         long signBit = 1L << (BitWidth - 1);
         if ((value & signBit) != 0)
         {
-            // Negative number, extend sign
             long mask = GetMask();
             return value | ~mask;
         }
-        else
-        {
-            // Positive number, mask to ensure upper bits are 0
-            return value & GetMask();
-        }
+
+        return value & GetMask();
+    }
+
+    private long NormalizeResult(long res, bool signExtendWhenSigned = true)
+    {
+        res &= GetMask();
+        if (IsSigned && signExtendWhenSigned)
+            res = SignExtend(res);
+        return res;
+    }
+
+    private void NotifyAllDisplayProperties()
+    {
+        OnPropertyChanged(nameof(OperandADisplay));
+        OnPropertyChanged(nameof(OperandBDisplay));
+        OnPropertyChanged(nameof(OperandABinary));
+        OnPropertyChanged(nameof(OperandBBinary));
+        OnPropertyChanged(nameof(OperandAHex));
+        OnPropertyChanged(nameof(OperandBHex));
+        OnPropertyChanged(nameof(ResultDisplay));
+        OnPropertyChanged(nameof(ResultBinary));
+        OnPropertyChanged(nameof(ResultHex));
     }
 
     private string FormatValue(long value)
@@ -249,7 +307,7 @@ public partial class BitwiseOperationVM : ViewModelBase
     private string FormatHex(long value)
     {
         long maskedValue = value & GetMask();
-        return "0x" + maskedValue.ToString("X");
+        return maskedValue.ToString("X");
     }
 
     public void ToggleBitA(int bitIndex)
@@ -269,69 +327,139 @@ public partial class BitwiseOperationVM : ViewModelBase
     public bool GetBitB(int index) => (OperandB & (1L << index)) != 0;
     public bool GetBitResult(int index) => (Result & (1L << index)) != 0;
 
+    private void ResetShiftChain() => _shiftChainActive = false;
+
+    private void CaptureShiftBase()
+    {
+        _shiftBaseValue = OperandA & GetMask();
+        _shiftBaseCaptured = true;
+    }
+
+    private void RestoreShiftBaseToResult()
+    {
+        Result = NormalizeResult(_shiftBaseValue);
+    }
+
+    /// <summary>Restore Result to the value of A when the current shift chain started.</summary>
+    public void ResetShiftFromA()
+    {
+        if (!IsShiftOp(SelectedOperation)) return;
+        if (!_shiftBaseCaptured)
+            CaptureShiftBase();
+        ResetShiftChain();
+        RestoreShiftBaseToResult();
+    }
+
+    private void OnShiftInputsChanged()
+    {
+        if (IsShiftOp(SelectedOperation))
+        {
+            CaptureShiftBase();
+            ResetShiftChain();
+            RestoreShiftBaseToResult();
+        }
+        else
+            Calculate();
+    }
+
+    private void ApplyShift(bool fromResult)
+    {
+        if (!fromResult)
+            CaptureShiftBase();
+
+        long mask = GetMask();
+        int shiftAmount = Math.Clamp(OperandC, 0, BitWidth);
+        long input = fromResult ? Result & mask : OperandA & mask;
+
+        long res = SelectedOperation switch
+        {
+            "SHL" => ShiftLeft(input, shiftAmount, mask),
+            "SHR_A" => IsSigned
+                ? ShiftRightArithmetic(input, shiftAmount, mask)
+                : ShiftRightLogical(input, shiftAmount, mask),
+            "SHR_L" => ShiftRightLogical(input, shiftAmount, mask),
+            _ => input,
+        };
+
+        if (IsSigned && SelectedOperation is "SHR_A" or "SHL")
+            Result = NormalizeResult(res);
+        else
+            Result = NormalizeResult(res, signExtendWhenSigned: false);
+
+        _shiftChainActive = true;
+    }
+
     private void Calculate()
     {
-        long a = OperandA;
-        long b = OperandB;
-        
-        // Mask inputs for calculation just in case
-        long mask = GetMask();
-        
-        // For shift operations, B is usually small (0-63)
-        int shiftAmount = (int)(b & 0x3F); // Limit shift to 63
-        
-        long res = 0;
-        
-        switch (SelectedOperation)
+        if (IsShiftOp(SelectedOperation))
         {
-            case "AND":
-                res = a & b;
-                break;
-            case "OR":
-                res = a | b;
-                break;
-            case "XOR":
-                res = a ^ b;
-                break;
-            case "NOT": // Unary on A
-                res = ~Result;
-                break;
-            case "SHL": // <<
-                res = Result << shiftAmount;
-             
-                break;
-            case "SHR_A": // >> Arithmetic (Signed)
-                // If we want arithmetic shift, we must cast to correct signed type
-                // But long is signed 64-bit.
-                // If BitWidth < 64, we need to ensure sign bit is respected.
-                // Our SignExtend(a) ensures 'a' has correct sign bits set up to 64-bit.
-                // So (a >> shiftAmount) works for arithmetic shift if 'a' is sign-extended correctly.
-                res = SignExtend(Result) >> shiftAmount;
-                break;
-            case "SHR_L": // >>> Logical (Unsigned)
-                // Treat as unsigned, shift, then mask result
-                ulong ua = (ulong)(Result & mask);
-                res = (long)(ua >> shiftAmount);
-                break;
+            if (!_shiftChainActive)
+                ApplyShift(fromResult: false);
+            return;
         }
-        
-        // Mask result to fit bit width
-        Result = res & mask;
-        
-        // If operation is NOT, we usually just show result. 
-        // If Signed, result might need sign extension for display consistency, 
-        // but 'Result' property stores raw bits (masked).
+
+        long mask = GetMask();
+        long am = OperandA & mask;
+        long bm = OperandB & mask;
+        if (IsSigned)
+        {
+            am = SignExtend(am);
+            bm = SignExtend(bm);
+        }
+
+        long res = SelectedOperation switch
+        {
+            "AND" => am & bm,
+            "OR" => am | bm,
+            "XOR" => am ^ bm,
+            "NOT" => ~(am & mask),
+            _ => 0,
+        };
+
+        Result = NormalizeResult(res);
+    }
+
+    private long ShiftLeft(long value, int shift, long mask)
+    {
+        if (shift >= BitWidth) return 0;
+        return (value & mask) << shift & mask;
+    }
+
+    private long ShiftRightLogical(long value, int shift, long mask)
+    {
+        if (shift >= BitWidth) return 0;
+        return (long)((ulong)(value & mask) >> shift);
+    }
+
+    private long ShiftRightArithmetic(long value, int shift, long mask)
+    {
+        if (shift >= BitWidth)
+        {
+            long msb = 1L << (BitWidth - 1);
+            return (value & msb) != 0 ? mask : 0;
+        }
+
+        long bits = value & mask;
+        long msbBit = 1L << (BitWidth - 1);
+        ulong u = (ulong)bits >> shift;
+        if ((bits & msbBit) != 0)
+        {
+            ulong uMask = BitWidth == 64 ? ulong.MaxValue : (ulong)mask;
+            u |= uMask ^ (uMask >> shift);
+        }
+
+        return BitWidth == 64 ? (long)u : (long)(u & (ulong)mask);
     }
     
     // UI Commands
     public void SetOperation(string op) => SelectedOperation = op;
 
     
-    public void SetOperation2(string op) 
-     {
-        if(SelectedOperation!=op)
+    public void SetOperation2(string op)
+    {
+        if (SelectedOperation != op)
             SelectedOperation = op;
-        else 
-            Calculate();
-     }
+        else
+            ApplyShift(fromResult: _shiftChainActive);
+    }
 }
