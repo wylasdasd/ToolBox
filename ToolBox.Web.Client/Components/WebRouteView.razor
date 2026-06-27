@@ -1,0 +1,16 @@
+@namespace ToolBox.Web.Client.Components
+@using ToolBox.Components.Pages
+@using BlazorRouteData = Microsoft.AspNetCore.Components.RouteData
+
+@if (RouteData is not null && WebRouteRegistry.IsEnabled(RouteData))
+{
+    <RouteView RouteData="RouteData" DefaultLayout="typeof(Layout.WebMainLayout)" />
+}
+else
+{
+    <NotFound />
+}
+
+@code {
+    [Parameter] public BlazorRouteData? RouteData { get; set; }
+}

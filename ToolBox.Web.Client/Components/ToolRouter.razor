@@ -1,0 +1,10 @@
+@namespace ToolBox.Web.Client.Components
+
+<Router AppAssembly="typeof(ToolBox.Components.Routes).Assembly"
+        AdditionalAssemblies="new[] { typeof(ToolBox.Web.Client._Imports).Assembly }"
+        NotFoundPage="typeof(ToolBox.Components.Pages.NotFound)">
+    <Found Context="routeData">
+        <WebRouteView RouteData="routeData" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

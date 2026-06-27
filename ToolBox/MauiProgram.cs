@@ -1,11 +1,10 @@
 using Microsoft.Extensions.Logging;
 
 using Blazing.Mvvm;
-using DiffPlex;
-using DiffPlex.DiffBuilder;
-using MudBlazor.Services;
+using ToolBox.Services;
 using ToolBox.Services.Ai;
 using ToolBox.Services.DirectorySync;
+using ToolBox.Services.MauiPlatform;
 using ToolBox.Services.Ocr;
 using ToolBox.Services.Picker;
 
@@ -15,6 +14,8 @@ namespace ToolBox
     {
         public static MauiApp CreateMauiApp()
         {
+            MauiPlatformFileAccess.Register();
+
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
@@ -24,17 +25,13 @@ namespace ToolBox
                 });
 
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddMudServices();
-            builder.Services.AddMvvm(options =>
-            {
-                options.HostingModelType = BlazorHostingModelType.HybridMaui;
-            });
-            builder.Services.AddScoped<ISideBySideDiffBuilder, SideBySideDiffBuilder>();
-            builder.Services.AddScoped<IDiffer, Differ>();
+            builder.Services.AddToolBoxCore(BlazorHostingModelType.HybridMaui);
             builder.Services.AddScoped<IImageOcrService, WindowsImageOcrService>();
             builder.Services.AddScoped<IFolderPickerService, FolderPickerService>();
             builder.Services.AddScoped<IDirectorySyncService, DirectorySyncService>();
             builder.Services.AddScoped<IImagePickerService, ImagePickerService>();
+            builder.Services.AddScoped<IClipboardService, MauiClipboardService>();
+            builder.Services.AddSingleton<IDefaultRouteProvider, MauiDefaultRouteProvider>();
             builder.Services.AddScoped<IAiApiKeyService, AiApiKeyService>();
             builder.Services.AddScoped<IAiAskService, SemanticKernelAiAskService>();
             builder.Services.AddScoped<IAiOcrService, OpenAiCompatAiOcrService>();

@@ -1,4 +1,8 @@
 <Solution>
   <Project Path="CommonHelp/CommonHelp.csproj" />
+  <Project Path="ToolBox.Shared/ToolBox.Shared.csproj" />
   <Project Path="ToolBox/ToolBox.csproj" />
+  <Project Path="ToolBox.Web/ToolBox.Web.csproj" />
+  <Project Path="ToolBox.Web.Client/ToolBox.Web.Client.csproj" />
+  <Project Path="TestCommonHelp/TestCommonHelp.csproj" />
 </Solution>

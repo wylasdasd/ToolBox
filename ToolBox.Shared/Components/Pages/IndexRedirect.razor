@@ -1,0 +1,11 @@
+@page "/"
+@namespace ToolBox.Components.Pages
+@inject NavigationManager Navigation
+@inject IDefaultRouteProvider DefaultRouteProvider
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo(DefaultRouteProvider.DefaultRoute, replace: true);
+    }
+}

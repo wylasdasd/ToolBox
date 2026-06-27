@@ -1,16 +1,21 @@
 # ToolBox：Agent 约定
 
 ## 仓库结构
-- `ToolBox/`：.NET MAUI Blazor 应用（Razor 组件位于 `ToolBox/Components/`）
+- `ToolBox/`：.NET MAUI Blazor 应用（平台专属服务与 MAUI 壳）
+- `ToolBox.Shared/`：共享 Razor 组件、ViewModel、服务接口
+- `ToolBox.Web/`：Blazor Web App（SSR + Interactive WASM，ASP.NET Core 宿主）
+- `ToolBox.Web.Client/`：Web WASM 客户端与浏览器平台服务
 - `CommonHelp/`：共享类库
 
 ## 构建
-- Windows 快速构建：`dotnet build ToolBox/ToolBox.csproj -c Debug -f net10.0-windows10.0.19041.0`
-- 构建整个解决方案：`dotnet build ToolBox/ToolBox.slnx -c Debug`
+- Windows MAUI 快速构建：`dotnet build ToolBox/ToolBox.csproj -c Debug -f net10.0-windows10.0.19041.0`
+- Web 本地运行：`dotnet run --project ToolBox.Web/ToolBox.Web.csproj`
+- Web 发布：`dotnet publish ToolBox.Web/ToolBox.Web.csproj -c Release -o ./publish/web`
+- 构建整个解决方案：`dotnet build ToolBox.slnx -c Debug`
 
 ## 约定
 - C# 命名空间与 `RootNamespace`（`ToolBox`）及目录结构保持一致
-- Razor 组件命名空间与 `ToolBox/Components/**` 目录保持一致（例如 `ToolBox.Components.Pages`）
+- Razor 组件命名空间与 `ToolBox.Shared/Components/**` 目录保持一致（例如 `ToolBox.Components.Pages`）
 - 优先复用现有 `CommonHelp` 代码；避免随手新增零散工具函数；确需新增请放在 `CommonHelp/` 下
 - 组件与 VM 同目录：所有 Blazor 组件（`.razor`）及其对应的 ViewModel 必须放在同一个文件夹下，禁止跨目录存放
   - ViewModel 文件名必须以 `VM.cs` 结尾（例如 `Counter.razor` → `CounterVM.cs`）
