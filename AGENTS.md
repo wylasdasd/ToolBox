@@ -1,25 +1,39 @@
 # ToolBox：Agent 约定
 
 ## 仓库结构
+
 - `ToolBox/`：.NET MAUI Blazor 应用（平台专属服务与 MAUI 壳）
-- `ToolBox.Shared/`：共享 Razor 组件、ViewModel、服务接口
-- `ToolBox.Web/`：Blazor Web App（SSR + Interactive WASM，ASP.NET Core 宿主）
-- `ToolBox.Web.Client/`：Web WASM 客户端与浏览器平台服务
+- `ToolBox.Shared/`：共享 Razor 组件、ViewModel、服务接口、`AddToolBoxCore()`
+- `ToolBox.Web/`：Blazor Web App 宿主（SSR 壳、`Program.cs`）
+- `ToolBox.Web.Client/`：WASM 客户端、Web 路由/布局、浏览器平台服务
 - `CommonHelp/`：共享类库
+- `TestCommonHelp/`：CommonHelp 单元测试
 
 ## 构建
+
 - Windows MAUI 快速构建：`dotnet build ToolBox/ToolBox.csproj -c Debug -f net10.0-windows10.0.19041.0`
 - Web 本地运行：`dotnet run --project ToolBox.Web/ToolBox.Web.csproj`
 - Web 发布：`dotnet publish ToolBox.Web/ToolBox.Web.csproj -c Release -o ./publish/web`
 - 构建整个解决方案：`dotnet build ToolBox.slnx -c Debug`
 
+## Web 架构要点
+
+- **SSR 壳**：`ToolBox.Web/Components/App.razor`（HTML、CSS/JS、`HeadOutlet`，无 `@rendermode`）
+- **WASM 交互**：`<ToolRouter @rendermode="InteractiveWebAssembly" />` 及其子树（含 Shared 工具页）
+- Shared **不是 WASM 专属**；MAUI 通过 WebView 引用 Shared，Web 通过 Client 引用 Shared
+- **禁止**在 Shared 页面使用 `@rendermode`（会破坏 MAUI Hybrid）
+- Web 交互组件（`ToolRouter`、`WebRouteView`、`WebMainLayout`、`WebNavMenu`）必须在 `ToolBox.Web.Client`
+- Web 开放路由由 `ToolBox.Web.Client/WebRouteRegistry.cs` 白名单控制；新增 Web 工具需同步更新
+
 ## 约定
+
 - C# 命名空间与 `RootNamespace`（`ToolBox`）及目录结构保持一致
 - Razor 组件命名空间与 `ToolBox.Shared/Components/**` 目录保持一致（例如 `ToolBox.Components.Pages`）
 - 优先复用现有 `CommonHelp` 代码；避免随手新增零散工具函数；确需新增请放在 `CommonHelp/` 下
 - 组件与 VM 同目录：所有 Blazor 组件（`.razor`）及其对应的 ViewModel 必须放在同一个文件夹下，禁止跨目录存放
   - ViewModel 文件名必须以 `VM.cs` 结尾（例如 `Counter.razor` → `CounterVM.cs`）
   - 推荐使用 `partial class`（分部类）或依赖注入方式，将 ViewModel 与 `.razor` 视图解耦
+- 平台差异通过 `ToolBox.Shared/Services/` 接口抽象；MAUI 在 `ToolBox/Services/` 实装，Web 在 `ToolBox.Web.Client/Services/` 实装或 stub
 - 避免无关格式化；尽量保持现有编码/换行风格
 
 ## 主题与布局
@@ -41,4 +55,5 @@
 
 
 ## 安全
+
 - 未明确要求时，不要随意新增/删除 NuGet 包或安装工作负载（workloads）

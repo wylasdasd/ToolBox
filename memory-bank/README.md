@@ -1,6 +1,6 @@
 # Memory Bank
 
-该目录用于沉淀长期上下文，参考 Cline 常见的 Memory Bank 工作流。
+该目录用于沉淀 ToolBox 项目的长期上下文，参考 Cline 常见的 Memory Bank 工作流。当前项目包含 MAUI（全功能）与 Blazor Web App（子集）双交付形态，架构细节见 `systemPatterns.md` 与 `techContext.md`。
 
 ## 文件说明
 
