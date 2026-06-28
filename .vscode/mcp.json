@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "toolbox": {
+      "type": "stdio",
+      "command": "C:/Program Files/dotnet/dotnet.exe",
+      "args": [
+        "C:/a_code/work2/ToolBox/ToolBox.Mcp/bin/Release/net10.0/ToolBox.Mcp.dll"
+      ]
+    }
+  }
+}

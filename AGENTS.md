@@ -6,6 +6,8 @@
 - `ToolBox.Shared/`：共享 Razor 组件、ViewModel、服务接口、`AddToolBoxCore()`
 - `ToolBox.Web/`：Blazor Web App 宿主（SSR 壳、`Program.cs`）
 - `ToolBox.Web.Client/`：WASM 客户端、Web 路由/布局、浏览器平台服务
+- `ToolBox.Tools/`：可复用工具 Service 层（VM 与 MCP 共用）
+- `ToolBox.Mcp/`：本地 stdio MCP Server（见 `ToolBox.Mcp/README.md`）
 - `CommonHelp/`：共享类库
 - `TestCommonHelp/`：CommonHelp 单元测试
 
@@ -313,6 +315,51 @@ AddToolBoxWeb(WebApp);
 | Text Secondary | ![#475569](https://via.placeholder.com/15/475569/475569.png) | `#475569` |
 | Divider | ![#E2E8F0](https://via.placeholder.com/15/E2E8F0/E2E8F0.png) | `#E2E8F0` |
 
+
+## MCP（toolbox）
+
+本地 stdio MCP Server 见 `ToolBox.Mcp/README.md`。项目级 MCP 配置（同一 dll）：
+
+| 编辑器 | 配置文件 |
+| :--- | :--- |
+| Cursor | [`.cursor/mcp.json`](.cursor/mcp.json) |
+| VS Code Copilot | [`.vscode/mcp.json`](.vscode/mcp.json) |
+| Cline | [`.cline/mcp.json`](.cline/mcp.json) |
+| Codex | [`.codex/config.toml`](.codex/config.toml) |
+
+Cursor 中服务器标识为 **`user-toolbox`**（设置界面可能显示为 `toolbox`）；Cline / Copilot / Codex 一般为 **`toolbox`**。
+
+### Agent 必须走 MCP 的场景
+
+下列任务**禁止**在回复里手算、手写等价逻辑或「猜」结果；应调用 `user-toolbox` MCP（先读工具 schema，再 `CallMcpTool`）：
+
+| 领域 | 典型任务 |
+| :--- | :--- |
+| 编码 | Base64、URL、JWT 解析、文本↔Hex |
+| 文本 | 命名风格转换、正则匹配/替换、多行处理、文本 diff |
+| 格式 | JSON 格式化/压缩/校验/JSONPath、JSON/YAML/XML/TOML/CSV 互转、JSON→C# |
+| 网络 | Cron 解析、IPv4 子网、大小端、HTTP→curl/PowerShell（无出站 HTTP） |
+| 计算 | 进制、Unix 时间戳、颜色、单位换算、传输时间、位运算、struct 布局 |
+| 生成 | UUID/GUID |
+
+**不必用 MCP**：改代码、读仓库、跑 build/test、目录同步、OCR、AI 对话等 MCP 未暴露的能力。
+
+### 调用约定
+
+1. 调用前读取 `mcps/user-toolbox/tools/<tool>.json` 确认参数名与必填项。
+2. 失败时若返回以 `ERROR:` 开头，原样告知用户或换合法输入重试；不要在对话里绕过 Service 重算。
+3. 修改 `ToolBox.Tools` 或 `ToolBox.Mcp` 后需 `dotnet build ToolBox.Mcp/ToolBox.Mcp.csproj -c Release`，并在 Cursor MCP 面板 Refresh。
+4. 分类级操作细则见 [`.agents/skills/`](.agents/skills/) 下各 `toolbox-*` Skill（Cline 副本： [`.cline/skills/`](.cline/skills/)）。
+
+### 如何使用 Skill
+
+| 方式 | 做法 |
+| :--- | :--- |
+| **自动** | 在 ToolBox 仓库开 Agent，直接说任务（如「格式化这段 JSON」）；匹配到 Skill 的 description 时 Agent 会读取并走 MCP。 |
+| **点名** | 对话里写 `@toolbox-format`、`@toolbox-encoding` 等，或说「按 toolbox 编码 skill 处理」。 |
+| **总览** | 不确定用哪个时 @`toolbox-mcp`，或说「走 toolbox MCP」。 |
+
+Skill 的 **`name` 必须是英文 slug**（如 `toolbox-format`）；正文标题用中文。真源目录 **`.agents/skills/`**；Cline 使用 **`.cline/skills/`** 副本（需与真源同步维护）。
 
 ## 安全
 

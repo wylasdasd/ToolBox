@@ -1,0 +1,6 @@
+# ToolBox 项目级 Codex 配置（需在 Codex 中信任本项目）
+# MCP 与 .cursor/mcp.json、.vscode/mcp.json、.cline/mcp.json 指向同一 dll
+
+[mcp_servers.toolbox]
+command = "C:/Program Files/dotnet/dotnet.exe"
+args = ["C:/a_code/work2/ToolBox/ToolBox.Mcp/bin/Release/net10.0/ToolBox.Mcp.dll"]
