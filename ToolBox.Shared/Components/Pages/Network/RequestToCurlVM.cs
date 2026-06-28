@@ -110,7 +110,11 @@ public sealed class RequestToCurlVM : ViewModelBase
     public string? ResponseStatusCode
     {
         get => _responseStatusCode;
-        private set => SetProperty(ref _responseStatusCode, value);
+        private set
+        {
+            if (SetProperty(ref _responseStatusCode, value))
+                OnPropertyChanged(nameof(IsResponseSuccessful));
+        }
     }
 
     public string? ResponseHeaders
