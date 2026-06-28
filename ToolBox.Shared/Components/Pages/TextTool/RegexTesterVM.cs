@@ -20,6 +20,7 @@ public sealed class RegexTesterVM : ViewModelBase
     private int _matchCount;
     private IReadOnlyList<TextSegment> _segments = Array.Empty<TextSegment>();
     private IReadOnlyList<GroupMatch> _groupMatches = Array.Empty<GroupMatch>();
+    private string _optionsSummary = "(?i)";
 
     public string Pattern
     {
@@ -114,13 +115,13 @@ public sealed class RegexTesterVM : ViewModelBase
     public bool ShowGroups
     {
         get => _showGroups;
-        set
-        {
-            if (SetProperty(ref _showGroups, value))
-            {
-                UpdateMatches();
-            }
-        }
+        set => SetProperty(ref _showGroups, value);
+    }
+
+    public string OptionsSummary
+    {
+        get => _optionsSummary;
+        private set => SetProperty(ref _optionsSummary, value);
     }
 
     public string? ErrorMessage
@@ -170,6 +171,7 @@ public sealed class RegexTesterVM : ViewModelBase
         {
             ErrorMessage = null;
             MatchCount = 0;
+            OptionsSummary = FormatOptionsSummary(BuildOptions());
             Segments = BuildSegments(text, Array.Empty<(int Index, int Length)>());
             GroupMatches = Array.Empty<GroupMatch>();
             ReplacementResult = string.Empty;
@@ -178,21 +180,8 @@ public sealed class RegexTesterVM : ViewModelBase
 
         try
         {
-            var options = RegexOptions.None;
-            if (IgnoreCase)
-            {
-                options |= RegexOptions.IgnoreCase;
-            }
-
-            if (Multiline)
-            {
-                options |= RegexOptions.Multiline;
-            }
-
-            if (Singleline)
-            {
-                options |= RegexOptions.Singleline;
-            }
+            var options = BuildOptions();
+            OptionsSummary = FormatOptionsSummary(options);
 
             var regex = new Regex(pattern, options, TimeSpan.FromMilliseconds(RegexTimeoutMs));
             var matches = regex.Matches(text);
@@ -286,6 +275,30 @@ public sealed class RegexTesterVM : ViewModelBase
         }
 
         return segments;
+    }
+
+    private RegexOptions BuildOptions()
+    {
+        var options = RegexOptions.None;
+        if (IgnoreCase)
+            options |= RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+        if (Multiline)
+            options |= RegexOptions.Multiline;
+        if (Singleline)
+            options |= RegexOptions.Singleline;
+        return options;
+    }
+
+    private static string FormatOptionsSummary(RegexOptions options)
+    {
+        var flags = new List<string>(3);
+        if (options.HasFlag(RegexOptions.IgnoreCase))
+            flags.Add("i");
+        if (options.HasFlag(RegexOptions.Multiline))
+            flags.Add("m");
+        if (options.HasFlag(RegexOptions.Singleline))
+            flags.Add("s");
+        return flags.Count == 0 ? "无修饰符" : $"(?{string.Join("", flags)})";
     }
 
     private static GroupMatch BuildGroupMatch(Match match, string[] groupNames, int matchIndex)

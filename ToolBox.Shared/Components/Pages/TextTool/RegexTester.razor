@@ -15,18 +15,9 @@
         <input class="form-control" placeholder="Enter regex pattern..." @bind-Value="ViewModel.Pattern" @bind-Value:event="oninput" />
 
         <div class="regex-options">
-            <label class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="ViewModel.IgnoreCase" />
-                <span class="form-check-label">Ignore case</span>
-            </label>
-            <label class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="ViewModel.Multiline" />
-                <span class="form-check-label">Multiline (^ $)</span>
-            </label>
-            <label class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="ViewModel.Singleline" />
-                <span class="form-check-label">Singleline (.)</span>
-            </label>
+            <MudCheckBox T="bool" @bind-Value="ViewModel.IgnoreCase" Label="忽略大小写 (IgnoreCase / i)" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="ViewModel.Multiline" Label="多行模式：^ / $ 匹配每行行首、行尾 (Multiline / m)" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="ViewModel.Singleline" Label="点号跨行：. 可匹配换行符 (Singleline / s)" Dense="true" />
         </div>
 
        <div class="d-flex justify-end">
@@ -46,21 +37,16 @@
 <section class="regex-panel">
     <h2>Matches</h2>
     <div class="regex-summary">
-        <span>Matches: <strong>@ViewModel.MatchCount</strong></span>
+        <span>匹配数: <strong>@ViewModel.MatchCount</strong></span>
+        <span>染色/匹配/替换生效: <strong>@ViewModel.OptionsSummary</strong></span>
         @if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
         {
             <span class="regex-error">@ViewModel.ErrorMessage</span>
         }
     </div>
     <div class="regex-options">
-        <label class="form-check">
-            <input class="form-check-input" type="checkbox" @bind="ViewModel.MatchesOnly" />
-            <span class="form-check-label">Only matched lines</span>
-        </label>
-        <label class="form-check">
-            <input class="form-check-input" type="checkbox" @bind="ViewModel.ShowGroups" />
-            <span class="form-check-label">Show capture groups</span>
-        </label>
+        <MudCheckBox T="bool" @bind-Value="ViewModel.MatchesOnly" Label="仅显示命中行" Dense="true" />
+        <MudCheckBox T="bool" @bind-Value="ViewModel.ShowGroups" Label="显示捕获组" Dense="true" />
         <button type="button" class="btn btn-sm btn-outline-primary ms-auto" onclick="window.clipboardCopy.copyElementText('regex-output-pre')">复制</button>
     </div>
 

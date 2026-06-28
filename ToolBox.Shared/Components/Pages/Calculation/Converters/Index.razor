@@ -1,23 +1,54 @@
 @page "/converters"
 @using ToolBox.Components.Pages.Converters
 @namespace ToolBox.Components.Pages.Converters
+@inject NavigationManager Navigation
 
 <MudText Typo="Typo.h4" Class="mb-4">常用转换器</MudText>
 
-<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" @bind-ActivePanelIndex="_activeTab">
     <MudTabPanel Text="进制转换" Icon="@Icons.Material.Filled.Numbers">
         <NumberBaseConverter />
     </MudTabPanel>
-    
+
+    <MudTabPanel Text="时间戳" Icon="@Icons.Material.Filled.Schedule">
+        <TimestampConverter />
+    </MudTabPanel>
+
     <MudTabPanel Text="颜色转换" Icon="@Icons.Material.Filled.ColorLens">
         <ColorConverter />
     </MudTabPanel>
-    
+
     <MudTabPanel Text="格式转换 (YAML/JSON/XML)" Icon="@Icons.Material.Filled.Transform">
         <FormatConverter />
     </MudTabPanel>
-    
+
     <MudTabPanel Text="单位转换" Icon="@Icons.Material.Filled.Scale">
         <UnitConverter />
     </MudTabPanel>
 </MudTabs>
+
+@code {
+    private int _activeTab;
+
+    protected override void OnInitialized()
+    {
+        ResolveTabFromQuery();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ResolveTabFromQuery();
+    }
+
+    private void ResolveTabFromQuery()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = uri.Query;
+        if (query.Contains("tab=timestamp", StringComparison.OrdinalIgnoreCase))
+            _activeTab = 1;
+        else if (query.Contains("tab=unit", StringComparison.OrdinalIgnoreCase))
+            _activeTab = 4;
+        else if (query.Contains("tab=radix", StringComparison.OrdinalIgnoreCase) || query.Contains("tab=base", StringComparison.OrdinalIgnoreCase))
+            _activeTab = 0;
+    }
+}

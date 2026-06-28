@@ -1,55 +1,12 @@
 using Blazing.Mvvm.ComponentModel;
-using System.Text;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Converters;
 
 public partial class NumberBaseConverterVM : ViewModelBase
 {
-    private string _binary = string.Empty;
-    private string _octal = string.Empty;
-    private string _decimal = string.Empty;
-    private string _hex = string.Empty;
+    private readonly Dictionary<int, string> _values = RadixHelp.ProgrammerBases.ToDictionary(b => b, _ => string.Empty);
     private string? _errorMessage;
-
-    public string Binary
-    {
-        get => _binary;
-        set
-        {
-            if (SetProperty(ref _binary, value))
-                ConvertFrom(value, 2);
-        }
-    }
-
-    public string Octal
-    {
-        get => _octal;
-        set
-        {
-            if (SetProperty(ref _octal, value))
-                ConvertFrom(value, 8);
-        }
-    }
-
-    public string Decimal
-    {
-        get => _decimal;
-        set
-        {
-            if (SetProperty(ref _decimal, value))
-                ConvertFrom(value, 10);
-        }
-    }
-
-    public string Hex
-    {
-        get => _hex;
-        set
-        {
-            if (SetProperty(ref _hex, value))
-                ConvertFrom(value, 16);
-        }
-    }
 
     public string? ErrorMessage
     {
@@ -57,7 +14,76 @@ public partial class NumberBaseConverterVM : ViewModelBase
         set => SetProperty(ref _errorMessage, value);
     }
 
+    public string DigitAlphabetHint =>
+        $"32–128 进制数字符表（前 {Math.Min(48, RadixHelp.MaxRadix)} 个）：{RadixHelp.GetDigitAlphabet(Math.Min(48, RadixHelp.MaxRadix))}…";
+
+    public string Binary
+    {
+        get => Get(2);
+        set => Set(2, value);
+    }
+
+    public string Octal
+    {
+        get => Get(8);
+        set => Set(8, value);
+    }
+
+    public string Decimal
+    {
+        get => Get(10);
+        set => Set(10, value);
+    }
+
+    public string Hex
+    {
+        get => Get(16);
+        set => Set(16, value);
+    }
+
+    public string Base32
+    {
+        get => Get(32);
+        set => Set(32, value);
+    }
+
+    public string Base64
+    {
+        get => Get(64);
+        set => Set(64, value);
+    }
+
+    public string Base128
+    {
+        get => Get(128);
+        set => Set(128, value);
+    }
+
+    public IReadOnlyList<int> Bases => RadixHelp.ProgrammerBases;
+
     private bool _isUpdating;
+
+    private string Get(int radix) => _values.GetValueOrDefault(radix, string.Empty);
+
+    private void Set(int radix, string value)
+    {
+        if (_isUpdating) return;
+        _values[radix] = value;
+        OnPropertyChanged(GetPropertyName(radix));
+        ConvertFrom(value, radix);
+    }
+
+    private static string GetPropertyName(int radix) => radix switch
+    {
+        2 => nameof(Binary),
+        8 => nameof(Octal),
+        10 => nameof(Decimal),
+        16 => nameof(Hex),
+        32 => nameof(Base32),
+        64 => nameof(Base64),
+        128 => nameof(Base128),
+        _ => nameof(Decimal),
+    };
 
     private void ConvertFrom(string value, int fromBase)
     {
@@ -73,27 +99,14 @@ public partial class NumberBaseConverterVM : ViewModelBase
                 return;
             }
 
-            long longValue;
-            try 
-            {
-                longValue = Convert.ToInt64(value, fromBase);
-            }
-            catch
-            {
-                // Handle potential overflow or format error more gracefully if needed
-                // For now, just catch standard exceptions
-                throw new FormatException($"Invalid number for base {fromBase}");
-            }
+            var big = RadixHelp.Parse(value, fromBase);
 
-            if (fromBase != 2) _binary = Convert.ToString(longValue, 2);
-            if (fromBase != 8) _octal = Convert.ToString(longValue, 8);
-            if (fromBase != 10) _decimal = Convert.ToString(longValue, 10);
-            if (fromBase != 16) _hex = Convert.ToString(longValue, 16).ToUpperInvariant();
-            
-            OnPropertyChanged(nameof(Binary));
-            OnPropertyChanged(nameof(Octal));
-            OnPropertyChanged(nameof(Decimal));
-            OnPropertyChanged(nameof(Hex));
+            foreach (var radix in RadixHelp.ProgrammerBases)
+            {
+                if (radix == fromBase) continue;
+                _values[radix] = RadixHelp.Format(big, radix);
+                OnPropertyChanged(GetPropertyName(radix));
+            }
         }
         catch (Exception ex)
         {
@@ -104,18 +117,16 @@ public partial class NumberBaseConverterVM : ViewModelBase
             _isUpdating = false;
         }
     }
-    
+
     public void ClearAll()
     {
-        _binary = "";
-        _octal = "";
-        _decimal = "";
-        _hex = "";
-        OnPropertyChanged(nameof(Binary));
-        OnPropertyChanged(nameof(Octal));
-        OnPropertyChanged(nameof(Decimal));
-        OnPropertyChanged(nameof(Hex));
+        foreach (var radix in RadixHelp.ProgrammerBases)
+        {
+            _values[radix] = string.Empty;
+            OnPropertyChanged(GetPropertyName(radix));
+        }
+
         ErrorMessage = null;
-        _isUpdating = false; // Reset lock just in case
+        _isUpdating = false;
     }
 }
