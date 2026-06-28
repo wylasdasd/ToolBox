@@ -1,4 +1,6 @@
 using Blazing.Mvvm;
+using ToolBox.Services.Ai;
+using ToolBox.Web;
 using ToolBox.Web.Client.Services;
 using ToolBox.Web.Components;
 
@@ -9,6 +11,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddToolBoxWeb(BlazorHostingModelType.WebApp);
+builder.Services.AddScoped<OpenAiCompatChatService>();
+builder.Services.AddScoped<CursorCloudAgentChatService>();
+builder.Services.AddScoped<IAiChatService, AiChatServiceRouter>();
 
 var app = builder.Build();
 
@@ -18,6 +23,7 @@ else { app.UseExceptionHandler("/Error", createScopeForErrors: true); app.UseHst
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.MapAiChatApi();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()

@@ -1,8 +1,8 @@
 using Blazing.Mvvm.ComponentModel;
-using System.Text;
-using System.Net.Http.Headers;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ToolBox.Components.Pages.Network;
 
@@ -155,14 +155,8 @@ public sealed class RequestToCurlVM : ViewModelBase
         ErrorMessage = null;
         try
         {
-            if (!FormUrl.Contains("http"))
-            {
-                if(_IsHttps)
-                    FormUrl = $"https://{FormUrl}";
-                else
-                    FormUrl = $"http://{FormUrl}";
-            }
-            _currentRequestData = BuildFromForm(FormMethod, FormUrl, FormHeaders, FormBody);
+            var normalizedUrl = EnsureAbsoluteUrl(FormUrl, _IsHttps);
+            _currentRequestData = BuildFromForm(FormMethod, normalizedUrl, FormHeaders, FormBody);
             if (_currentRequestData == null)
             {
                 ErrorMessage = "未能解析请求。";
@@ -183,6 +177,8 @@ public sealed class RequestToCurlVM : ViewModelBase
     }
 
     public bool IsSystemCurlSupported => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
+
+    public bool IsResponseSuccessful => TryGetHttpStatusCode(ResponseStatusCode, out var code) && code is >= 200 and < 300;
 
     public async Task ExecuteRequest()
     {
@@ -228,9 +224,9 @@ public sealed class RequestToCurlVM : ViewModelBase
 
     private async Task ExecuteWithCurl()
     {
-        if (string.IsNullOrWhiteSpace(CurlCommand))
+        if (_currentRequestData == null)
         {
-            ErrorMessage = "没有可执行的 cURL 命令。";
+            ErrorMessage = "请先转换请求后再执行。";
             return;
         }
 
@@ -240,55 +236,16 @@ public sealed class RequestToCurlVM : ViewModelBase
             return;
         }
 
-        var cmd = CurlCommand + " -i -s";
-        ProcessStartInfo? psi = null;
-
-        if (OperatingSystem.IsWindows())
-        {
-            psi = new ProcessStartInfo
-            {
-                FileName = "cmd",
-                Arguments = $"/c {cmd}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-        }
-        else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-        {
-            psi = new ProcessStartInfo
-            {
-                FileName = "/bin/bash",
-                Arguments = $"-c \"{cmd.Replace("\"", "\\\"")}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-        }
-        else
-        {
-            ErrorMessage = "当前平台不支持执行系统命令。";
-            return;
-        }
-
-        if (psi == null) return;
-
-        using var process = new Process { StartInfo = psi };
+        using var process = new Process { StartInfo = CreateCurlProcessStartInfo() };
 
         var outputBuilder = new StringBuilder();
         var errorBuilder = new StringBuilder();
 
-        process.OutputDataReceived += (sender, e) =>
+        process.OutputDataReceived += (_, e) =>
         {
             if (e.Data != null) outputBuilder.AppendLine(e.Data);
         };
-        process.ErrorDataReceived += (sender, e) =>
+        process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data != null) errorBuilder.AppendLine(e.Data);
         };
@@ -339,14 +296,17 @@ public sealed class RequestToCurlVM : ViewModelBase
             return;
         }
 
-        using var client = new HttpClient();
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
         var request = new HttpRequestMessage(new HttpMethod(_currentRequestData.Method), _currentRequestData.Url);
 
         foreach (var (name, value) in _currentRequestData.Headers)
         {
-            if (string.Equals(name, "Content-Type", StringComparison.OrdinalIgnoreCase))
+            if (name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("Host", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
             {
-                continue; // Handled in Content
+                continue;
             }
 
             try
@@ -657,6 +617,69 @@ public sealed class RequestToCurlVM : ViewModelBase
         }
 
         return "'" + value.Replace("'", "''") + "'";
+    }
+
+    private static string EnsureAbsoluteUrl(string url, bool https)
+    {
+        url = url.Trim();
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            return url;
+
+        return $"{(https ? "https" : "http")}://{url}";
+    }
+
+    private ProcessStartInfo CreateCurlProcessStartInfo()
+    {
+        var data = _currentRequestData!;
+        var psi = new ProcessStartInfo
+        {
+            FileName = OperatingSystem.IsWindows() ? "curl.exe" : "curl",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
+        };
+
+        psi.ArgumentList.Add("-i");
+        psi.ArgumentList.Add("-s");
+        psi.ArgumentList.Add("-X");
+        psi.ArgumentList.Add(data.Method);
+        psi.ArgumentList.Add(data.Url);
+
+        foreach (var (name, value) in data.Headers)
+        {
+            if (name.Equals("Host", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            psi.ArgumentList.Add("-H");
+            psi.ArgumentList.Add($"{name}: {value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(data.Body) && data.Method is not "GET" and not "HEAD")
+        {
+            psi.ArgumentList.Add("--data-binary");
+            psi.ArgumentList.Add(data.Body);
+        }
+
+        return psi;
+    }
+
+    private static bool TryGetHttpStatusCode(string? statusLine, out int code)
+    {
+        code = 0;
+        if (string.IsNullOrWhiteSpace(statusLine))
+            return false;
+
+        foreach (Match match in Regex.Matches(statusLine, @"\b(\d{3})\b"))
+        {
+            if (int.TryParse(match.Groups[1].Value, out code))
+                return true;
+        }
+
+        return false;
     }
 
     public sealed record OutputFormatOption(string Key, string Label);

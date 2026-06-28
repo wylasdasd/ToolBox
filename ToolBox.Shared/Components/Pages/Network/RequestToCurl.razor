@@ -109,7 +109,7 @@
         }
         else
         {
-            <MudText Typo="Typo.subtitle1" Color="@(ViewModel.ResponseStatusCode?.StartsWith("2") == true ? Color.Success : Color.Error)" Class="mb-2">
+            <MudText Typo="Typo.subtitle1" Color="@(ViewModel.IsResponseSuccessful ? Color.Success : Color.Error)" Class="mb-2">
                 @ViewModel.ResponseStatusCode
             </MudText>
             <MudTabs Elevation="0" Outlined="true">

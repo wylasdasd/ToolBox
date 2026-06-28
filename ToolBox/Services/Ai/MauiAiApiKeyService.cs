@@ -1,6 +1,6 @@
 namespace ToolBox.Services.Ai;
 
-public sealed class AiApiKeyService : IAiApiKeyService
+public sealed class MauiAiApiKeyService : IAiApiKeyService
 {
     public async Task<string?> GetApiKeyAsync(AiProviderKind provider)
     {
@@ -18,9 +18,7 @@ public sealed class AiApiKeyService : IAiApiKeyService
     public async Task SaveApiKeyAsync(AiProviderKind provider, string apiKey)
     {
         if (string.IsNullOrWhiteSpace(apiKey))
-        {
             throw new ArgumentException("API Key 不能为空。", nameof(apiKey));
-        }
 
         var keyName = AiProviderCatalog.GetApiKeyStorageName(provider);
         var value = apiKey.Trim();

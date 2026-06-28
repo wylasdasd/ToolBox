@@ -2,6 +2,12 @@ namespace ToolBox.Services.Picker;
 
 public sealed class FolderPickerService : IFolderPickerService
 {
+#if WINDOWS
+    public bool IsNativeSupported => true;
+#else
+    public bool IsNativeSupported => false;
+#endif
+
     public async Task<string?> PickFolderAsync(CancellationToken cancellationToken = default)
     {
 #if WINDOWS

@@ -1,5 +1,4 @@
 using Blazing.Mvvm.ComponentModel;
-using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -85,7 +84,6 @@ public abstract class SocketSessionVM : ViewModelBase, IDisposable
             if (SetProperty(ref _isConnected, value))
             {
                 OnPropertyChanged(nameof(ConnectionStatusText));
-                OnPropertyChanged(nameof(StatusColor));
                 OnPropertyChanged(nameof(ActionName));
                 OnPropertyChanged(nameof(CanEditSettings));
             }
@@ -104,10 +102,7 @@ public abstract class SocketSessionVM : ViewModelBase, IDisposable
         set => SetProperty(ref _receivedLog, value);
     }
 
-    public ObservableCollection<LogEntry> Logs { get; } = new();
-
     public virtual string ConnectionStatusText => IsConnected ? "Connected" : "Disconnected";
-    public virtual string StatusColor => IsConnected ? "Color.Success" : "Color.Error";
     public virtual string ActionName => IsConnected ? "Stop" : "Start";
     public bool CanEditSettings => !IsConnected;
 
@@ -123,11 +118,7 @@ public abstract class SocketSessionVM : ViewModelBase, IDisposable
 
     protected void AddLog(string type, string content)
     {
-        var entry = new LogEntry { Timestamp = DateTime.Now, Type = type, Message = content };
-        // We use MainThread invoke if strictly necessary, but for Blazor binding often works directly.
-        // If issues arise with background threads updating UI, we might need dispatching.
-        Logs.Add(entry);
-        ReceivedLog += $"[{entry.Timestamp:HH:mm:ss}] [{type}] {content}{Environment.NewLine}";
+        ReceivedLog += $"[{DateTime.Now:HH:mm:ss}] [{type}] {content}{Environment.NewLine}";
     }
 
     protected string BuildTcpAuthMessage()
@@ -599,11 +590,4 @@ public sealed class ServerTcpClientState
 
     public TcpClient Client { get; }
     public bool Authenticated { get; set; }
-}
-
-public class LogEntry
-{
-    public DateTime Timestamp { get; set; }
-    public string Type { get; set; } = "";
-    public string Message { get; set; } = "";
 }

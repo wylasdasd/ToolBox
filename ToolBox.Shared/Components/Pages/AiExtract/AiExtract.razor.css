@@ -1,0 +1,11 @@
+.mono-field textarea,
+.mono-field input {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}
+
+.model-suggestion {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px 0;
+}

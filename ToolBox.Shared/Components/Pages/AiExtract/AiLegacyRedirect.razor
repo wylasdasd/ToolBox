@@ -1,0 +1,10 @@
+@page "/ocr-ai"
+@page "/ai-ocr"
+@page "/ocr-regex-extract"
+@page "/ocr-regex-batch"
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+        => Navigation.NavigateTo("/ai-extract", replace: true);
+}

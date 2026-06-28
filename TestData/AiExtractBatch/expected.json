@@ -1,0 +1,12 @@
+[
+  { "file": "receipt_01.png", "vendor": "华东超市", "date": "2026-01-05", "total": "128.50", "item": "牛奶 x2" },
+  { "file": "receipt_02.png", "vendor": "华东超市", "date": "2026-01-08", "total": "256.00", "item": "大米 x1" },
+  { "file": "receipt_03.png", "vendor": "华东超市", "date": "2026-01-12", "total": "89.90", "item": "面包 x3" },
+  { "file": "receipt_04.png", "vendor": "华东超市", "date": "2026-01-15", "total": "412.30", "item": "食用油 x1" },
+  { "file": "receipt_05.png", "vendor": "华东超市", "date": "2026-01-18", "total": "67.80", "item": "鸡蛋 x2" },
+  { "file": "receipt_06.png", "vendor": "华东超市", "date": "2026-01-22", "total": "199.00", "item": "洗发水 x1" },
+  { "file": "receipt_07.png", "vendor": "华东超市", "date": "2026-01-25", "total": "345.60", "item": "纸巾 x4" },
+  { "file": "receipt_08.png", "vendor": "华东超市", "date": "2026-02-01", "total": "78.20", "item": "苹果 x2" },
+  { "file": "receipt_09.png", "vendor": "华东超市", "date": "2026-02-05", "total": "520.00", "item": "红酒 x1" },
+  { "file": "receipt_10.png", "vendor": "华东超市", "date": "2026-02-10", "total": "156.75", "item": "零食 x5" }
+]
