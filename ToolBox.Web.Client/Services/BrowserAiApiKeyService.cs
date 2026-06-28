@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using ToolBox.Services.Ai;
 
@@ -6,12 +6,12 @@ namespace ToolBox.Web.Client.Services;
 
 public sealed class BrowserAiApiKeyService(
     IJSRuntime jsRuntime,
-    IWebAssemblyHostEnvironment hostEnvironment) : IAiApiKeyService
+    NavigationManager navigationManager) : IAiApiKeyService
 {
     private static string StorageKey(AiProviderKind provider) =>
         $"toolbox_{AiProviderCatalog.GetApiKeyStorageName(provider)}";
 
-    private string OriginContext => hostEnvironment.BaseAddress;
+    private string OriginContext => navigationManager.BaseUri;
 
     public async Task<string?> GetApiKeyAsync(AiProviderKind provider)
     {

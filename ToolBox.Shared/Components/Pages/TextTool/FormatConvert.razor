@@ -1,0 +1,12 @@
+@page "/format-convert"
+@using ToolBox.Components.Pages.Converters
+@namespace ToolBox.Components.Pages
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">格式转换</MudText>
+    <MudText Typo="Typo.body2">JSON、YAML、XML、TOML、CSV 互转。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <FormatConverter />
+</MudPaper>

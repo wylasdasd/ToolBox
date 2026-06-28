@@ -1,14 +1,19 @@
 using Blazing.Mvvm.ComponentModel;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using Tomlyn;
+using Tomlyn.Model;
 using YamlDotNet.Serialization;
 
 namespace ToolBox.Components.Pages.Converters;
 
 public partial class FormatConverterVM : ViewModelBase
 {
+    public static IReadOnlyList<string> SupportedFormats { get; } =
+        ["JSON", "YAML", "XML", "TOML", "CSV"];
     private string _input = string.Empty;
     private string _output = string.Empty;
     private string _sourceFormat = "JSON";
@@ -78,6 +83,20 @@ public partial class FormatConverterVM : ViewModelBase
                     intermediateObj = rootObj;
                 }
             }
+            else if (SourceFormat == "TOML")
+            {
+                intermediateObj = TomlToJsonNode(Input);
+            }
+            else if (SourceFormat == "CSV")
+            {
+                intermediateObj = CsvToJsonNode(Input);
+            }
+
+            if (intermediateObj is null)
+            {
+                ErrorMessage = "Error: 无法解析输入或结果为空。";
+                return;
+            }
 
             // 2. JsonNode -> Target
             if (TargetFormat == "JSON")
@@ -102,6 +121,14 @@ public partial class FormatConverterVM : ViewModelBase
                     var xDoc = JsonToXml(intermediateObj);
                     Output = xDoc.ToString();
                 }
+            }
+            else if (TargetFormat == "TOML")
+            {
+                Output = intermediateObj is null ? string.Empty : JsonNodeToToml(intermediateObj);
+            }
+            else if (TargetFormat == "CSV")
+            {
+                Output = intermediateObj is null ? string.Empty : JsonNodeToCsv(intermediateObj);
             }
         }
         catch (Exception ex)
@@ -227,5 +254,148 @@ public partial class FormatConverterVM : ViewModelBase
             elem.Value = node.ToString();
         }
         return elem;
+    }
+
+    private static JsonNode? TomlToJsonNode(string toml)
+    {
+        var model = Toml.ToModel(toml);
+        var json = JsonSerializer.Serialize(model);
+        return JsonNode.Parse(json);
+    }
+
+    private static string JsonNodeToToml(JsonNode node)
+    {
+        if (node is JsonObject obj)
+            return Toml.FromModel(JsonObjectToTomlTable(obj));
+        if (node is JsonArray arr && arr.Count > 0 && arr[0] is JsonObject)
+            throw new InvalidOperationException("TOML 根节点需为表结构，数组根请先转为 JSON 对象。");
+        return Toml.FromModel(new TomlTable { ["value"] = JsonNodeToTomlValue(node) ?? string.Empty });
+    }
+
+    private static TomlTable JsonObjectToTomlTable(JsonObject obj)
+    {
+        var table = new TomlTable();
+        foreach (var prop in obj)
+        {
+            if (prop.Key is null) continue;
+            table[prop.Key] = JsonNodeToTomlValue(prop.Value) ?? string.Empty;
+        }
+        return table;
+    }
+
+    private static object? JsonNodeToTomlValue(JsonNode? node) => node switch
+    {
+        null => null,
+        JsonObject o => JsonObjectToTomlTable(o),
+        JsonArray a => a.Select(JsonNodeToTomlValue).ToList(),
+        JsonValue v => v.TryGetValue(out bool b) ? b
+            : v.TryGetValue(out long l) ? l
+            : v.TryGetValue(out double d) ? d
+            : v.GetValue<string>(),
+        _ => node.ToString()
+    };
+
+    private static JsonNode? CsvToJsonNode(string csv)
+    {
+        var rows = ParseCsv(csv);
+        if (rows.Count == 0) return new JsonArray();
+
+        if (rows.Count == 1)
+        {
+            var arr = new JsonArray();
+            foreach (var cell in rows[0]) arr.Add(cell);
+            return arr;
+        }
+
+        var headers = rows[0];
+        var result = new JsonArray();
+        foreach (var row in rows.Skip(1))
+        {
+            if (row.All(string.IsNullOrEmpty)) continue;
+            var obj = new JsonObject();
+            for (var i = 0; i < headers.Count; i++)
+            {
+                var key = headers[i];
+                if (string.IsNullOrWhiteSpace(key)) key = $"col{i}";
+                obj[key] = i < row.Count ? row[i] : string.Empty;
+            }
+            result.Add(obj);
+        }
+        return result;
+    }
+
+    private static string JsonNodeToCsv(JsonNode node)
+    {
+        var sb = new StringBuilder();
+        if (node is JsonArray { Count: > 0 } arr && arr[0] is JsonObject firstObj)
+        {
+            var headers = firstObj.Select(p => p.Key).ToList();
+            sb.AppendLine(string.Join(",", headers.Select(EscapeCsvCell)));
+            foreach (var item in arr)
+            {
+                if (item is not JsonObject row) continue;
+                var cells = headers.Select(h => row.TryGetPropertyValue(h, out var v) ? v?.ToString() ?? "" : "");
+                sb.AppendLine(string.Join(",", cells.Select(EscapeCsvCell)));
+            }
+            return sb.ToString().TrimEnd();
+        }
+
+        if (node is JsonArray plainArr)
+        {
+            foreach (var item in plainArr)
+                sb.AppendLine(EscapeCsvCell(item?.ToString() ?? ""));
+            return sb.ToString().TrimEnd();
+        }
+
+        throw new InvalidOperationException("CSV 输出需要 JSON 数组（对象数组或纯值数组）。");
+    }
+
+    private static List<List<string>> ParseCsv(string csv)
+    {
+        var rows = new List<List<string>>();
+        using var reader = new StringReader(csv);
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            rows.Add(ParseCsvLine(line));
+        }
+        return rows;
+    }
+
+    private static List<string> ParseCsvLine(string line)
+    {
+        var cells = new List<string>();
+        var sb = new StringBuilder();
+        var inQuotes = false;
+        for (var i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    sb.Append('"');
+                    i++;
+                }
+                else inQuotes = !inQuotes;
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                cells.Add(sb.ToString());
+                sb.Clear();
+            }
+            else sb.Append(c);
+        }
+        cells.Add(sb.ToString());
+        return cells;
+    }
+
+    private static string EscapeCsvCell(string? value)
+    {
+        value ??= string.Empty;
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 }

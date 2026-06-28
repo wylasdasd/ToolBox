@@ -4,9 +4,10 @@
 <MudGrid>
     <MudItem xs="12" md="5">
         <MudSelect T="string" @bind-Value="ViewModel.SourceFormat" Label="Source Format" Variant="Variant.Outlined">
-            <MudSelectItem Value="@("JSON")" />
-            <MudSelectItem Value="@("YAML")" />
-            <MudSelectItem Value="@("XML")" />
+            @foreach (var fmt in FormatConverterVM.SupportedFormats)
+            {
+                <MudSelectItem T="string" Value="@fmt">@fmt</MudSelectItem>
+            }
         </MudSelect>
         <MudTextField T="string" @bind-Value="ViewModel.Input" Label="Input" Lines="15" Variant="Variant.Outlined" Class="mt-2" />
     </MudItem>
@@ -17,9 +18,10 @@
     
     <MudItem xs="12" md="5">
         <MudSelect T="string" @bind-Value="ViewModel.TargetFormat" Label="Target Format" Variant="Variant.Outlined">
-            <MudSelectItem Value="@("JSON")" />
-            <MudSelectItem Value="@("YAML")" />
-            <MudSelectItem Value="@("XML")" />
+            @foreach (var fmt in FormatConverterVM.SupportedFormats)
+            {
+                <MudSelectItem T="string" Value="@fmt">@fmt</MudSelectItem>
+            }
         </MudSelect>
         <MudTextField T="string" @bind-Value="ViewModel.Output" Label="Output" Lines="15" Variant="Variant.Outlined" ReadOnly="true" Class="mt-2" />
     </MudItem>

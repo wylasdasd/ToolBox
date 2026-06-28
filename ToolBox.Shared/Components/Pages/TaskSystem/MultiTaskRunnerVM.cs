@@ -17,26 +17,53 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     private int _maxConcurrency = 2;
     private bool _isSchedulerRunning;
     private string _newTaskName = "Task 1";
-    private string _newTaskCode = """
+    private string _newTaskCode = DefaultSampleCode;
+    private int? _editingTaskId;
+    private int? _selectedTaskId;
+    private int? _logFilterTaskId;
+    private string _referenceInput = "System.Text.Json";
+    private string _referencePaths = string.Empty;
+    private IReadOnlyList<string> _activeReferences = Array.Empty<string>();
+    private CancellationTokenSource? _schedulerCts;
+    private string _globalLogText = string.Empty;
+    private string _allTaskLogsText = string.Empty;
+    private string _filteredTaskLogText = string.Empty;
+    private string? _errorMessage;
+
+    public sealed record TaskSelectOption(int Id, string Label);
+
+    public const string DefaultSampleCode = """
         await Task.Delay(1000);
         Log("task started");
         var sum = Enumerable.Range(1, 100).Sum();
         Log($"sum={sum}");
         sum
         """;
-    private int? _selectedTaskId;
-    private string _referenceInput = "System.Text.Json";
-    private string _referencePaths = string.Empty;
-    private IReadOnlyList<string> _activeReferences = Array.Empty<string>();
-    private CancellationTokenSource? _schedulerCts;
-    private string _globalLogText = string.Empty;
-    private string _selectedTaskLogText = string.Empty;
-    private string? _errorMessage;
+
+    public static IReadOnlyList<TaskTemplate> Templates { get; } =
+    [
+        new("delay-sum", "延迟 + 求和", DefaultSampleCode),
+        new("loop-log", "循环日志", """
+            for (var i = 1; i <= 5; i++)
+            {
+                Token.ThrowIfCancellationRequested();
+                Log($"step {i}");
+                await Task.Delay(500, Token);
+            }
+            "done"
+            """),
+        new("json-demo", "JSON 序列化", """
+            var obj = new { Name = "ToolBox", At = DateTime.Now };
+            var json = System.Text.Json.JsonSerializer.Serialize(obj);
+            Log(json);
+            json
+            """),
+    ];
 
     public int MaxConcurrency
     {
         get => _maxConcurrency;
-        set => SetProperty(ref _maxConcurrency, Math.Max(1, value));
+        set => SetProperty(ref _maxConcurrency, Math.Clamp(value, 1, 32));
     }
 
     public bool IsSchedulerRunning
@@ -75,17 +102,62 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         private set => SetProperty(ref _activeReferences, value);
     }
 
+    public int? EditingTaskId
+    {
+        get => _editingTaskId;
+        private set
+        {
+            if (SetProperty(ref _editingTaskId, value))
+            {
+                OnPropertyChanged(nameof(IsEditing));
+                OnPropertyChanged(nameof(SubmitButtonText));
+            }
+        }
+    }
+
+    public bool IsEditing => EditingTaskId is not null;
+
+    public string SubmitButtonText => IsEditing ? "保存修改" : "加入队列";
+
     public int? SelectedTaskId
     {
         get => _selectedTaskId;
         set
         {
-            if (SetProperty(ref _selectedTaskId, value))
-            {
-                RefreshSelectedTaskLog();
-            }
+            if (!SetProperty(ref _selectedTaskId, value))
+                return;
+
+            if (value is not null)
+                LogFilterTaskId = value;
+
+            OnPropertyChanged(nameof(SelectedTask));
+            OnPropertyChanged(nameof(HasSelectedTask));
+            OnPropertyChanged(nameof(TaskSelectOptions));
         }
     }
+
+    public int? LogFilterTaskId
+    {
+        get => _logFilterTaskId;
+        set
+        {
+            if (!SetProperty(ref _logFilterTaskId, value))
+                return;
+
+            RefreshFilteredTaskLog();
+        }
+    }
+
+    public IEnumerable<TaskSelectOption> TaskSelectOptions =>
+        _tasks.Select(t => new TaskSelectOption(t.Id, FormatTaskOptionLabel(t)));
+
+    public ScheduledTaskItem? SelectedTask =>
+        SelectedTaskId is int id ? _tasks.FirstOrDefault(x => x.Id == id) : null;
+
+    public ScheduledTaskItem? FilteredLogTask =>
+        LogFilterTaskId is int id ? _tasks.FirstOrDefault(x => x.Id == id) : null;
+
+    public bool HasSelectedTask => SelectedTask is not null;
 
     public string GlobalLogText
     {
@@ -93,10 +165,16 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         private set => SetProperty(ref _globalLogText, value);
     }
 
-    public string SelectedTaskLogText
+    public string AllTaskLogsText
     {
-        get => _selectedTaskLogText;
-        private set => SetProperty(ref _selectedTaskLogText, value);
+        get => _allTaskLogsText;
+        private set => SetProperty(ref _allTaskLogsText, value);
+    }
+
+    public string FilteredTaskLogText
+    {
+        get => _filteredTaskLogText;
+        private set => SetProperty(ref _filteredTaskLogText, value);
     }
 
     public string? ErrorMessage
@@ -105,14 +183,54 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         private set => SetProperty(ref _errorMessage, value);
     }
 
+    public void ClearError() => ErrorMessage = null;
+
     public IReadOnlyList<ScheduledTaskItem> Tasks => _tasks;
 
-    public MultiTaskRunnerVM()
+    public int PendingCount => _tasks.Count(t => t.Status == TaskRunStatus.Pending);
+    public int RunningCount => _tasks.Count(t => t.Status == TaskRunStatus.Running);
+    public int CompletedCount => _tasks.Count(t => t.Status == TaskRunStatus.Completed);
+    public int FailedCount => _tasks.Count(t => t.Status is TaskRunStatus.Failed or TaskRunStatus.Canceled);
+
+    public void NotifyQueueStatsChanged()
     {
-        AddTask();
+        EnsureDefaultSelection();
+        RefreshAllTaskLogs();
+        OnPropertyChanged(nameof(Tasks));
+        OnPropertyChanged(nameof(PendingCount));
+        OnPropertyChanged(nameof(RunningCount));
+        OnPropertyChanged(nameof(CompletedCount));
+        OnPropertyChanged(nameof(FailedCount));
+        OnPropertyChanged(nameof(SelectedTask));
+        OnPropertyChanged(nameof(TaskSelectOptions));
     }
 
-    public void AddTask()
+    public void SelectTask(int? id)
+    {
+        if (id is null)
+            return;
+
+        SelectedTaskId = id;
+    }
+
+    public static string FormatTaskOptionLabel(ScheduledTaskItem task) =>
+        $"#{task.Id} {task.Name} [{GetStatusLabel(task.Status)}]";
+
+    public void LoadTemplate(string code)
+    {
+        NewTaskCode = code;
+        ErrorMessage = null;
+    }
+
+    public void ResetNewTaskForm()
+    {
+        EditingTaskId = null;
+        NewTaskName = $"Task {_nextTaskId}";
+        NewTaskCode = DefaultSampleCode;
+        ErrorMessage = null;
+    }
+
+    public void SubmitTask()
     {
         ErrorMessage = null;
         if (string.IsNullOrWhiteSpace(NewTaskCode))
@@ -121,30 +239,89 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             return;
         }
 
+        if (EditingTaskId is int editId)
+        {
+            var existing = _tasks.FirstOrDefault(x => x.Id == editId);
+            if (existing is null)
+            {
+                EditingTaskId = null;
+                return;
+            }
+
+            if (existing.Status == TaskRunStatus.Running)
+            {
+                ErrorMessage = "运行中的任务不能编辑，请先取消。";
+                return;
+            }
+
+            existing.Name = string.IsNullOrWhiteSpace(NewTaskName) ? existing.Name : NewTaskName.Trim();
+            existing.Code = NewTaskCode;
+            if (existing.Status is not TaskRunStatus.Pending)
+                RequeueTask(existing.Id);
+            else
+                NotifyQueueStatsChanged();
+
+            AppendGlobalLog($"[Queue] Update {existing.Name}#{existing.Id}");
+            EditingTaskId = null;
+            SelectedTaskId = existing.Id;
+            NewTaskName = $"Task {_nextTaskId}";
+            return;
+        }
+
         var item = new ScheduledTaskItem
         {
             Id = _nextTaskId++,
-            Name = string.IsNullOrWhiteSpace(NewTaskName) ? $"Task {_nextTaskId}" : NewTaskName.Trim(),
+            Name = string.IsNullOrWhiteSpace(NewTaskName) ? $"Task {_nextTaskId - 1}" : NewTaskName.Trim(),
             Code = NewTaskCode,
             Status = TaskRunStatus.Pending,
             CreatedAt = DateTime.Now
         };
 
         _tasks.Add(item);
-        SelectedTaskId ??= item.Id;
+        SelectedTaskId = item.Id;
         NewTaskName = $"Task {_nextTaskId}";
-        OnPropertyChanged(nameof(Tasks));
-        RefreshSelectedTaskLog();
+        NotifyQueueStatsChanged();
         AppendGlobalLog($"[Queue] Add {item.Name}#{item.Id}");
+    }
+
+    public void EditTask(int id)
+    {
+        var item = _tasks.FirstOrDefault(x => x.Id == id);
+        if (item is null || item.Status == TaskRunStatus.Running)
+            return;
+
+        EditingTaskId = id;
+        NewTaskName = item.Name;
+        NewTaskCode = item.Code;
+        SelectedTaskId = id;
+        ErrorMessage = null;
+    }
+
+    public void DuplicateTask(int id)
+    {
+        var item = _tasks.FirstOrDefault(x => x.Id == id);
+        if (item is null)
+            return;
+
+        var copy = new ScheduledTaskItem
+        {
+            Id = _nextTaskId++,
+            Name = $"{item.Name} (copy)",
+            Code = item.Code,
+            Status = TaskRunStatus.Pending,
+            CreatedAt = DateTime.Now
+        };
+        _tasks.Add(copy);
+        SelectedTaskId = copy.Id;
+        NotifyQueueStatsChanged();
+        AppendGlobalLog($"[Queue] Duplicate {copy.Name}#{copy.Id}");
     }
 
     public void RemoveTask(int id)
     {
         var item = _tasks.FirstOrDefault(x => x.Id == id);
         if (item is null)
-        {
             return;
-        }
 
         if (item.Status == TaskRunStatus.Running)
         {
@@ -153,28 +330,20 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         }
 
         _tasks.Remove(item);
+        if (EditingTaskId == id)
+            EditingTaskId = null;
         if (SelectedTaskId == id)
-        {
             SelectedTaskId = _tasks.FirstOrDefault()?.Id;
-        }
 
-        OnPropertyChanged(nameof(Tasks));
-        RefreshSelectedTaskLog();
+        NotifyQueueStatsChanged();
         AppendGlobalLog($"[Queue] Remove {item.Name}#{item.Id}");
     }
 
     public void RequeueTask(int id)
     {
         var item = _tasks.FirstOrDefault(x => x.Id == id);
-        if (item is null)
-        {
+        if (item is null || item.Status == TaskRunStatus.Running)
             return;
-        }
-
-        if (item.Status == TaskRunStatus.Running)
-        {
-            return;
-        }
 
         item.Status = TaskRunStatus.Pending;
         item.StartedAt = null;
@@ -182,8 +351,7 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         item.ErrorMessage = null;
         item.ResultText = null;
         item.Logs.Clear();
-        OnPropertyChanged(nameof(Tasks));
-        RefreshSelectedTaskLog();
+        RefreshAllTaskLogs();
         AppendGlobalLog($"[Queue] Requeue {item.Name}#{item.Id}");
     }
 
@@ -191,35 +359,82 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     {
         var item = _tasks.FirstOrDefault(x => x.Id == id);
         if (item is null)
-        {
             return;
-        }
 
         if (item.Status == TaskRunStatus.Pending)
         {
             item.Status = TaskRunStatus.Canceled;
-            OnPropertyChanged(nameof(Tasks));
+            NotifyQueueStatsChanged();
             AppendGlobalLog($"[Queue] Cancel pending {item.Name}#{item.Id}");
             return;
         }
 
         if (item.Status != TaskRunStatus.Running)
+            return;
+
+        lock (_syncRoot)
+            item.CancelCts?.Cancel();
+    }
+
+    public void MoveTask(int id, int delta)
+    {
+        var index = _tasks.FindIndex(x => x.Id == id);
+        if (index < 0)
+            return;
+
+        var item = _tasks[index];
+        if (item.Status != TaskRunStatus.Pending)
+            return;
+
+        var target = index + delta;
+        if (target < 0 || target >= _tasks.Count)
+            return;
+
+        if (_tasks[target].Status != TaskRunStatus.Pending)
+            return;
+
+        (_tasks[index], _tasks[target]) = (_tasks[target], _tasks[index]);
+        NotifyQueueStatsChanged();
+    }
+
+    public void ClearCompletedTasks()
+    {
+        var removed = _tasks.RemoveAll(t => t.Status is TaskRunStatus.Completed or TaskRunStatus.Canceled or TaskRunStatus.Failed);
+        if (removed == 0)
+            return;
+
+        if (SelectedTaskId is int id && _tasks.All(t => t.Id != id))
+            SelectedTaskId = _tasks.FirstOrDefault()?.Id;
+        if (EditingTaskId is int editId && _tasks.All(t => t.Id != editId))
+            EditingTaskId = null;
+
+        NotifyQueueStatsChanged();
+        AppendGlobalLog($"[Queue] Cleared {removed} finished task(s)");
+    }
+
+    public void ClearPendingTasks()
+    {
+        if (IsSchedulerRunning)
         {
+            ErrorMessage = "调度运行中，无法清空等待队列。";
             return;
         }
 
-        lock (_syncRoot)
-        {
-            item.CancelCts?.Cancel();
-        }
+        var removed = _tasks.RemoveAll(t => t.Status == TaskRunStatus.Pending);
+        if (removed == 0)
+            return;
+
+        if (SelectedTaskId is int id && _tasks.All(t => t.Id != id))
+            SelectedTaskId = _tasks.FirstOrDefault()?.Id;
+
+        NotifyQueueStatsChanged();
+        AppendGlobalLog($"[Queue] Cleared {removed} pending task(s)");
     }
 
     public async Task StartSchedulerAsync()
     {
         if (IsSchedulerRunning)
-        {
             return;
-        }
 
         ErrorMessage = null;
         _schedulerCts = new CancellationTokenSource();
@@ -238,22 +453,113 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         {
             IsSchedulerRunning = false;
             lock (_syncRoot)
-            {
                 _runningTaskIds.Clear();
-            }
-            OnPropertyChanged(nameof(Tasks));
+            NotifyQueueStatsChanged();
         }
     }
 
-    public void StopScheduler()
+    public void StopScheduler() => _schedulerCts?.Cancel();
+
+    public void ClearAllTaskLogs()
     {
-        _schedulerCts?.Cancel();
+        foreach (var task in _tasks)
+            task.Logs.Clear();
+
+        RefreshAllTaskLogs();
+        AppendGlobalLog("[Log] Cleared all task logs");
+    }
+
+    public void ClearFilteredTaskLogs()
+    {
+        if (FilteredLogTask is null)
+            return;
+
+        FilteredLogTask.Logs.Clear();
+        RefreshAllTaskLogs();
+        AppendGlobalLog($"[Log] Cleared logs for {FilteredLogTask.Name}#{FilteredLogTask.Id}");
     }
 
     public void ClearGlobalLogs()
     {
         _globalLogs.Clear();
         GlobalLogText = string.Empty;
+    }
+
+    private void EnsureDefaultSelection()
+    {
+        if (_tasks.Count == 0)
+        {
+            SelectedTaskId = null;
+            LogFilterTaskId = null;
+            return;
+        }
+
+        if (SelectedTaskId is null || _tasks.All(t => t.Id != SelectedTaskId))
+            SelectedTaskId = _tasks[0].Id;
+
+        if (LogFilterTaskId is null || _tasks.All(t => t.Id != LogFilterTaskId))
+            LogFilterTaskId = _tasks[0].Id;
+    }
+
+    private void RefreshAllTaskLogs()
+    {
+        if (_tasks.Count == 0)
+        {
+            AllTaskLogsText = string.Empty;
+            FilteredTaskLogText = string.Empty;
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var task in _tasks)
+        {
+            sb.AppendLine($"──── {task.Name} #{task.Id} [{GetStatusLabel(task.Status)}] ────");
+            if (task.Logs.Count == 0)
+                sb.AppendLine("  （暂无输出）");
+            else
+            {
+                foreach (var line in task.Logs)
+                    sb.AppendLine($"  {line}");
+            }
+            sb.AppendLine();
+        }
+
+        AllTaskLogsText = sb.ToString().TrimEnd();
+        RefreshFilteredTaskLog();
+    }
+
+    private void RefreshFilteredTaskLog()
+    {
+        if (FilteredLogTask is null)
+        {
+            FilteredTaskLogText = string.Empty;
+            return;
+        }
+
+        FilteredTaskLogText = FilteredLogTask.Logs.Count == 0
+            ? string.Empty
+            : string.Join(Environment.NewLine, FilteredLogTask.Logs);
+    }
+
+    public static string GetStatusLabel(TaskRunStatus status) => status switch
+    {
+        TaskRunStatus.Pending => "等待中",
+        TaskRunStatus.Running => "运行中",
+        TaskRunStatus.Completed => "完成",
+        TaskRunStatus.Failed => "失败",
+        TaskRunStatus.Canceled => "已取消",
+        _ => status.ToString()
+    };
+
+    public static string FormatDuration(DateTime? started, DateTime? finished)
+    {
+        if (started is null)
+            return "—";
+        var end = finished ?? DateTime.Now;
+        var span = end - started.Value;
+        if (span.TotalMilliseconds < 1000)
+            return $"{span.TotalMilliseconds:0} ms";
+        return $"{span.TotalSeconds:0.##} s";
     }
 
     private async Task RunSchedulerLoopAsync(CancellationToken token)
@@ -264,17 +570,13 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         {
             runningTasks.RemoveAll(t => t.IsCompleted);
 
-            // 仅当有并发空位时，从 Pending 队列取任务并启动执行。
             while (runningTasks.Count < MaxConcurrency)
             {
                 var next = _tasks.FirstOrDefault(t => t.Status == TaskRunStatus.Pending);
                 if (next is null)
-                {
                     break;
-                }
 
-                var execTask = ExecuteTaskAsync(next, token);
-                runningTasks.Add(execTask);
+                runningTasks.Add(ExecuteTaskAsync(next, token));
             }
 
             var hasPending = _tasks.Any(t => t.Status == TaskRunStatus.Pending);
@@ -308,13 +610,12 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         taskItem.ResultText = null;
         AppendTaskLog(taskItem, "started");
         AppendGlobalLog($"[Run] {taskItem.Name}#{taskItem.Id} started");
-        OnPropertyChanged(nameof(Tasks));
+        NotifyQueueStatsChanged();
 
         try
         {
             var options = BuildScriptOptions();
             var globals = new ScriptTaskGlobals(taskItem.Id, msg => AppendTaskLog(taskItem, msg), taskToken);
-            // 对常见的 Task.Delay(x) 做协作取消增强，避免“取消按钮无效”的体验。
             var preparedCode = RewriteForCooperativeCancellation(taskItem.Code);
             var result = await CSharpScript.EvaluateAsync(preparedCode, options, globals, cancellationToken: taskToken);
             taskItem.ResultText = result?.ToString();
@@ -351,8 +652,7 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
                 taskItem.CancelCts?.Dispose();
                 taskItem.CancelCts = null;
             }
-            OnPropertyChanged(nameof(Tasks));
-            RefreshSelectedTaskLog();
+            NotifyQueueStatsChanged();
         }
     }
 
@@ -372,8 +672,7 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
         {
             try
             {
-                var asm = Assembly.Load(new AssemblyName(name));
-                refs.Add(asm);
+                refs.Add(Assembly.Load(new AssemblyName(name)));
             }
             catch
             {
@@ -418,9 +717,7 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     {
         _globalLogs.Add($"{DateTime.Now:HH:mm:ss.fff} {text}");
         if (_globalLogs.Count > 800)
-        {
             _globalLogs.RemoveRange(0, _globalLogs.Count - 800);
-        }
 
         GlobalLogText = string.Join(Environment.NewLine, _globalLogs);
     }
@@ -429,31 +726,18 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     {
         item.Logs.Add($"{DateTime.Now:HH:mm:ss.fff} {text}");
         if (item.Logs.Count > 400)
-        {
             item.Logs.RemoveRange(0, item.Logs.Count - 400);
-        }
 
-        if (SelectedTaskId == item.Id)
-        {
-            SelectedTaskLogText = string.Join(Environment.NewLine, item.Logs);
-        }
-    }
-
-    private void RefreshSelectedTaskLog()
-    {
-        var item = _tasks.FirstOrDefault(x => x.Id == SelectedTaskId);
-        SelectedTaskLogText = item is null ? string.Empty : string.Join(Environment.NewLine, item.Logs);
+        RefreshAllTaskLogs();
     }
 
     private static IReadOnlyList<string> ParseReferenceNames(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             return Array.Empty<string>();
-        }
 
         return value
-            .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Split([',', ';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .ToArray();
     }
@@ -461,12 +745,10 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     private static IReadOnlyList<string> ParseReferencePaths(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             return Array.Empty<string>();
-        }
 
         return value
-            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .ToArray();
     }
@@ -474,12 +756,8 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
     private static string RewriteForCooperativeCancellation(string code)
     {
         if (string.IsNullOrWhiteSpace(code))
-        {
             return code;
-        }
 
-        // 仅改写单参数 Task.Delay(...)，若原本已有 token 参数则保持不变。
-        // 示例：Task.Delay(1000) -> Task.Delay(1000, Token)
         return Regex.Replace(
             code,
             @"Task\s*\.\s*Delay\s*\(\s*([^) ,][^)]*?)\s*\)",
@@ -487,14 +765,13 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             {
                 var inner = match.Groups[1].Value.Trim();
                 if (inner.Contains(',', StringComparison.Ordinal))
-                {
                     return match.Value;
-                }
-
                 return $"Task.Delay({inner}, Token)";
             });
     }
 }
+
+public sealed record TaskTemplate(string Id, string Label, string Code);
 
 public sealed class ScheduledTaskItem
 {

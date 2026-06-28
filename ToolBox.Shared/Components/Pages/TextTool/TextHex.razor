@@ -1,0 +1,68 @@
+@page "/text-hex"
+@namespace ToolBox.Components.Pages
+@inherits MvvmComponentBase<TextHexVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">文本 ↔ Hex / 字节视图</MudText>
+    <MudText Typo="Typo.body2">按编码查看字节 Hex，支持多种显示格式与反向解析。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Class="mb-3">
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" Label="编码" @bind-Value="ViewModel.EncodingId" Variant="Variant.Outlined" Dense="true">
+                @foreach (var enc in TextHexVM.Encodings)
+                {
+                    <MudSelectItem T="string" Value="@enc.Id">@enc.Label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" Label="Hex 显示" @bind-Value="ViewModel.DisplayModeId" Variant="Variant.Outlined" Dense="true">
+                @foreach (var mode in TextHexVM.DisplayModes)
+                {
+                    <MudSelectItem T="string" Value="@mode.Id">@mode.Label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex flex-column justify-center gap-1">
+            <MudCheckBox @bind-Value="ViewModel.UppercaseHex" Label="大写 Hex" />
+            <MudCheckBox @bind-Value="ViewModel.ShowCEscape" Label="附加 \\xNN" />
+            <MudCheckBox @bind-Value="ViewModel.ShowUnicodeEscape" Label="附加 \\uXXXX" />
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">文本</MudText>
+            <MudTextField T="string" @bind-Value="ViewModel.TextInput" Variant="Variant.Outlined"
+                          Lines="8" Immediate="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="ViewModel.EncodeTextToHex">
+                文本 → Hex
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Hex / 字节</MudText>
+            <MudTextField T="string" @bind-Value="ViewModel.HexInput" Variant="Variant.Outlined"
+                          Lines="8" Immediate="true"
+                          Placeholder="48 65 6C 6C 6F 或 \x48\x65..." />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-3" OnClick="ViewModel.DecodeHexToText">
+                Hex → 文本
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+    <MudButton Variant="Variant.Outlined" Class="mt-3" OnClick="ViewModel.Clear">清空</MudButton>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.Output))
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudText Typo="Typo.h6" GutterBottom="true">输出</MudText>
+        <MudText Style="white-space: pre-wrap; font-family: monospace; word-break: break-all;">@ViewModel.Output</MudText>
+    </MudPaper>
+}

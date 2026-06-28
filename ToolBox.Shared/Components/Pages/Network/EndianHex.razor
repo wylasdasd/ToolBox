@@ -1,0 +1,77 @@
+@page "/endian-hex"
+@namespace ToolBox.Components.Pages.Network
+@inherits MvvmComponentBase<EndianHexVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">字节序 / 整数 ↔ Hex</MudText>
+    <MudText Typo="Typo.body2">按大端/小端查看整型、浮点数的内存字节表示，或从 Hex 反解析。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudSelect T="string" Label="快速案例" Value="@ViewModel.SelectedExampleId"
+                       ValueChanged="@(id => ViewModel.SelectExample(id))"
+                       Variant="Variant.Outlined" Dense="true" Clearable="true"
+                       Placeholder="选择预设案例，自动填充并转换">
+                @foreach (var ex in EndianHexVM.Examples)
+                {
+                    <MudSelectItem T="string" Value="@ex.Id">@ex.Label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex align-center">
+            <MudSwitch @bind-Value="ViewModel.InputIsHex" Label="输入为 Hex 字节" Color="Color.Primary" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" Label="数据类型" @bind-Value="ViewModel.DataTypeId" Variant="Variant.Outlined" Dense="true">
+                @foreach (var t in EndianHexVM.DataTypes)
+                {
+                    <MudSelectItem T="string" Value="@t.Id">@t.Label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudText Typo="Typo.body2" Class="mb-1">字节序</MudText>
+            <MudRadioGroup T="bool" @bind-Value="ViewModel.BigEndian" Row="true">
+                <MudRadio T="bool" Value="true" Color="Color.Primary">Big Endian</MudRadio>
+                <MudRadio T="bool" Value="false" Color="Color.Primary">Little Endian</MudRadio>
+            </MudRadioGroup>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string" @bind-Value="ViewModel.Input" Label="输入"
+                          Variant="Variant.Outlined" Lines="3" Immediate="true"
+                          Placeholder="@(ViewModel.InputIsHex ? "DE AD BE EF 或 DEADBEEF" : "305419896 或 3.14")" />
+        </MudItem>
+    </MudGrid>
+    <MudStack Row="true" Spacing="2" Class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.ConvertValueToHex">数值 → Hex</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ViewModel.ConvertHexToValue">Hex → 数值</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Clear">清空</MudButton>
+    </MudStack>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.HexOutput))
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.subtitle2">Hex</MudText>
+                <MudText Style="font-family: monospace;">@ViewModel.HexOutput</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.subtitle2">Binary</MudText>
+                <MudText Style="font-family: monospace; word-break: break-all;">@ViewModel.BinaryOutput</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.subtitle2">Decimal</MudText>
+                <MudText Style="font-family: monospace;">@ViewModel.DecimalOutput</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}

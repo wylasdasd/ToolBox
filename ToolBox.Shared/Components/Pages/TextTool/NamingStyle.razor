@@ -1,0 +1,62 @@
+@page "/naming-style"
+@namespace ToolBox.Components.Pages
+@inherits MvvmComponentBase<NamingStyleVM>
+@inject ISnackbar Snackbar
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">命名风格转换</MudText>
+    <MudText Typo="Typo.body2">camelCase、PascalCase、snake_case、kebab-case 等常见命名互转。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudTextField T="string" @bind-Value="ViewModel.Input" Label="输入标识符或短语"
+                  Variant="Variant.Outlined" Immediate="true"
+                  Placeholder="hello_world、HelloWorld、hello-world" Class="mb-3" />
+    <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Clear">清空</MudButton>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.Input))
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+            <thead>
+                <tr>
+                    <th>风格</th>
+                    <th>中文名</th>
+                    <th>结果</th>
+                    <th style="width: 56px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in ViewModel.StyleRows)
+                {
+                    <tr>
+                        <td style="font-family: monospace;">@row.EnglishName</td>
+                        <td>@row.ChineseName</td>
+                        <td style="font-family: monospace;">@row.Value</td>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                           title="复制" OnClick="@(() => CopyAsync(row.Value))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    private async Task CopyAsync(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        await ViewModel.CopyToClipboardAsync(text);
+        Snackbar.Add("已复制到剪贴板", Severity.Success, config => config.VisibleStateDuration = 2000);
+    }
+}

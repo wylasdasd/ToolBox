@@ -1,0 +1,44 @@
+@page "/ip-calculator"
+@namespace ToolBox.Components.Pages.Network
+@inherits MvvmComponentBase<IpCalculatorVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">IPv4 / 子网计算</MudText>
+    <MudText Typo="Typo.body2">IPv4 ↔ 整数、子网掩码、网络/广播地址、可用主机数。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudTextField T="string" @bind-Value="ViewModel.Input" Label="IPv4 地址"
+                  Variant="Variant.Outlined" Immediate="true"
+                  Placeholder="192.168.1.10/24 或 192.168.1.10 255.255.255.0" Class="mb-3" />
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.Calculate">计算</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Clear">清空</MudButton>
+    </MudStack>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.Address))
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+            <tbody>
+                <tr><td>地址</td><td>@ViewModel.Address</td></tr>
+                <tr><td>CIDR</td><td>@ViewModel.Cidr</td></tr>
+                <tr><td>整数</td><td>@ViewModel.IntegerValue</td></tr>
+                <tr><td>Hex</td><td>@ViewModel.HexValue</td></tr>
+                <tr><td>子网掩码</td><td>@ViewModel.SubnetMask</td></tr>
+                <tr><td>Wildcard</td><td>@ViewModel.WildcardMask</td></tr>
+                <tr><td>网络地址</td><td>@ViewModel.NetworkAddress</td></tr>
+                <tr><td>广播地址</td><td>@ViewModel.BroadcastAddress</td></tr>
+                <tr><td>首个可用主机</td><td>@ViewModel.FirstHost</td></tr>
+                <tr><td>末个可用主机</td><td>@ViewModel.LastHost</td></tr>
+                <tr><td>可用主机数</td><td>@ViewModel.HostCount</td></tr>
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}

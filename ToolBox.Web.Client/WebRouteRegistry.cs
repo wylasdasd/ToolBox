@@ -10,6 +10,8 @@ public static class WebRouteRegistry
         "/text-lines", "/regex", "/diff", "/base64", "/url-codec", "/jwt",
         "/json-format", "/json-to-csharp", "/timestamp", "/uuid", "/base64-image", "/svg-preview",
         "/bitwise", "/struct-layout", "/converters", "/request-to-curl", "/ai-extract",
+        "/cron-parser", "/ip-calculator", "/endian-hex",
+        "/naming-style", "/text-hex", "/format-convert",
         "/ocr-ai", "/ai-ocr", "/ocr-regex-extract", "/ocr-regex-batch", "/not-found",
     };
 

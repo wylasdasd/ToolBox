@@ -1,15 +1,107 @@
+.multi-task-page {
+    max-width: 1400px;
+}
+
+.scheduler-toolbar {
+    border: 1px solid #E2E8F0;
+    background: #FFFFFF;
+}
+
+.side-panel {
+    position: sticky;
+    top: 12px;
+}
+
+.code-input textarea {
+    font-family: Consolas, "Courier New", monospace !important;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .log-panel {
     margin: 0;
-    padding: 10px;
-    min-height: 220px;
-    max-height: 360px;
+    padding: 12px;
+    min-height: 280px;
+    max-height: 420px;
     overflow: auto;
-    background: #F8FAFC;
-    border: 1px solid #E2E8F0;
-    border-radius: 6px;
+    background: #0F172A;
+    color: #E2E8F0;
+    border: 1px solid #1E293B;
+    border-radius: 8px;
     font-family: Consolas, "Courier New", monospace;
     font-size: 12px;
-    line-height: 1.45;
+    line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.log-panel-sm {
+    min-height: 80px;
+    max-height: 200px;
+}
+
+.hint-alert code {
+    font-size: 12px;
+}
+
+.result-cell {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+}
+
+.text-error {
+    color: #DC2626;
+}
+
+.detail-table td:first-child {
+    width: 64px;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.detail-table td:last-child {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.code-expansion {
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+}
+
+.log-panel-tall {
+    min-height: 360px;
+    max-height: 560px;
+}
+
+.task-name {
+    cursor: default;
+}
+
+.task-name.selected {
+    font-weight: 600;
+    color: #0F172A;
+}
+
+::deep tr.selected-row {
+    background-color: #F1F5F9 !important;
+}
+
+::deep .mud-table-row {
+    cursor: pointer;
+}
+
+::deep tr.selected-row:hover {
+    background-color: #E2E8F0 !important;
+}
+
+@media (max-width: 1280px) {
+    .side-panel {
+        position: static;
+    }
 }

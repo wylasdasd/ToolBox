@@ -1,0 +1,44 @@
+@page "/cron-parser"
+@namespace ToolBox.Components.Pages.Network
+@inherits MvvmComponentBase<CronParserVM>
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="4" Class="mb-4">
+    <MudText Typo="Typo.h4">Cron 表达式解析</MudText>
+    <MudText Typo="Typo.body2">解析 Cron 字段含义，并预览接下来 10 次执行时间（本地时区）。</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudTextField T="string" @bind-Value="ViewModel.Expression" Label="Cron 表达式"
+                  Variant="Variant.Outlined" Immediate="true"
+                  Placeholder="0 0 * * * 或 0 */5 * * * *" Class="mb-3" />
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudSwitch @bind-Value="ViewModel.IncludeSeconds" Label="含秒字段（6 段）" Color="Color.Primary" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewModel.Parse">解析</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Clear">清空</MudButton>
+    </MudStack>
+    <MudText Typo="Typo.caption" Color="Color.Secondary">
+        5 段：分 时 日 月 周 · 6 段：秒 分 时 日 月 周。示例：0 0 * * * 每天 0 点；*/15 * * * * 每 15 分钟。
+    </MudText>
+</MudPaper>
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.Description))
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" GutterBottom="true">字段说明</MudText>
+        <MudText>@ViewModel.Description</MudText>
+    </MudPaper>
+}
+
+@if (!string.IsNullOrWhiteSpace(ViewModel.NextRuns))
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudText Typo="Typo.h6" GutterBottom="true">接下来 10 次执行</MudText>
+        <MudText Style="white-space: pre-line; font-family: monospace;">@ViewModel.NextRuns</MudText>
+    </MudPaper>
+}
