@@ -11,6 +11,7 @@
 - `activeContext.md`：当前工作焦点、最近改动、下一步
 - `progress.md`：里程碑、变更日志、待办项
 - `token消耗结论.md`：C# vs React+TS 的 AI token 消耗分析与文献综述
+- `agent七层模型.md`：Agent 七层分层模型解析（Skills vs MCP 错位比较、OSI 类比）
 
 ## 建议使用方式
 
