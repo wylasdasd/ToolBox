@@ -1,8 +1,6 @@
-using Blazing.Mvvm.ComponentModel;
+﻿using Blazing.Mvvm.ComponentModel;
 using CommonHelp;
-using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
+using ToolBox.Tools.Encoding;
 
 namespace ToolBox.Components.Pages;
 
@@ -87,110 +85,42 @@ public sealed class TextHexVM : ViewModelBase
     public void EncodeTextToHex()
     {
         ErrorMessage = null;
-        try
+        var result = TextHexService.EncodeTextToHex(
+            TextInput,
+            EncodingId,
+            DisplayModeId,
+            UppercaseHex,
+            ShowUnicodeEscape,
+            ShowCEscape);
+        if (!result.Success)
         {
-            var encoding = EncodingHelp.GetEncoding(EncodingId);
-            var bytes = encoding.GetBytes(TextInput ?? string.Empty);
-            HexInput = FormatBytes(bytes);
-            Output = BuildDisplay(bytes, encoding);
+            ErrorMessage = result.Error;
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+
+        var value = result.Value!;
+        HexInput = value.HexInput;
+        Output = value.Output;
     }
 
     public void DecodeHexToText()
     {
         ErrorMessage = null;
-        try
+        var result = TextHexService.DecodeHexToText(HexInput, EncodingId);
+        if (!result.Success)
         {
-            var bytes = ParseHexBytes(HexInput);
-            var encoding = EncodingHelp.GetEncoding(EncodingId);
-            TextInput = encoding.GetString(bytes);
-            Output = TextInput;
+            ErrorMessage = result.Error;
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+
+        var value = result.Value!;
+        TextInput = value.TextInput;
+        Output = value.Output;
     }
 
     public void Clear()
     {
         TextInput = HexInput = Output = string.Empty;
         ErrorMessage = null;
-    }
-
-    private string FormatBytes(byte[] bytes)
-    {
-        var fmt = UppercaseHex ? "X2" : "x2";
-        return string.Join(" ", bytes.Select(b => b.ToString(fmt, CultureInfo.InvariantCulture)));
-    }
-
-    private string BuildDisplay(byte[] bytes, Encoding encoding)
-    {
-        var parts = new List<string>();
-        var primary = DisplayModeId switch
-        {
-            "continuous" => string.Concat(bytes.Select(b => b.ToString(UppercaseHex ? "X2" : "x2", CultureInfo.InvariantCulture))),
-            "c-escape" => string.Concat(bytes.Select(b => $"\\x{b.ToString(UppercaseHex ? "X2" : "x2", CultureInfo.InvariantCulture)}")),
-            "unicode" => BuildUnicodeEscape(bytes, encoding),
-            _ => FormatBytes(bytes),
-        };
-        parts.Add(primary);
-
-        if (ShowCEscape && DisplayModeId != "c-escape")
-            parts.Add(string.Concat(bytes.Select(b => $"\\x{b.ToString(UppercaseHex ? "X2" : "x2", CultureInfo.InvariantCulture)}")));
-
-        if (ShowUnicodeEscape && DisplayModeId != "unicode")
-            parts.Add(BuildUnicodeEscape(bytes, encoding));
-
-        return string.Join(Environment.NewLine + Environment.NewLine, parts);
-    }
-
-    private static string BuildUnicodeEscape(byte[] bytes, Encoding encoding)
-    {
-        var text = encoding.GetString(bytes);
-        var sb = new StringBuilder();
-        foreach (var ch in text)
-        {
-            if (ch <= 0x7F && !char.IsControl(ch))
-                sb.Append(ch);
-            else
-                sb.Append(CultureInfo.InvariantCulture, $"\\u{((int)ch):X4}");
-        }
-        return sb.ToString();
-    }
-
-    private static byte[] ParseHexBytes(string input)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-            throw new FormatException("请输入 Hex 内容。");
-
-        var matches = Regex.Matches(input, @"\\x([0-9a-fA-F]{2})");
-        if (matches.Count > 0)
-        {
-            return matches.Select(m => byte.Parse(m.Groups[1].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture)).ToArray();
-        }
-
-        var cleaned = input.Trim()
-            .Replace("0x", "", StringComparison.OrdinalIgnoreCase)
-            .Replace("\\x", "", StringComparison.OrdinalIgnoreCase)
-            .Replace(" ", "")
-            .Replace("-", "")
-            .Replace(",", "")
-            .Replace(Environment.NewLine, "");
-
-        if (cleaned.Length == 0)
-            throw new FormatException("未找到有效 Hex 字节。");
-
-        if (cleaned.Length % 2 != 0)
-            cleaned = "0" + cleaned;
-
-        var bytes = new byte[cleaned.Length / 2];
-        for (var i = 0; i < bytes.Length; i++)
-            bytes[i] = byte.Parse(cleaned.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        return bytes;
     }
 }

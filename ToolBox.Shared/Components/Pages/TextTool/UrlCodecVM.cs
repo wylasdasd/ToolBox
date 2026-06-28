@@ -1,5 +1,5 @@
-using Blazing.Mvvm.ComponentModel;
-using System.Net;
+﻿using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Encoding;
 
 namespace ToolBox.Components.Pages.TextTool;
 
@@ -37,33 +37,27 @@ public sealed class UrlCodecVM : ViewModelBase
     public void Encode()
     {
         ErrorMessage = null;
-        try
+        var result = UrlCodecService.Encode(PlainText, UseEscapeDataString);
+        if (!result.Success)
         {
-            var input = PlainText ?? string.Empty;
-            EncodedText = UseEscapeDataString
-                ? Uri.EscapeDataString(input)
-                : WebUtility.UrlEncode(input);
+            ErrorMessage = result.Error;
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+
+        EncodedText = result.Value!;
     }
 
     public void Decode()
     {
         ErrorMessage = null;
-        try
+        var result = UrlCodecService.Decode(EncodedText, UseEscapeDataString);
+        if (!result.Success)
         {
-            var input = EncodedText ?? string.Empty;
-            PlainText = UseEscapeDataString
-                ? Uri.UnescapeDataString(input)
-                : WebUtility.UrlDecode(input);
+            ErrorMessage = result.Error;
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+
+        PlainText = result.Value!;
     }
 
     public void Clear()

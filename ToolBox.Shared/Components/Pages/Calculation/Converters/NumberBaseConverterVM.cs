@@ -1,11 +1,11 @@
-using Blazing.Mvvm.ComponentModel;
-using CommonHelp;
+﻿using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Calculation;
 
 namespace ToolBox.Components.Pages.Converters;
 
 public partial class NumberBaseConverterVM : ViewModelBase
 {
-    private readonly Dictionary<int, string> _values = RadixHelp.ProgrammerBases.ToDictionary(b => b, _ => string.Empty);
+    private readonly Dictionary<int, string> _values = RadixConvertService.ProgrammerBases.ToDictionary(b => b, _ => string.Empty);
     private string? _errorMessage;
 
     public string? ErrorMessage
@@ -14,8 +14,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
         set => SetProperty(ref _errorMessage, value);
     }
 
-    public string DigitAlphabetHint =>
-        $"32–128 进制数字符表（前 {Math.Min(48, RadixHelp.MaxRadix)} 个）：{RadixHelp.GetDigitAlphabet(Math.Min(48, RadixHelp.MaxRadix))}…";
+    public string DigitAlphabetHint => RadixConvertService.DigitAlphabetHint;
 
     public string Binary
     {
@@ -59,7 +58,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
         set => Set(128, value);
     }
 
-    public IReadOnlyList<int> Bases => RadixHelp.ProgrammerBases;
+    public IReadOnlyList<int> Bases => RadixConvertService.ProgrammerBases;
 
     private bool _isUpdating;
 
@@ -99,18 +98,19 @@ public partial class NumberBaseConverterVM : ViewModelBase
                 return;
             }
 
-            var big = RadixHelp.Parse(value, fromBase);
+            var result = RadixConvertService.ConvertFrom(value, fromBase);
+            if (!result.Success)
+            {
+                ErrorMessage = result.Error;
+                return;
+            }
 
-            foreach (var radix in RadixHelp.ProgrammerBases)
+            foreach (var (radix, text) in result.Value!.ValuesByRadix)
             {
                 if (radix == fromBase) continue;
-                _values[radix] = RadixHelp.Format(big, radix);
+                _values[radix] = text;
                 OnPropertyChanged(GetPropertyName(radix));
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
         }
         finally
         {
@@ -120,9 +120,9 @@ public partial class NumberBaseConverterVM : ViewModelBase
 
     public void ClearAll()
     {
-        foreach (var radix in RadixHelp.ProgrammerBases)
+        foreach (var (radix, text) in RadixConvertService.Clear().ValuesByRadix)
         {
-            _values[radix] = string.Empty;
+            _values[radix] = text;
             OnPropertyChanged(GetPropertyName(radix));
         }
 

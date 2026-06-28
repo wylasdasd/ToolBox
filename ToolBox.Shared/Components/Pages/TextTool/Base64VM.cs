@@ -1,6 +1,5 @@
-using Blazing.Mvvm.ComponentModel;
-using System.Text;
-using System.Security.Cryptography;
+﻿using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Encoding;
 
 namespace ToolBox.Components.Pages;
 
@@ -36,37 +35,30 @@ public sealed class Base64VM : ViewModelBase
         set => SetProperty(ref _useUrlSafe, value);
     }
 
-
-
-
-
     public void Encode()
     {
         ErrorMessage = null;
-        var bytes = Encoding.UTF8.GetBytes(PlainText ?? string.Empty);
-        var base64 = Convert.ToBase64String(bytes);
-        Base64Text = UseUrlSafe ? ToUrlSafe(base64) : base64;
+        var result = Base64Service.Encode(PlainText, UseUrlSafe);
+        if (!result.Success)
+        {
+            ErrorMessage = result.Error;
+            return;
+        }
+
+        Base64Text = result.Value!;
     }
 
     public void Decode()
     {
         ErrorMessage = null;
-        var input = Base64Text ?? string.Empty;
-
-        if (UseUrlSafe)
+        var result = Base64Service.Decode(Base64Text, UseUrlSafe);
+        if (!result.Success)
         {
-            input = FromUrlSafe(input);
+            ErrorMessage = result.Error;
+            return;
         }
 
-        try
-        {
-            var bytes = Convert.FromBase64String(input);
-            PlainText = Encoding.UTF8.GetString(bytes);
-        }
-        catch (FormatException ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+        PlainText = result.Value!;
     }
 
     public void Clear()
@@ -74,27 +66,5 @@ public sealed class Base64VM : ViewModelBase
         PlainText = string.Empty;
         Base64Text = string.Empty;
         ErrorMessage = null;
-    
-    }
-
-
-
-   
-
-    private static string ToUrlSafe(string base64)
-    {
-        return base64.Replace('+', '-').Replace('/', '_').TrimEnd('=');
-    }
-
-    private static string FromUrlSafe(string base64)
-    {
-        var restored = base64.Replace('-', '+').Replace('_', '/');
-        var padding = 4 - (restored.Length % 4);
-        if (padding is > 0 and < 4)
-        {
-            restored = restored.PadRight(restored.Length + padding, '=');
-        }
-
-        return restored;
     }
 }

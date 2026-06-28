@@ -1,6 +1,6 @@
 using Blazing.Mvvm.ComponentModel;
-using System.Text.RegularExpressions;
 using ToolBox.Services;
+using ToolBox.Tools.Text;
 
 namespace ToolBox.Components.Pages;
 
@@ -105,40 +105,33 @@ public sealed class NamingStyleVM : ViewModelBase
     public void Convert()
     {
         ErrorMessage = null;
-        var text = Input ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(text))
+
+        if (string.IsNullOrWhiteSpace(Input))
         {
             CamelCase = PascalCase = SnakeCase = KebabCase = ScreamingSnake = DotCase = TitleCase = LowerCase = string.Empty;
             OnPropertyChanged(nameof(StyleRows));
             return;
         }
 
-        try
+        var result = NamingStyleService.Convert(Input);
+        if (!result.Success)
         {
-            var words = SplitWords(text);
-            if (words.Count == 0)
-            {
-                CamelCase = PascalCase = SnakeCase = KebabCase = ScreamingSnake = DotCase = TitleCase = LowerCase = string.Empty;
-                ErrorMessage = "无法识别有效单词。";
-                OnPropertyChanged(nameof(StyleRows));
-                return;
-            }
-
-            var lower = words.Select(w => w.ToLowerInvariant()).ToArray();
-            CamelCase = lower[0] + string.Concat(lower.Skip(1).Select(Capitalize));
-            PascalCase = string.Concat(lower.Select(Capitalize));
-            SnakeCase = string.Join('_', lower);
-            KebabCase = string.Join('-', lower);
-            ScreamingSnake = string.Join('_', lower).ToUpperInvariant();
-            DotCase = string.Join('.', lower);
-            TitleCase = string.Join(' ', lower.Select(Capitalize));
-            LowerCase = string.Join(string.Empty, lower);
+            ErrorMessage = result.Error;
+            CamelCase = PascalCase = SnakeCase = KebabCase = ScreamingSnake = DotCase = TitleCase = LowerCase = string.Empty;
             OnPropertyChanged(nameof(StyleRows));
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+
+        var value = result.Value!;
+        CamelCase = value.CamelCase;
+        PascalCase = value.PascalCase;
+        SnakeCase = value.SnakeCase;
+        KebabCase = value.KebabCase;
+        ScreamingSnake = value.ScreamingSnake;
+        DotCase = value.DotCase;
+        TitleCase = value.TitleCase;
+        LowerCase = value.LowerCase;
+        OnPropertyChanged(nameof(StyleRows));
     }
 
     public void Clear()
@@ -153,29 +146,5 @@ public sealed class NamingStyleVM : ViewModelBase
             return;
 
         await _clipboardService.SetTextAsync(text);
-    }
-
-    private static string Capitalize(string word) =>
-        word.Length switch
-        {
-            0 => string.Empty,
-            1 => word.ToUpperInvariant(),
-            _ => char.ToUpperInvariant(word[0]) + word[1..]
-        };
-
-    private static List<string> SplitWords(string input)
-    {
-        var normalized = input.Trim()
-            .Replace('-', ' ')
-            .Replace('_', ' ')
-            .Replace('.', ' ');
-
-        normalized = Regex.Replace(normalized, @"([a-z0-9])([A-Z])", "$1 $2");
-        normalized = Regex.Replace(normalized, @"([A-Z]+)([A-Z][a-z])", "$1 $2");
-
-        return normalized.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(w => w.Trim())
-            .Where(w => w.Length > 0)
-            .ToList();
     }
 }

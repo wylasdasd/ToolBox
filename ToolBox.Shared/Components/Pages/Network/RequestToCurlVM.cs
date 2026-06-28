@@ -1,8 +1,9 @@
-using Blazing.Mvvm.ComponentModel;
+﻿using Blazing.Mvvm.ComponentModel;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
+using ToolBox.Tools.Network;
 
 namespace ToolBox.Components.Pages.Network;
 
@@ -52,6 +53,7 @@ public sealed class RequestToCurlVM : ViewModelBase
         get => _curlCommand;
         private set => SetProperty(ref _curlCommand, value);
     }
+
     private bool _isHttps;
     public bool IsHttps
     {
@@ -129,34 +131,25 @@ public sealed class RequestToCurlVM : ViewModelBase
         private set => SetProperty(ref _responseBody, value);
     }
 
-    public void ConvertRaw() => TryConvert(() => BuildFromRaw(RawRequest));
+    public void ConvertRaw() =>
+        ApplyConvertResult(RequestToCurlService.ConvertFromRaw(RawRequest, IsHttps, OutputFormat));
 
     public void ConvertForm() =>
-        TryConvert(() => BuildFromForm(FormMethod, EnsureAbsoluteUrl(FormUrl, _isHttps), FormHeaders, FormBody));
+        ApplyConvertResult(RequestToCurlService.ConvertFromForm(FormMethod, FormUrl, FormHeaders, FormBody, IsHttps, OutputFormat));
 
-    private void TryConvert(Func<HttpRequestData?> build)
+    private void ApplyConvertResult(ToolBox.Tools.Common.ToolResult<RequestToCurlResult> result)
     {
         ErrorMessage = null;
-        try
+        if (!result.Success)
         {
-            _currentRequestData = build();
-            if (_currentRequestData == null)
-            {
-                ErrorMessage = "未能解析请求。";
-                CurlCommand = string.Empty;
-                return;
-            }
-
-            CurlCommand = OutputFormat == "powershell"
-                ? GeneratePowerShell(_currentRequestData)
-                : GenerateCurl(_currentRequestData);
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
+            ErrorMessage = result.Error;
             CurlCommand = string.Empty;
             _currentRequestData = null;
+            return;
         }
+
+        CurlCommand = result.Value!.Command;
+        _currentRequestData = result.Value.Request;
     }
 
     public bool IsSystemCurlSupported => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
@@ -182,13 +175,9 @@ public sealed class RequestToCurlVM : ViewModelBase
             if (UseSystemCurl)
             {
                 if (IsSystemCurlSupported)
-                {
                     await ExecuteWithCurl();
-                }
                 else
-                {
                     ErrorMessage = "当前平台不支持系统 cURL 执行。";
-                }
             }
             else
             {
@@ -243,9 +232,7 @@ public sealed class RequestToCurlVM : ViewModelBase
         {
             ErrorMessage = $"cURL 执行出错 (ExitCode {process.ExitCode}):\n{errorBuilder}";
             if (outputBuilder.Length > 0)
-            {
                 ResponseBody = outputBuilder.ToString();
-            }
         }
         else
         {
@@ -309,9 +296,7 @@ public sealed class RequestToCurlVM : ViewModelBase
             var content = new StringContent(_currentRequestData.Body);
             var contentType = _currentRequestData.Headers.FirstOrDefault(h => string.Equals(h.Name, "Content-Type", StringComparison.OrdinalIgnoreCase));
             if (!string.IsNullOrEmpty(contentType.Value))
-            {
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType.Value);
-            }
             request.Content = content;
         }
 
@@ -321,13 +306,9 @@ public sealed class RequestToCurlVM : ViewModelBase
 
         var sbHeaders = new StringBuilder();
         foreach (var header in response.Headers)
-        {
             sbHeaders.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-        }
         foreach (var header in response.Content.Headers)
-        {
             sbHeaders.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-        }
         ResponseHeaders = sbHeaders.ToString();
 
         ResponseBody = await response.Content.ReadAsStringAsync();
@@ -359,257 +340,6 @@ public sealed class RequestToCurlVM : ViewModelBase
         ResponseStatusCode = null;
         ResponseHeaders = null;
         ResponseBody = null;
-    }
-
-    private HttpRequestData? BuildFromRaw(string raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        var lines = NormalizeLines(raw);
-        if (lines.Count == 0)
-        {
-            return null;
-        }
-
-        var requestLine = lines[0].Trim();
-        var requestParts = requestLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (requestParts.Length < 2)
-        {
-            return null;
-        }
-
-        var method = requestParts[0].ToUpperInvariant();
-        var target = requestParts[1];
-        var headers = new List<(string Name, string Value)>();
-        var bodyBuilder = new StringBuilder();
-        var inBody = false;
-
-        for (var i = 1; i < lines.Count; i++)
-        {
-            var line = lines[i];
-            if (!inBody)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    inBody = true;
-                    continue;
-                }
-
-                var colonIndex = line.IndexOf(':');
-                if (colonIndex <= 0)
-                {
-                    continue;
-                }
-
-                var name = line[..colonIndex].Trim();
-                var value = line[(colonIndex + 1)..].Trim();
-                headers.Add((name, value));
-            }
-            else
-            {
-                if (bodyBuilder.Length > 0)
-                {
-                    bodyBuilder.Append('\n');
-                }
-                bodyBuilder.Append(line);
-            }
-        }
-
-        var url = BuildUrl(target, headers);
-        return new HttpRequestData(method, url, headers, bodyBuilder.ToString());
-    }
-
-    private HttpRequestData? BuildFromForm(string method, string url, string headersText, string body)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return null;
-        }
-
-        var normalizedMethod = string.IsNullOrWhiteSpace(method) ? "GET" : method.Trim().ToUpperInvariant();
-        var headers = ParseHeaders(headersText);
-        var normalizedUrl = url.Trim();
-
-        return new HttpRequestData(normalizedMethod, normalizedUrl, headers, body);
-    }
-
-    private string GenerateCurl(HttpRequestData data)
-    {
-        var sb = new StringBuilder();
-        sb.Append("curl ");
-        sb.Append("-X ");
-        sb.Append(data.Method);
-        sb.Append(' ');
-        sb.Append(EscapeArg(data.Url));
-
-        foreach (var (name, value) in data.Headers)
-        {
-            if (name.Equals("Host", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            sb.Append(' ');
-            sb.Append("-H ");
-            sb.Append(EscapeArg($"{name}: {value}"));
-        }
-
-        if (!string.IsNullOrWhiteSpace(data.Body) && data.Method != "GET" && data.Method != "HEAD")
-        {
-            sb.Append(' ');
-            sb.Append("--data-raw ");
-            sb.Append(EscapeArg(data.Body));
-        }
-
-        return sb.ToString();
-    }
-
-    private string GeneratePowerShell(HttpRequestData data)
-    {
-        var sb = new StringBuilder();
-        sb.Append("Invoke-WebRequest ");
-        sb.Append("-Method ");
-        sb.Append(data.Method);
-        sb.Append(' ');
-        sb.Append("-Uri ");
-        sb.Append(EscapePowerShellArg(data.Url));
-
-        if (data.Headers.Count > 0)
-        {
-            sb.Append(' ');
-            sb.Append("-Headers ");
-            sb.Append("@{");
-            var first = true;
-            foreach (var (name, value) in data.Headers)
-            {
-                if (name.Equals("Host", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (!first)
-                {
-                    sb.Append("; ");
-                }
-
-                sb.Append(EscapePowerShellKey(name));
-                sb.Append("=");
-                sb.Append(EscapePowerShellArg(value));
-                first = false;
-            }
-            sb.Append("}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(data.Body) && data.Method != "GET" && data.Method != "HEAD")
-        {
-            sb.Append(' ');
-            sb.Append("-Body ");
-            sb.Append(EscapePowerShellArg(data.Body));
-        }
-
-        return sb.ToString();
-    }
-
-    private string BuildUrl(string target, List<(string Name, string Value)> headers)
-    {
-        if (target.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-            target.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-        {
-            return target;
-        }
-
-        var host = headers.FirstOrDefault(h => h.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)).Value;
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            return target;
-        }
-        if (_isHttps)
-        {
-            return $"https://{host}{target}";
-
-        }
-
-        return $"http://{host}{target}";
-
-    }
-
-    private List<string> NormalizeLines(string raw)
-    {
-        var normalized = raw.Replace("\r\n", "\n").Replace('\r', '\n');
-        return normalized.Split('\n', StringSplitOptions.None).ToList();
-    }
-
-    private List<(string Name, string Value)> ParseHeaders(string headersText)
-    {
-        var lines = NormalizeLines(headersText);
-        var headers = new List<(string Name, string Value)>();
-        foreach (var line in lines)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                continue;
-            }
-
-            var colonIndex = line.IndexOf(':');
-            if (colonIndex <= 0)
-            {
-                continue;
-            }
-
-            var name = line[..colonIndex].Trim();
-            var value = line[(colonIndex + 1)..].Trim();
-            if (name.Length == 0)
-            {
-                continue;
-            }
-
-            headers.Add((name, value));
-        }
-
-        return headers;
-    }
-
-    private string EscapeArg(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return "\"\"";
-        }
-
-        return "\"" + value.Replace("\"", "\\\"") + "\"";
-    }
-
-    private string EscapePowerShellArg(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return "''";
-        }
-
-        return "'" + value.Replace("'", "''") + "'";
-    }
-
-    private string EscapePowerShellKey(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "''";
-        }
-
-        return "'" + value.Replace("'", "''") + "'";
-    }
-
-    private static string EnsureAbsoluteUrl(string url, bool https)
-    {
-        url = url.Trim();
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-            return url;
-
-        return $"{(https ? "https" : "http")}://{url}";
     }
 
     private ProcessStartInfo CreateCurlProcessStartInfo()
@@ -666,6 +396,4 @@ public sealed class RequestToCurlVM : ViewModelBase
     }
 
     public sealed record OutputFormatOption(string Key, string Label);
-
-    private sealed record HttpRequestData(string Method, string Url, List<(string Name, string Value)> Headers, string Body);
 }

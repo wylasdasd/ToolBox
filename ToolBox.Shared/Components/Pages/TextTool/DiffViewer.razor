@@ -1,4 +1,4 @@
-@page "/diff"
+﻿@page "/diff"
 @namespace ToolBox.Components.Pages
 @inherits MvvmComponentBase<DiffViewerVM>
 @using BlazorTextDiff
@@ -44,10 +44,11 @@
             >
         <Header>
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="diff-stats">
-                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">新增 @context.LineAdditionCount</MudChip>
-                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">删除 @context.LineDeletionCount</MudChip>
-                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">变更 @context.LineModificationCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">新增 @ViewModel.LineAdditionCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">删除 @ViewModel.LineDeletionCount</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">变更 @ViewModel.LineModificationCount</MudChip>
             </MudStack>
         </Header>
     </TextDiff>
 </MudPaper>
+

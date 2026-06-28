@@ -1,5 +1,5 @@
-using Blazing.Mvvm.ComponentModel;
-using System.Globalization;
+﻿using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Network;
 
 namespace ToolBox.Components.Pages.Network;
 
@@ -14,8 +14,6 @@ public sealed class EndianHexVM : ViewModelBase
     private string _binaryOutput = string.Empty;
     private string _decimalOutput = string.Empty;
     private string? _errorMessage;
-
-    public sealed record DataTypeOption(string Id, string Label, int ByteSize, bool IsFloat);
 
     public sealed record ExampleCase(string Id, string Label, string DataTypeId, string Input, bool BigEndian, bool InputIsHex);
 
@@ -32,19 +30,7 @@ public sealed class EndianHexVM : ViewModelBase
         new("int64-max", "int64 · MaxValue", "int64", "9223372036854775807", true, false),
     ];
 
-    public static IReadOnlyList<DataTypeOption> DataTypes { get; } =
-    [
-        new("int8", "int8 / sbyte", 1, false),
-        new("uint8", "uint8 / byte", 1, false),
-        new("int16", "int16", 2, false),
-        new("uint16", "uint16", 2, false),
-        new("int32", "int32", 4, false),
-        new("uint32", "uint32", 4, false),
-        new("int64", "int64", 8, false),
-        new("uint64", "uint64", 8, false),
-        new("float32", "float32", 4, true),
-        new("float64", "float64", 8, true),
-    ];
+    public static IReadOnlyList<EndianHexDataType> DataTypes => EndianHexService.DataTypes;
 
     public string DataTypeId
     {
@@ -126,21 +112,14 @@ public sealed class EndianHexVM : ViewModelBase
         ErrorMessage = null;
         HexOutput = BinaryOutput = DecimalOutput = string.Empty;
 
-        var type = DataTypes.FirstOrDefault(t => t.Id == DataTypeId) ?? DataTypes[4];
-        try
+        var result = EndianHexService.ConvertValueToHex(Input, DataTypeId, BigEndian, InputIsHex);
+        if (!result.Success)
         {
-            var bytes = InputIsHex
-                ? ParseHexBytes(Input, type.ByteSize)
-                : EncodeValue(Input, type, BigEndian);
+            ErrorMessage = result.Error;
+            return;
+        }
 
-            HexOutput = FormatHex(bytes);
-            BinaryOutput = string.Join(" ", bytes.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
-            DecimalOutput = DecodeBytes(bytes, type, BigEndian);
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+        ApplyResult(result.Value!);
     }
 
     public void ConvertHexToValue()
@@ -148,20 +127,16 @@ public sealed class EndianHexVM : ViewModelBase
         ErrorMessage = null;
         HexOutput = BinaryOutput = DecimalOutput = string.Empty;
 
-        var type = DataTypes.FirstOrDefault(t => t.Id == DataTypeId) ?? DataTypes[4];
-        try
+        var result = EndianHexService.ConvertHexToValue(Input, DataTypeId, BigEndian);
+        if (!result.Success)
         {
-            var bytes = ParseHexBytes(Input, type.ByteSize);
-            HexOutput = FormatHex(bytes);
-            BinaryOutput = string.Join(" ", bytes.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
-            DecimalOutput = DecodeBytes(bytes, type, BigEndian);
-            Input = DecimalOutput;
-            InputIsHex = false;
+            ErrorMessage = result.Error;
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+
+        ApplyResult(result.Value!);
+        Input = result.Value!.DecimalOutput;
+        InputIsHex = false;
     }
 
     public void Clear()
@@ -172,135 +147,10 @@ public sealed class EndianHexVM : ViewModelBase
         ErrorMessage = null;
     }
 
-    private static byte[] EncodeValue(string text, DataTypeOption type, bool bigEndian)
+    private void ApplyResult(EndianHexResult value)
     {
-        text = text.Trim();
-        return type.Id switch
-        {
-            "int8" => [(byte)sbyte.Parse(text, CultureInfo.InvariantCulture)],
-            "uint8" => [byte.Parse(text, CultureInfo.InvariantCulture)],
-            "int16" => Int16ToBytes(short.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "uint16" => UInt16ToBytes(ushort.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "int32" => Int32ToBytes(int.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "uint32" => UInt32ToBytes(uint.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "int64" => Int64ToBytes(long.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "uint64" => UInt64ToBytes(ulong.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "float32" => FloatToBytes(float.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            "float64" => DoubleToBytes(double.Parse(text, CultureInfo.InvariantCulture), bigEndian),
-            _ => throw new InvalidOperationException("未知类型。"),
-        };
+        HexOutput = value.HexOutput;
+        BinaryOutput = value.BinaryOutput;
+        DecimalOutput = value.DecimalOutput;
     }
-
-    private static string DecodeBytes(byte[] bytes, DataTypeOption type, bool bigEndian)
-    {
-        return type.Id switch
-        {
-            "int8" => ((sbyte)bytes[0]).ToString(CultureInfo.InvariantCulture),
-            "uint8" => bytes[0].ToString(CultureInfo.InvariantCulture),
-            "int16" => BitConverter.ToInt16(Order(bytes, bigEndian), 0).ToString(CultureInfo.InvariantCulture),
-            "uint16" => BitConverter.ToUInt16(Order(bytes, bigEndian), 0).ToString(CultureInfo.InvariantCulture),
-            "int32" => BitConverter.ToInt32(Order(bytes, bigEndian), 0).ToString(CultureInfo.InvariantCulture),
-            "uint32" => BitConverter.ToUInt32(Order(bytes, bigEndian), 0).ToString(CultureInfo.InvariantCulture),
-            "int64" => BitConverter.ToInt64(Order(bytes, bigEndian), 0).ToString(CultureInfo.InvariantCulture),
-            "uint64" => BitConverter.ToUInt64(Order(bytes, bigEndian), 0).ToString(CultureInfo.InvariantCulture),
-            "float32" => BitConverter.ToSingle(Order(bytes, bigEndian), 0).ToString("R", CultureInfo.InvariantCulture),
-            "float64" => BitConverter.ToDouble(Order(bytes, bigEndian), 0).ToString("R", CultureInfo.InvariantCulture),
-            _ => throw new InvalidOperationException("未知类型。"),
-        };
-    }
-
-    private static byte[] ParseHexBytes(string input, int expectedSize)
-    {
-        var cleaned = input.Trim()
-            .Replace("0x", "", StringComparison.OrdinalIgnoreCase)
-            .Replace("\\x", "", StringComparison.OrdinalIgnoreCase)
-            .Replace(" ", "")
-            .Replace("-", "")
-            .Replace(",", "");
-
-        if (cleaned.Length == 0)
-            throw new FormatException("请输入 Hex 字节。");
-
-        if (cleaned.Length % 2 != 0)
-            cleaned = "0" + cleaned;
-
-        var bytes = new byte[cleaned.Length / 2];
-        for (var i = 0; i < bytes.Length; i++)
-            bytes[i] = byte.Parse(cleaned.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-
-        if (expectedSize > 0 && bytes.Length != expectedSize)
-            throw new FormatException($"期望 {expectedSize} 字节，实际 {bytes.Length} 字节。");
-
-        return bytes;
-    }
-
-    private static byte[] Order(byte[] bytes, bool bigEndian)
-    {
-        if (bigEndian == BitConverter.IsLittleEndian)
-        {
-            var copy = (byte[])bytes.Clone();
-            Array.Reverse(copy);
-            return copy;
-        }
-        return bytes;
-    }
-
-    private static byte[] Int16ToBytes(short v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] UInt16ToBytes(ushort v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] Int32ToBytes(int v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] UInt32ToBytes(uint v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] Int64ToBytes(long v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] UInt64ToBytes(ulong v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] FloatToBytes(float v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static byte[] DoubleToBytes(double v, bool bigEndian)
-    {
-        var b = BitConverter.GetBytes(v);
-        if (bigEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
-        return b;
-    }
-
-    private static string FormatHex(byte[] bytes) =>
-        string.Join(" ", bytes.Select(b => b.ToString("X2", CultureInfo.InvariantCulture)));
 }

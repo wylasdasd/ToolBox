@@ -1,5 +1,5 @@
-using Blazing.Mvvm.ComponentModel;
-using System.Text.RegularExpressions;
+﻿using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Text;
 
 namespace ToolBox.Components.Pages.TextTool;
 
@@ -33,9 +33,7 @@ public sealed class TextLinesVM : ViewModelBase
         set
         {
             if (SetProperty(ref _inputText, value))
-            {
                 UpdateInputStats();
-            }
         }
     }
 
@@ -45,9 +43,7 @@ public sealed class TextLinesVM : ViewModelBase
         private set
         {
             if (SetProperty(ref _outputText, value))
-            {
                 UpdateOutputStats();
-            }
         }
     }
 
@@ -102,137 +98,29 @@ public sealed class TextLinesVM : ViewModelBase
         private set => SetProperty(ref _statusMessage, value);
     }
 
-    public int InputLineCount
-    {
-        get => _inputLineCount;
-        private set => SetProperty(ref _inputLineCount, value);
-    }
+    public int InputLineCount { get => _inputLineCount; private set => SetProperty(ref _inputLineCount, value); }
+    public int InputNonEmptyLineCount { get => _inputNonEmptyLineCount; private set => SetProperty(ref _inputNonEmptyLineCount, value); }
+    public int InputUniqueLineCount { get => _inputUniqueLineCount; private set => SetProperty(ref _inputUniqueLineCount, value); }
+    public int InputWordCount { get => _inputWordCount; private set => SetProperty(ref _inputWordCount, value); }
+    public int InputCharCount { get => _inputCharCount; private set => SetProperty(ref _inputCharCount, value); }
+    public int InputCharNoWhitespaceCount { get => _inputCharNoWhitespaceCount; private set => SetProperty(ref _inputCharNoWhitespaceCount, value); }
 
-    public int InputNonEmptyLineCount
-    {
-        get => _inputNonEmptyLineCount;
-        private set => SetProperty(ref _inputNonEmptyLineCount, value);
-    }
+    public int OutputLineCount { get => _outputLineCount; private set => SetProperty(ref _outputLineCount, value); }
+    public int OutputNonEmptyLineCount { get => _outputNonEmptyLineCount; private set => SetProperty(ref _outputNonEmptyLineCount, value); }
+    public int OutputUniqueLineCount { get => _outputUniqueLineCount; private set => SetProperty(ref _outputUniqueLineCount, value); }
+    public int OutputWordCount { get => _outputWordCount; private set => SetProperty(ref _outputWordCount, value); }
+    public int OutputCharCount { get => _outputCharCount; private set => SetProperty(ref _outputCharCount, value); }
+    public int OutputCharNoWhitespaceCount { get => _outputCharNoWhitespaceCount; private set => SetProperty(ref _outputCharNoWhitespaceCount, value); }
 
-    public int InputUniqueLineCount
-    {
-        get => _inputUniqueLineCount;
-        private set => SetProperty(ref _inputUniqueLineCount, value);
-    }
+    public void Deduplicate() => ApplyOperation(TextLinesService.Deduplicate(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase, KeepOrder));
 
-    public int InputWordCount
-    {
-        get => _inputWordCount;
-        private set => SetProperty(ref _inputWordCount, value);
-    }
+    public void SortAsc() => ApplyOperation(TextLinesService.SortAsc(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase));
 
-    public int InputCharCount
-    {
-        get => _inputCharCount;
-        private set => SetProperty(ref _inputCharCount, value);
-    }
+    public void SortDesc() => ApplyOperation(TextLinesService.SortDesc(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase));
 
-    public int InputCharNoWhitespaceCount
-    {
-        get => _inputCharNoWhitespaceCount;
-        private set => SetProperty(ref _inputCharNoWhitespaceCount, value);
-    }
+    public void RemoveEmptyLines() => ApplyOperation(TextLinesService.RemoveEmptyLines(InputText, TrimLines));
 
-    public int OutputLineCount
-    {
-        get => _outputLineCount;
-        private set => SetProperty(ref _outputLineCount, value);
-    }
-
-    public int OutputNonEmptyLineCount
-    {
-        get => _outputNonEmptyLineCount;
-        private set => SetProperty(ref _outputNonEmptyLineCount, value);
-    }
-
-    public int OutputUniqueLineCount
-    {
-        get => _outputUniqueLineCount;
-        private set => SetProperty(ref _outputUniqueLineCount, value);
-    }
-
-    public int OutputWordCount
-    {
-        get => _outputWordCount;
-        private set => SetProperty(ref _outputWordCount, value);
-    }
-
-    public int OutputCharCount
-    {
-        get => _outputCharCount;
-        private set => SetProperty(ref _outputCharCount, value);
-    }
-
-    public int OutputCharNoWhitespaceCount
-    {
-        get => _outputCharNoWhitespaceCount;
-        private set => SetProperty(ref _outputCharNoWhitespaceCount, value);
-    }
-
-    public void Deduplicate()
-    {
-        var lines = PrepareLines(InputText, TrimLines, IgnoreEmptyLines);
-        var comparer = IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-
-        List<string> result;
-        if (KeepOrder)
-        {
-            result = new List<string>(lines.Count);
-            var seen = new HashSet<string>(comparer);
-            foreach (var line in lines)
-            {
-                if (seen.Add(line))
-                {
-                    result.Add(line);
-                }
-            }
-        }
-        else
-        {
-            result = lines.Distinct(comparer).ToList();
-        }
-
-        OutputText = JoinLines(result);
-        StatusMessage = $"已去重 {lines.Count - result.Count} 行。";
-    }
-
-    public void SortAsc()
-    {
-        var lines = PrepareLines(InputText, TrimLines, IgnoreEmptyLines);
-        var comparer = IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-        lines.Sort(comparer);
-        OutputText = JoinLines(lines);
-        StatusMessage = "已按升序排序。";
-    }
-
-    public void SortDesc()
-    {
-        var lines = PrepareLines(InputText, TrimLines, IgnoreEmptyLines);
-        var comparer = IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-        lines.Sort(comparer);
-        lines.Reverse();
-        OutputText = JoinLines(lines);
-        StatusMessage = "已按降序排序。";
-    }
-
-    public void RemoveEmptyLines()
-    {
-        var lines = PrepareLines(InputText, TrimLines, removeEmpty: true);
-        OutputText = JoinLines(lines);
-        StatusMessage = "已移除空行。";
-    }
-
-    public void TrimOnly()
-    {
-        var lines = PrepareLines(InputText, applyTrim: true, removeEmpty: false);
-        OutputText = JoinLines(lines);
-        StatusMessage = "已裁剪行首尾空白。";
-    }
+    public void TrimOnly() => ApplyOperation(TextLinesService.TrimOnly(InputText));
 
     public void UseOutputAsInput()
     {
@@ -247,98 +135,41 @@ public sealed class TextLinesVM : ViewModelBase
         StatusMessage = string.Empty;
     }
 
-    private void UpdateInputStats()
+    private void ApplyOperation(ToolBox.Tools.Common.ToolResult<TextLinesOperationResult> result)
     {
-        var stats = ComputeStats(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase);
-        InputLineCount = stats.LineCount;
-        InputNonEmptyLineCount = stats.NonEmptyLineCount;
-        InputUniqueLineCount = stats.UniqueLineCount;
-        InputWordCount = stats.WordCount;
-        InputCharCount = stats.CharCount;
-        InputCharNoWhitespaceCount = stats.CharNoWhitespaceCount;
-    }
-
-    private void UpdateOutputStats()
-    {
-        var stats = ComputeStats(OutputText, TrimLines, IgnoreEmptyLines, IgnoreCase);
-        OutputLineCount = stats.LineCount;
-        OutputNonEmptyLineCount = stats.NonEmptyLineCount;
-        OutputUniqueLineCount = stats.UniqueLineCount;
-        OutputWordCount = stats.WordCount;
-        OutputCharCount = stats.CharCount;
-        OutputCharNoWhitespaceCount = stats.CharNoWhitespaceCount;
-    }
-
-    private static List<string> PrepareLines(string text, bool applyTrim, bool removeEmpty)
-    {
-        var lines = SplitLines(text);
-        var list = new List<string>(lines.Count);
-        foreach (var line in lines)
+        if (!result.Success)
         {
-            var value = applyTrim ? line.Trim() : line;
-            if (removeEmpty && string.IsNullOrWhiteSpace(value))
-            {
-                continue;
-            }
-
-            list.Add(value);
+            StatusMessage = result.Error ?? "操作失败。";
+            return;
         }
 
-        return list;
+        OutputText = result.Value!.Output;
+        StatusMessage = result.Value.StatusMessage;
     }
 
-    private static string JoinLines(IReadOnlyCollection<string> lines)
-    {
-        return lines.Count == 0 ? string.Empty : string.Join(Environment.NewLine, lines);
-    }
+    private void UpdateInputStats() => ApplyStats(TextLinesService.ComputeStats(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase), input: true);
 
-    private static List<string> SplitLines(string text)
+    private void UpdateOutputStats() => ApplyStats(TextLinesService.ComputeStats(OutputText, TrimLines, IgnoreEmptyLines, IgnoreCase), input: false);
+
+    private void ApplyStats(TextLineStats stats, bool input)
     {
-        if (string.IsNullOrEmpty(text))
+        if (input)
         {
-            return new List<string>();
+            InputLineCount = stats.LineCount;
+            InputNonEmptyLineCount = stats.NonEmptyLineCount;
+            InputUniqueLineCount = stats.UniqueLineCount;
+            InputWordCount = stats.WordCount;
+            InputCharCount = stats.CharCount;
+            InputCharNoWhitespaceCount = stats.CharNoWhitespaceCount;
         }
-
-        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
-        return normalized.Split('\n', StringSplitOptions.None).ToList();
-    }
-
-    private static TextStats ComputeStats(string text, bool applyTrim, bool removeEmpty, bool ignoreCase)
-    {
-        var rawLines = SplitLines(text);
-        var lineCount = rawLines.Count;
-        var nonEmptyLineCount = rawLines.Count(line => !string.IsNullOrWhiteSpace(line));
-        var comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-
-        var normalizedLines = rawLines.Select(line => applyTrim ? line.Trim() : line);
-        if (removeEmpty)
+        else
         {
-            normalizedLines = normalizedLines.Where(line => !string.IsNullOrWhiteSpace(line));
+            OutputLineCount = stats.LineCount;
+            OutputNonEmptyLineCount = stats.NonEmptyLineCount;
+            OutputUniqueLineCount = stats.UniqueLineCount;
+            OutputWordCount = stats.WordCount;
+            OutputCharCount = stats.CharCount;
+            OutputCharNoWhitespaceCount = stats.CharNoWhitespaceCount;
         }
-
-        var uniqueLineCount = new HashSet<string>(normalizedLines, comparer).Count;
-        var charCount = text?.Length ?? 0;
-        var charNoWhitespaceCount = string.IsNullOrEmpty(text) ? 0 : text.Count(c => !char.IsWhiteSpace(c));
-        var wordCount = CountWords(text ?? string.Empty);
-        return new TextStats(lineCount, nonEmptyLineCount, uniqueLineCount, wordCount, charCount, charNoWhitespaceCount);
     }
-
-    private static int CountWords(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return 0;
-        }
-
-        var matches = Regex.Matches(text, @"\p{L}[\p{L}\p{M}]*|\p{N}+");
-        return matches.Count;
-    }
-
-    private sealed record TextStats(
-        int LineCount,
-        int NonEmptyLineCount,
-        int UniqueLineCount,
-        int WordCount,
-        int CharCount,
-        int CharNoWhitespaceCount);
 }
