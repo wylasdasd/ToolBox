@@ -44,7 +44,7 @@ public sealed class CursorCloudAgentChatService
         using var createResponse = await httpClient.SendAsync(createRequest, cancellationToken);
         var createText = await createResponse.Content.ReadAsStringAsync(cancellationToken);
         if (!createResponse.IsSuccessStatusCode)
-            throw new InvalidOperationException(BuildHttpErrorMessage(createResponse.StatusCode, createText));
+            throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("Cursor 调用失败", createResponse.StatusCode, createText));
 
         var (agentId, runId) = ParseCreateResponse(createText);
         return await PollRunResultAsync(httpClient, agentId, runId, cancellationToken);
@@ -76,11 +76,7 @@ public sealed class CursorCloudAgentChatService
 
     private static object BuildPromptPayload(AiChatRequest request, string promptText)
     {
-        var imageUrls = request.ImageDataUrls is { Count: > 0 }
-            ? request.ImageDataUrls.Where(url => !string.IsNullOrWhiteSpace(url)).ToList()
-            : string.IsNullOrWhiteSpace(request.ImageDataUrl)
-                ? []
-                : new List<string> { request.ImageDataUrl };
+        var imageUrls = request.GetImageUrls();
 
         if (imageUrls.Count == 0)
             return new { text = promptText };
@@ -150,7 +146,7 @@ public sealed class CursorCloudAgentChatService
             using var getResponse = await httpClient.SendAsync(getRequest, cancellationToken);
             var getText = await getResponse.Content.ReadAsStringAsync(cancellationToken);
             if (!getResponse.IsSuccessStatusCode)
-                throw new InvalidOperationException(BuildHttpErrorMessage(getResponse.StatusCode, getText));
+                throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("Cursor 调用失败", getResponse.StatusCode, getText));
 
             using var doc = JsonDocument.Parse(getText);
             var root = doc.RootElement;
@@ -181,44 +177,5 @@ public sealed class CursorCloudAgentChatService
         }
 
         throw new InvalidOperationException("Cursor 任务超时，请稍后重试。");
-    }
-
-    private static string BuildHttpErrorMessage(System.Net.HttpStatusCode code, string responseText)
-    {
-        var detail = TryExtractErrorMessage(responseText);
-        return string.IsNullOrWhiteSpace(detail)
-            ? $"Cursor 调用失败：HTTP {(int)code}。"
-            : $"Cursor 调用失败：HTTP {(int)code}，{detail}";
-    }
-
-    private static string TryExtractErrorMessage(string responseText)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(responseText);
-            if (doc.RootElement.TryGetProperty("message", out var message) &&
-                message.ValueKind == JsonValueKind.String)
-            {
-                return message.GetString() ?? string.Empty;
-            }
-
-            if (doc.RootElement.TryGetProperty("error", out var error))
-            {
-                if (error.ValueKind == JsonValueKind.String)
-                    return error.GetString() ?? string.Empty;
-
-                if (error.ValueKind == JsonValueKind.Object &&
-                    error.TryGetProperty("message", out var nestedMessage) &&
-                    nestedMessage.ValueKind == JsonValueKind.String)
-                {
-                    return nestedMessage.GetString() ?? string.Empty;
-                }
-            }
-        }
-        catch
-        {
-        }
-
-        return string.Empty;
     }
 }

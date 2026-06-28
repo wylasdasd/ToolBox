@@ -3,21 +3,42 @@
 
 <MudGrid>
     <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4 d-flex justify-center align-center" Elevation="0" Outlined="true" Height="150px" Style="@($"background-color: {ViewModel.Hex};")">
-             <MudText Typo="Typo.h5" Style="@($"color: {(ViewModel.L > 50 ? "black" : "white")}")">@ViewModel.Hex</MudText>
-        </MudPaper>
+        <div class="color-preview-checker rounded pa-1">
+            <MudPaper Class="pa-4 d-flex flex-column justify-center align-center"
+                      Elevation="0"
+                      Height="150px"
+                      Style="@($"background-color: {ViewModel.PreviewCssColor};")">
+                <MudText Typo="Typo.h6" Style="@($"color: {(ViewModel.L > 50 ? "black" : "white")}; text-shadow: 0 0 4px rgba(255,255,255,0.6);")">
+                    @ViewModel.HexDisplay
+                </MudText>
+                <MudText Typo="Typo.caption" Style="@($"color: {(ViewModel.L > 50 ? "black" : "white")};")">
+                    @ViewModel.RgbaCss
+                </MudText>
+            </MudPaper>
+        </div>
     </MudItem>
-    
+
     <MudItem xs="12" md="8">
-        <MudTextField @bind-Value="ViewModel.Hex" Label="HEX Color" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="#" Immediate="true" />
-        
+        <MudTextField @bind-Value="ViewModel.HexDigits"
+                      Label="HEX（6 位 RGB 或 8 位 RGBA）"
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.Start"
+                      AdornmentText="#"
+                      Immediate="true"
+                      HelperText="含透明通道时用 8 位，例如 FFFFFF80" />
+
         <MudText Typo="Typo.subtitle2" Class="mt-4">RGB</MudText>
-        <MudStack Row="true">
-            <MudSlider @bind-Value="ViewModel.R" Min="0" Max="255" Color="Color.Error">R: @ViewModel.R</MudSlider>
-            <MudSlider @bind-Value="ViewModel.G" Min="0" Max="255" Color="Color.Success">G: @ViewModel.G</MudSlider>
-            <MudSlider @bind-Value="ViewModel.B" Min="0" Max="255" Color="Color.Primary">B: @ViewModel.B</MudSlider>
+        <MudStack Row="true" Class="flex-wrap">
+            <MudSlider @bind-Value="ViewModel.R" Min="0" Max="255" Color="Color.Error" Class="flex-grow-1">R: @ViewModel.R</MudSlider>
+            <MudSlider @bind-Value="ViewModel.G" Min="0" Max="255" Color="Color.Success" Class="flex-grow-1">G: @ViewModel.G</MudSlider>
+            <MudSlider @bind-Value="ViewModel.B" Min="0" Max="255" Color="Color.Primary" Class="flex-grow-1">B: @ViewModel.B</MudSlider>
         </MudStack>
-        
+
+        <MudText Typo="Typo.subtitle2" Class="mt-4">透明 / Alpha</MudText>
+        <MudSlider @bind-Value="ViewModel.AlphaPercent" Min="0" Max="100" Color="Color.Secondary">
+            不透明度: @ViewModel.AlphaPercent%（A = @ViewModel.A）
+        </MudSlider>
+
         <MudText Typo="Typo.subtitle2" Class="mt-4">HSL</MudText>
         <MudGrid>
             <MudItem xs="4"><MudText>H: @Math.Round(ViewModel.H, 1)°</MudText></MudItem>

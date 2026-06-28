@@ -24,10 +24,8 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddToolBoxCore(BlazorHostingModelType.HybridMaui);
+        builder.Services.AddToolBoxAiChatBackend();
         builder.Services.AddScoped<IAiApiKeyService, MauiAiApiKeyService>();
-        builder.Services.AddScoped<OpenAiCompatChatService>();
-        builder.Services.AddScoped<CursorCloudAgentChatService>();
-        builder.Services.AddScoped<IAiChatService, AiChatServiceRouter>();
         builder.Services.AddScoped<IClipboardService, MauiClipboardService>();
         builder.Services.AddSingleton<IDefaultRouteProvider, MauiDefaultRouteProvider>();
         builder.Services.AddScoped<IFolderPickerService, FolderPickerService>();

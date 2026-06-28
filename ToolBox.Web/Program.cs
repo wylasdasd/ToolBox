@@ -11,9 +11,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddToolBoxWeb(BlazorHostingModelType.WebApp);
-builder.Services.AddScoped<OpenAiCompatChatService>();
-builder.Services.AddScoped<CursorCloudAgentChatService>();
-builder.Services.AddScoped<IAiChatService, AiChatServiceRouter>();
+builder.Services.AddToolBoxAiChatBackend();
 
 var app = builder.Build();
 

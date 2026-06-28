@@ -12,7 +12,7 @@ public sealed class WebAiChatClientService(HttpClient httpClient) : IAiChatServi
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var detail = TryReadError(body);
+            var detail = AiHttpErrorHelp.TryExtractMessage(body);
             throw new InvalidOperationException(detail ?? $"AI 代理调用失败：HTTP {(int)response.StatusCode}");
         }
 
@@ -21,20 +21,5 @@ public sealed class WebAiChatClientService(HttpClient httpClient) : IAiChatServi
             return content.GetString() ?? string.Empty;
 
         throw new InvalidOperationException("AI 代理返回格式无效。");
-    }
-
-    private static string? TryReadError(string body)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(body);
-            if (doc.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
-                return error.GetString();
-        }
-        catch
-        {
-        }
-
-        return null;
     }
 }

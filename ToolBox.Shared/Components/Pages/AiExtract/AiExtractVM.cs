@@ -7,20 +7,14 @@ using ToolBox.Services.Picker;
 
 namespace ToolBox.Components.Pages.AiExtract;
 
-public sealed class AiExtractVM : ViewModelBase
+public sealed class AiExtractVM(
+    IAiChatService aiChatService,
+    IAiApiKeyService apiKeyService,
+    IFolderPickerService folderPickerService) : ViewModelBase
 {
     private const int MaxBatchFileCount = 500;
     private const long MaxBatchFileBytes = 20 * 1024 * 1024;
-
-    private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".txt", ".log", ".csv", ".json", ".md",
-        ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"
-    };
-
-    private readonly IAiChatService _aiChatService;
-    private readonly IAiApiKeyService _apiKeyService;
-    private readonly IFolderPickerService _folderPickerService;
+    private const string VisionUnsupportedMessage = "当前提供商不支持图片，请切换 Kimi / OpenRouter / Cursor。";
 
     private AiProviderKind _selectedProvider = AiProviderKind.OpenRouter;
     private string _model = AiProviderCatalog.GetDefaultModel(AiProviderKind.OpenRouter);
@@ -39,16 +33,6 @@ public sealed class AiExtractVM : ViewModelBase
     private bool _mergeBatchSend = true;
 
     private readonly List<BatchInputItem> _batchItems = [];
-
-    public AiExtractVM(
-        IAiChatService aiChatService,
-        IAiApiKeyService apiKeyService,
-        IFolderPickerService folderPickerService)
-    {
-        _aiChatService = aiChatService;
-        _apiKeyService = apiKeyService;
-        _folderPickerService = folderPickerService;
-    }
 
     public IReadOnlyList<AiProviderKind> Providers => AiProviderCatalog.All;
     public IReadOnlyList<AiExtractTemplate> TemplatePresets => AiExtractTemplates.Presets;
@@ -166,8 +150,13 @@ public sealed class AiExtractVM : ViewModelBase
 
     public IReadOnlyList<BatchInputItem> BatchItems => _batchItems;
     public bool SupportsVision => AiProviderCatalog.SupportsVision(SelectedProvider);
-    public bool SupportsNativeFolderPicker => _folderPickerService.IsNativeSupported;
+    public bool SupportsNativeFolderPicker => folderPickerService.IsNativeSupported;
     public bool HasBatchItems => _batchItems.Count > 0;
+
+    private string EffectiveExtractTemplate =>
+        string.IsNullOrWhiteSpace(ExtractTemplate)
+            ? AiExtractTemplates.Presets[0].Template
+            : ExtractTemplate.Trim();
 
     public override async Task OnInitializedAsync()
     {
@@ -176,7 +165,7 @@ public sealed class AiExtractVM : ViewModelBase
 
     public async Task LoadApiKeyAsync()
     {
-        ApiKey = await _apiKeyService.GetApiKeyAsync(SelectedProvider) ?? string.Empty;
+        ApiKey = await apiKeyService.GetApiKeyAsync(SelectedProvider) ?? string.Empty;
     }
 
     public async Task SaveApiKeyAsync()
@@ -187,13 +176,13 @@ public sealed class AiExtractVM : ViewModelBase
             return;
         }
 
-        await _apiKeyService.SaveApiKeyAsync(SelectedProvider, ApiKey);
+        await apiKeyService.SaveApiKeyAsync(SelectedProvider, ApiKey);
         StatusMessage = $"{AiProviderCatalog.GetDisplayName(SelectedProvider)} API Key 已保存。";
     }
 
     public async Task ClearApiKeyAsync()
     {
-        await _apiKeyService.ClearApiKeyAsync(SelectedProvider);
+        await apiKeyService.ClearApiKeyAsync(SelectedProvider);
         ApiKey = string.Empty;
         StatusMessage = "API Key 已清除。";
     }
@@ -220,13 +209,13 @@ public sealed class AiExtractVM : ViewModelBase
         if (bytes.Length > MaxBatchFileBytes)
             throw new InvalidOperationException($"文件超过 20MB：{fileName}");
 
-        var isImage = IsImageFile(fileName, contentType);
+        var isImage = AiBatchFileHelp.IsImage(fileName, contentType);
         string? dataUrl = null;
         string? text = null;
 
         if (isImage)
         {
-            var mime = GuessImageMime(fileName, contentType);
+            var mime = AiBatchFileHelp.GuessImageMime(fileName, contentType);
             dataUrl = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
         }
         else
@@ -234,7 +223,7 @@ public sealed class AiExtractVM : ViewModelBase
             text = Encoding.UTF8.GetString(bytes);
         }
 
-        _batchItems.Add(new BatchInputItem(Guid.NewGuid().ToString("N"), fileName, isImage, dataUrl, text));
+        _batchItems.Add(new BatchInputItem(fileName, isImage, dataUrl, text));
         OnPropertyChanged(nameof(BatchItems));
         OnPropertyChanged(nameof(HasBatchItems));
         if (updateStatus)
@@ -246,7 +235,7 @@ public sealed class AiExtractVM : ViewModelBase
         if (IsBusy)
             return;
 
-        if (!_folderPickerService.IsNativeSupported)
+        if (!folderPickerService.IsNativeSupported)
         {
             StatusMessage = "当前环境请使用「选择文件夹」按钮（浏览器目录选择）。";
             return;
@@ -255,7 +244,7 @@ public sealed class AiExtractVM : ViewModelBase
         string? folder;
         try
         {
-            folder = await _folderPickerService.PickFolderAsync();
+            folder = await folderPickerService.PickFolderAsync();
         }
         catch (Exception ex)
         {
@@ -300,7 +289,7 @@ public sealed class AiExtractVM : ViewModelBase
 
                 await using var stream = info.OpenRead();
                 var displayName = Path.GetRelativePath(folder, path);
-                await AddBatchFileAsync(displayName, stream, GuessContentTypeFromExtension(path), updateStatus: false);
+                await AddBatchFileAsync(displayName, stream, AiBatchFileHelp.GuessContentType(path), updateStatus: false);
                 added++;
             }
             catch (Exception ex)
@@ -320,8 +309,7 @@ public sealed class AiExtractVM : ViewModelBase
             : $"已添加 {added} 个文件（共 {_batchItems.Count} 个）。";
     }
 
-    public static bool IsSupportedBatchFile(string pathOrName) =>
-        SupportedExtensions.Contains(Path.GetExtension(pathOrName));
+    public static bool IsSupportedBatchFile(string pathOrName) => AiBatchFileHelp.IsSupported(pathOrName);
 
     public async Task RunSingleAsync()
     {
@@ -407,30 +395,19 @@ public sealed class AiExtractVM : ViewModelBase
             try
             {
                 if (item.IsImage && !SupportsVision)
-                    throw new InvalidOperationException("当前提供商不支持图片，请切换 Kimi / OpenRouter / Cursor。");
+                    throw new InvalidOperationException(VisionUnsupportedMessage);
 
                 var json = await ExtractOneAsync(item.FileName, item.Text, item.ImageDataUrl);
-                results.Add(new Dictionary<string, object?>
-                {
-                    ["source"] = item.FileName,
-                    ["success"] = true,
-                    ["data"] = JsonSerializer.Deserialize<JsonElement>(json)
-                });
+                results.Add(AiExtractBatchResults.Ok(item.FileName, json));
                 AppendLog($"✓ {item.FileName}");
             }
             catch (Exception ex)
             {
-                results.Add(new Dictionary<string, object?>
-                {
-                    ["source"] = item.FileName,
-                    ["success"] = false,
-                    ["error"] = ex.Message
-                });
+                results.Add(AiExtractBatchResults.Fail(item.FileName, ex.Message));
                 AppendLog($"✗ {item.FileName}: {ex.Message}");
             }
 
-            ProcessedCount++;
-            ProgressPercent = TotalCount == 0 ? 0 : ProcessedCount * 100.0 / TotalCount;
+            BumpProgress();
         }
     }
 
@@ -438,23 +415,18 @@ public sealed class AiExtractVM : ViewModelBase
     {
         var chunkSize = AiProviderCatalog.GetMaxMergeBatchSize(SelectedProvider);
 
-        foreach (var chunk in ChunkItems(_batchItems, chunkSize))
+        foreach (var chunk in _batchItems.Chunk(chunkSize))
         {
-            var unsupportedImages = chunk.Where(x => x.IsImage && !SupportsVision).ToList();
+            var chunkList = chunk.ToList();
+            var unsupportedImages = chunkList.Where(x => x.IsImage && !SupportsVision).ToList();
             foreach (var item in unsupportedImages)
             {
-                results.Add(new Dictionary<string, object?>
-                {
-                    ["source"] = item.FileName,
-                    ["success"] = false,
-                    ["error"] = "当前提供商不支持图片，请切换 Kimi / OpenRouter / Cursor。"
-                });
+                results.Add(AiExtractBatchResults.Fail(item.FileName, VisionUnsupportedMessage));
                 AppendLog($"✗ {item.FileName}: 不支持图片");
-                ProcessedCount++;
-                ProgressPercent = TotalCount == 0 ? 0 : ProcessedCount * 100.0 / TotalCount;
+                BumpProgress();
             }
 
-            var processable = chunk.Where(x => !x.IsImage || SupportsVision).ToList();
+            var processable = chunkList.Where(x => !x.IsImage || SupportsVision).ToList();
             if (processable.Count == 0)
                 continue;
 
@@ -478,23 +450,16 @@ public sealed class AiExtractVM : ViewModelBase
                 var source = item.TryGetValue("source", out var sourceNode) ? sourceNode?.ToString() : "?";
                 var ok = item.TryGetValue("success", out var successNode) && successNode is bool success && success;
                 AppendLog(ok ? $"✓ {source}" : $"✗ {source}: {item.GetValueOrDefault("error")}");
-                ProcessedCount++;
-                ProgressPercent = TotalCount == 0 ? 0 : ProcessedCount * 100.0 / TotalCount;
+                BumpProgress();
             }
         }
         catch (Exception ex)
         {
             foreach (var item in chunk)
             {
-                results.Add(new Dictionary<string, object?>
-                {
-                    ["source"] = item.FileName,
-                    ["success"] = false,
-                    ["error"] = ex.Message
-                });
+                results.Add(AiExtractBatchResults.Fail(item.FileName, ex.Message));
                 AppendLog($"✗ {item.FileName}: {ex.Message}");
-                ProcessedCount++;
-                ProgressPercent = TotalCount == 0 ? 0 : ProcessedCount * 100.0 / TotalCount;
+                BumpProgress();
             }
         }
     }
@@ -515,21 +480,18 @@ public sealed class AiExtractVM : ViewModelBase
             SystemPrompt = AiExtractTemplates.MergeBatchSystemPrompt,
             UserPrompt = BuildMergedUserPrompt(items, includeImages),
             ImageDataUrls = imageUrls.Count > 0 ? imageUrls : null,
-            ImageDataUrl = imageUrls.FirstOrDefault(),
             JsonOnly = true,
             JsonArrayOutput = true
         };
 
-        var raw = await _aiChatService.CompleteAsync(request);
+        var raw = await aiChatService.CompleteAsync(request);
         var json = AiJsonResponseHelp.NormalizeToJson(raw);
         return ParseMergedResults(json, items);
     }
 
     private string BuildMergedUserPrompt(IReadOnlyList<BatchInputItem> items, bool includeImages)
     {
-        var template = string.IsNullOrWhiteSpace(ExtractTemplate)
-            ? AiExtractTemplates.Presets[0].Template
-            : ExtractTemplate.Trim();
+        var template = EffectiveExtractTemplate;
 
         var builder = new StringBuilder();
         builder.AppendLine("提取模板：");
@@ -581,12 +543,7 @@ public sealed class AiExtractVM : ViewModelBase
                 var item = items[i];
                 if (i >= array.Count)
                 {
-                    results.Add(new Dictionary<string, object?>
-                    {
-                        ["source"] = item.FileName,
-                        ["success"] = false,
-                        ["error"] = "合并响应缺少该项结果。"
-                    });
+                    results.Add(AiExtractBatchResults.Fail(item.FileName, "合并响应缺少该项结果。"));
                     continue;
                 }
 
@@ -598,15 +555,7 @@ public sealed class AiExtractVM : ViewModelBase
 
         if (items.Count == 1)
         {
-            return
-            [
-                new Dictionary<string, object?>
-                {
-                    ["source"] = items[0].FileName,
-                    ["success"] = true,
-                    ["data"] = root.Clone()
-                }
-            ];
+            return [AiExtractBatchResults.Ok(items[0].FileName, root.Clone())];
         }
 
         throw new InvalidOperationException("合并响应不是 JSON 数组，无法拆分多项结果。");
@@ -660,17 +609,6 @@ public sealed class AiExtractVM : ViewModelBase
         };
     }
 
-    private static IEnumerable<IReadOnlyList<BatchInputItem>> ChunkItems(
-        IReadOnlyList<BatchInputItem> items,
-        int chunkSize)
-    {
-        if (items.Count == 0)
-            yield break;
-
-        for (var i = 0; i < items.Count; i += chunkSize)
-            yield return items.Skip(i).Take(chunkSize).ToList();
-    }
-
     public void ClearOutput()
     {
         OutputJson = string.Empty;
@@ -692,15 +630,13 @@ public sealed class AiExtractVM : ViewModelBase
             JsonOnly = true
         };
 
-        var raw = await _aiChatService.CompleteAsync(request);
+        var raw = await aiChatService.CompleteAsync(request);
         return AiJsonResponseHelp.NormalizeToJson(raw);
     }
 
     private string BuildUserPrompt(string? text, string sourceName)
     {
-        var template = string.IsNullOrWhiteSpace(ExtractTemplate)
-            ? AiExtractTemplates.Presets[0].Template
-            : ExtractTemplate.Trim();
+        var template = EffectiveExtractTemplate;
 
         if (!string.IsNullOrWhiteSpace(text))
         {
@@ -732,6 +668,12 @@ public sealed class AiExtractVM : ViewModelBase
             ExtractTemplate = preset.Template;
     }
 
+    private void BumpProgress()
+    {
+        ProcessedCount++;
+        ProgressPercent = TotalCount == 0 ? 0 : ProcessedCount * 100.0 / TotalCount;
+    }
+
     private void AppendLog(string line)
     {
         var stamp = DateTime.Now.ToString("HH:mm:ss");
@@ -748,50 +690,7 @@ public sealed class AiExtractVM : ViewModelBase
         return ms.ToArray();
     }
 
-    private static bool IsImageFile(string fileName, string contentType)
-    {
-        if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        var ext = Path.GetExtension(fileName);
-        return ext.Equals(".png", StringComparison.OrdinalIgnoreCase)
-               || ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
-               || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
-               || ext.Equals(".webp", StringComparison.OrdinalIgnoreCase)
-               || ext.Equals(".gif", StringComparison.OrdinalIgnoreCase)
-               || ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string GuessContentTypeFromExtension(string path) =>
-        Path.GetExtension(path).ToLowerInvariant() switch
-        {
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".json" => "application/json",
-            ".csv" => "text/csv",
-            _ => "text/plain"
-        };
-
-    private static string GuessImageMime(string fileName, string contentType)
-    {
-        if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            return contentType;
-
-        return Path.GetExtension(fileName).ToLowerInvariant() switch
-        {
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            _ => "image/jpeg"
-        };
-    }
-
     public sealed record BatchInputItem(
-        string Id,
         string FileName,
         bool IsImage,
         string? ImageDataUrl,

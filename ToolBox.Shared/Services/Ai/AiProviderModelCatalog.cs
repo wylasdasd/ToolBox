@@ -73,14 +73,8 @@ public static class AiProviderModelCatalog
         return matched;
     }
 
-    public static string? GetDescription(AiProviderKind provider, string modelId)
-    {
-        foreach (var item in GetSuggestions(provider))
-        {
-            if (string.Equals(item.Id, modelId, StringComparison.OrdinalIgnoreCase))
-                return item.Description;
-        }
-
-        return null;
-    }
+    public static string? GetDescription(AiProviderKind provider, string modelId) =>
+        GetSuggestions(provider)
+            .FirstOrDefault(x => x.Id.Equals(modelId, StringComparison.OrdinalIgnoreCase))
+            ?.Description;
 }

@@ -22,7 +22,7 @@ public sealed class OpenAiCompatChatService : IAiChatService
         if (!AiProviderCatalog.UsesOpenAiCompatChat(request.Provider))
             throw new InvalidOperationException($"{AiProviderCatalog.GetDisplayName(request.Provider)} 不支持 OpenAI 兼容调用。");
 
-        var imageUrls = GetImageUrls(request);
+        var imageUrls = request.GetImageUrls();
         var hasImage = imageUrls.Count > 0;
         if (hasImage && !AiProviderCatalog.SupportsVision(request.Provider))
         {
@@ -48,7 +48,7 @@ public sealed class OpenAiCompatChatService : IAiChatService
 
         using var httpClient = new HttpClient
         {
-            Timeout = request.ImageDataUrls is { Count: > 1 }
+            Timeout = request.GetImageUrls().Count > 1
                 ? TimeSpan.FromMinutes(5)
                 : TimeSpan.FromMinutes(3)
         };
@@ -60,24 +60,13 @@ public sealed class OpenAiCompatChatService : IAiChatService
         using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
         var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException(BuildHttpErrorMessage(response.StatusCode, responseText));
+            throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("AI 调用失败", response.StatusCode, responseText));
 
         var content = TryExtractAssistantText(responseText);
         if (string.IsNullOrWhiteSpace(content))
             throw new InvalidOperationException("AI 返回为空，请检查模型是否支持当前任务。");
 
         return content.Trim();
-    }
-
-    private static List<string> GetImageUrls(AiChatRequest request)
-    {
-        if (request.ImageDataUrls is { Count: > 0 })
-            return request.ImageDataUrls.Where(url => !string.IsNullOrWhiteSpace(url)).ToList();
-
-        if (!string.IsNullOrWhiteSpace(request.ImageDataUrl))
-            return [request.ImageDataUrl];
-
-        return [];
     }
 
     private static List<object> BuildMessages(AiChatRequest request, IReadOnlyList<string> imageUrls)
@@ -119,34 +108,6 @@ public sealed class OpenAiCompatChatService : IAiChatService
             throw new InvalidOperationException(
                 $"模型名不符合规范：{model}。示例：gpt-4o-mini、deepseek-v4-flash、moonshotai/kimi-k2.6、kimi-k2.6");
         }
-    }
-
-    private static string BuildHttpErrorMessage(System.Net.HttpStatusCode code, string responseText)
-    {
-        var detail = TryExtractErrorMessage(responseText);
-        return string.IsNullOrWhiteSpace(detail)
-            ? $"AI 调用失败：HTTP {(int)code}。"
-            : $"AI 调用失败：HTTP {(int)code}，{detail}";
-    }
-
-    private static string TryExtractErrorMessage(string responseText)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(responseText);
-            if (doc.RootElement.TryGetProperty("error", out var error) &&
-                error.ValueKind == JsonValueKind.Object &&
-                error.TryGetProperty("message", out var message) &&
-                message.ValueKind == JsonValueKind.String)
-            {
-                return message.GetString() ?? string.Empty;
-            }
-        }
-        catch
-        {
-        }
-
-        return string.Empty;
     }
 
     internal static string TryExtractAssistantText(string responseText)

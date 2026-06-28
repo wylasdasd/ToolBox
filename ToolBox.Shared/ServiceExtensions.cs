@@ -14,6 +14,7 @@ public static class ServiceExtensions
     {
         services.AddMudServices();
         services.AddMvvm(options => options.HostingModelType = hostingModel);
+        // BlazorTextDiff.TextDiff 依赖 DiffPlex
         services.AddScoped<ISideBySideDiffBuilder, SideBySideDiffBuilder>();
         services.AddScoped<IDiffer, Differ>();
         return services;

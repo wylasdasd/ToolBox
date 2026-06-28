@@ -5,30 +5,25 @@ namespace ToolBox.Components.Pages.Converters;
 
 public partial class ColorConverterVM : ViewModelBase
 {
-    private string _hex = "#FFFFFF";
+    private string _hexDigits = "FFFFFF";
     private int _r = 255;
     private int _g = 255;
     private int _b = 255;
-    private double _h = 0;
-    private double _s = 0;
+    private int _a = 255;
+    private double _h;
+    private double _s;
     private double _l = 100;
-    private double _c = 0;
-    private double _m = 0;
-    private double _y = 0;
-    private double _k = 0;
-    
-    // For MudBlazor ColorPicker, usually takes MudColor or string.
-    // We will sync with hex string.
-    
-    public string Hex
+
+    private bool _isUpdating;
+
+    /// <summary>HEX 本体（不含 #），6 位 RGB 或 8 位 RGBA。</summary>
+    public string HexDigits
     {
-        get => _hex;
+        get => _hexDigits;
         set
         {
-            if (SetProperty(ref _hex, value))
-            {
+            if (SetProperty(ref _hexDigits, NormalizeHexDigits(value)))
                 UpdateFromHex();
-            }
         }
     }
 
@@ -37,7 +32,8 @@ public partial class ColorConverterVM : ViewModelBase
         get => _r;
         set
         {
-            if (SetProperty(ref _r, value)) UpdateFromRgb();
+            if (SetProperty(ref _r, ClampByte(value)))
+                UpdateFromRgba();
         }
     }
 
@@ -46,7 +42,8 @@ public partial class ColorConverterVM : ViewModelBase
         get => _g;
         set
         {
-            if (SetProperty(ref _g, value)) UpdateFromRgb();
+            if (SetProperty(ref _g, ClampByte(value)))
+                UpdateFromRgba();
         }
     }
 
@@ -55,91 +52,171 @@ public partial class ColorConverterVM : ViewModelBase
         get => _b;
         set
         {
-            if (SetProperty(ref _b, value)) UpdateFromRgb();
+            if (SetProperty(ref _b, ClampByte(value)))
+                UpdateFromRgba();
         }
     }
 
-    // HSL and CMYK properties... 
-    // Implementing full sync logic can be verbose. 
-    // Let's implement basic Hex <-> RGB first and maybe HSL.
+    public int A
+    {
+        get => _a;
+        set
+        {
+            if (SetProperty(ref _a, ClampByte(value)))
+            {
+                UpdateFromRgba();
+                OnPropertyChanged(nameof(AlphaPercent));
+            }
+        }
+    }
 
-    private bool _isUpdating;
+    public int AlphaPercent
+    {
+        get => (int)Math.Round(_a * 100.0 / 255);
+        set => A = (int)Math.Round(ClampByte(value) * 255.0 / 100);
+    }
+
+    public double H => _h;
+    public double S => _s;
+    public double L => _l;
+
+    public string HexDisplay => _a >= 255 ? $"#{_hexDigits[..6]}" : $"#{_hexDigits}";
+
+    public string RgbaCss =>
+        $"rgba({_r}, {_g}, {_b}, {(_a / 255.0).ToString("0.##", CultureInfo.InvariantCulture)})";
+
+    public string PreviewCssColor => RgbaCss;
 
     private void UpdateFromHex()
     {
-        if (_isUpdating) return;
+        if (_isUpdating)
+            return;
+
         _isUpdating = true;
         try
         {
-            if (string.IsNullOrEmpty(_hex)) return;
-            // Parse Hex
-            string hex = _hex.TrimStart('#');
-            if (hex.Length == 6)
-            {
-                _r = int.Parse(hex.Substring(0, 2), NumberStyles.HexNumber);
-                _g = int.Parse(hex.Substring(2, 2), NumberStyles.HexNumber);
-                _b = int.Parse(hex.Substring(4, 2), NumberStyles.HexNumber);
-                OnPropertyChanged(nameof(R));
-                OnPropertyChanged(nameof(G));
-                OnPropertyChanged(nameof(B));
-                UpdateHsl();
-            }
+            var hex = _hexDigits;
+            if (hex.Length is not (6 or 8))
+                return;
+
+            _r = ParseHexByte(hex, 0);
+            _g = ParseHexByte(hex, 2);
+            _b = ParseHexByte(hex, 4);
+            _a = hex.Length == 8 ? ParseHexByte(hex, 6) : 255;
+
+            NotifyRgbChanged();
+            UpdateHsl();
+            SyncHexDigitsFromRgba();
         }
-        catch { }
-        finally { _isUpdating = false; }
+        catch
+        {
+        }
+        finally
+        {
+            _isUpdating = false;
+        }
     }
 
-    private void UpdateFromRgb()
+    private void UpdateFromRgba()
     {
-        if (_isUpdating) return;
+        if (_isUpdating)
+            return;
+
         _isUpdating = true;
         try
         {
-            _hex = $"#{_r:X2}{_g:X2}{_b:X2}";
-            OnPropertyChanged(nameof(Hex));
+            SyncHexDigitsFromRgba();
             UpdateHsl();
+            OnPropertyChanged(nameof(HexDisplay));
+            OnPropertyChanged(nameof(RgbaCss));
+            OnPropertyChanged(nameof(PreviewCssColor));
+            OnPropertyChanged(nameof(AlphaPercent));
         }
-        finally { _isUpdating = false; }
+        finally
+        {
+            _isUpdating = false;
+        }
     }
-    
+
+    private void SyncHexDigitsFromRgba()
+    {
+        _hexDigits = _a >= 255
+            ? $"{_r:X2}{_g:X2}{_b:X2}"
+            : $"{_r:X2}{_g:X2}{_b:X2}{_a:X2}";
+
+        OnPropertyChanged(nameof(HexDigits));
+        OnPropertyChanged(nameof(HexDisplay));
+        OnPropertyChanged(nameof(RgbaCss));
+        OnPropertyChanged(nameof(PreviewCssColor));
+    }
+
+    private void NotifyRgbChanged()
+    {
+        OnPropertyChanged(nameof(R));
+        OnPropertyChanged(nameof(G));
+        OnPropertyChanged(nameof(B));
+        OnPropertyChanged(nameof(A));
+        OnPropertyChanged(nameof(AlphaPercent));
+        OnPropertyChanged(nameof(HexDisplay));
+        OnPropertyChanged(nameof(RgbaCss));
+        OnPropertyChanged(nameof(PreviewCssColor));
+    }
+
     private void UpdateHsl()
     {
-        // Simple RGB to HSL conversion
-        double r = _r / 255.0;
-        double g = _g / 255.0;
-        double b = _b / 255.0;
-        
-        double max = Math.Max(r, Math.Max(g, b));
-        double min = Math.Min(r, Math.Min(g, b));
-        
+        var r = _r / 255.0;
+        var g = _g / 255.0;
+        var b = _b / 255.0;
+
+        var max = Math.Max(r, Math.Max(g, b));
+        var min = Math.Min(r, Math.Min(g, b));
+
         _l = (max + min) / 2.0;
 
         if (max == min)
         {
-            _h = _s = 0; // achromatic
+            _h = _s = 0;
         }
         else
         {
-            double d = max - min;
+            var d = max - min;
             _s = _l > 0.5 ? d / (2.0 - max - min) : d / (max + min);
-            
-            if (max == r) _h = (g - b) / d + (g < b ? 6 : 0);
-            else if (max == g) _h = (b - r) / d + 2;
-            else if (max == b) _h = (r - g) / d + 4;
-            
+
+            if (max == r)
+                _h = (g - b) / d + (g < b ? 6 : 0);
+            else if (max == g)
+                _h = (b - r) / d + 2;
+            else
+                _h = (r - g) / d + 4;
+
             _h /= 6;
         }
 
         _h *= 360;
         _s *= 100;
         _l *= 100;
-        
+
         OnPropertyChanged(nameof(H));
         OnPropertyChanged(nameof(S));
         OnPropertyChanged(nameof(L));
     }
 
-    public double H => _h;
-    public double S => _s;
-    public double L => _l;
+    private static int ParseHexByte(string hex, int start) =>
+        int.Parse(hex.AsSpan(start, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+
+    private static int ClampByte(int value) => Math.Clamp(value, 0, 255);
+
+    private static string NormalizeHexDigits(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var hex = value.Trim().TrimStart('#');
+        return hex.Length switch
+        {
+            <= 6 when hex.Length == 6 => hex.ToUpperInvariant(),
+            >= 8 => hex[..8].ToUpperInvariant(),
+            _ => hex.ToUpperInvariant()
+        };
+    }
 }

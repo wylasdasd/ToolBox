@@ -189,7 +189,7 @@
 
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap mb-3">
                 <InputFile id="@BatchFilesInputId"
-                           OnChange="OnBatchFilesSelected"
+                           OnChange="ImportBatchFilesAsync"
                            multiple
                            accept=".txt,.log,.csv,.json,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp"
                            disabled="@ViewModel.IsBusy"
@@ -215,7 +215,7 @@
                 else
                 {
                     <InputFile id="@BatchFolderInputId"
-                               OnChange="OnBatchFolderSelected"
+                               OnChange="ImportBatchFilesAsync"
                                multiple
                                @attributes="FolderInputAttributes"
                                disabled="@ViewModel.IsBusy"
@@ -377,25 +377,12 @@
 
 
 
-    private async Task OnBatchFilesSelected(InputFileChangeEventArgs e) => await ImportBatchFilesAsync(e);
-
-    private Task OnBatchFolderSelected(InputFileChangeEventArgs e) => ImportBatchFilesAsync(e);
-
-
-
     private async Task ImportBatchFilesAsync(InputFileChangeEventArgs e)
-
     {
-
         var (added, skipped) = await ImportBatchFilesCoreAsync(e);
-
         if (added + skipped > 0)
-
             ViewModel.NotifyBatchImportFinished(added, skipped);
-
     }
-
-
 
     private async Task<(int Added, int Skipped)> ImportBatchFilesCoreAsync(InputFileChangeEventArgs e)
 

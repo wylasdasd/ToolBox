@@ -61,7 +61,6 @@ public sealed class WebSocketClientVM : WebSocketSessionVMBase
 
     private ClientWebSocket? _client;
     private CancellationTokenSource? _cts;
-    private Task? _receiveTask;
 
     public IReadOnlyList<string> AuthModes { get; } = ["None", "Bearer", "ApiKeyHeader", "QueryToken"];
 
@@ -158,7 +157,7 @@ public sealed class WebSocketClientVM : WebSocketSessionVMBase
             IsConnected = true;
             AddLog("System", "Connected.");
 
-            _receiveTask = ReceiveLoop(_cts.Token);
+            _ = ReceiveLoop(_cts.Token);
         }
         catch (Exception ex)
         {

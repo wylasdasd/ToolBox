@@ -52,11 +52,11 @@ public sealed class RequestToCurlVM : ViewModelBase
         get => _curlCommand;
         private set => SetProperty(ref _curlCommand, value);
     }
-    private bool _IsHttps;
+    private bool _isHttps;
     public bool IsHttps
     {
-        get => _IsHttps;
-        set => SetProperty(ref _IsHttps, value);
+        get => _isHttps;
+        set => SetProperty(ref _isHttps, value);
     }
 
     public string FormMethod
@@ -129,38 +129,17 @@ public sealed class RequestToCurlVM : ViewModelBase
         private set => SetProperty(ref _responseBody, value);
     }
 
-    public void ConvertRaw()
+    public void ConvertRaw() => TryConvert(() => BuildFromRaw(RawRequest));
+
+    public void ConvertForm() =>
+        TryConvert(() => BuildFromForm(FormMethod, EnsureAbsoluteUrl(FormUrl, _isHttps), FormHeaders, FormBody));
+
+    private void TryConvert(Func<HttpRequestData?> build)
     {
         ErrorMessage = null;
         try
         {
-            _currentRequestData = BuildFromRaw(RawRequest);
-            if (_currentRequestData == null)
-            {
-                ErrorMessage = "未能解析请求。";
-                CurlCommand = string.Empty;
-                return;
-            }
-
-            CurlCommand = OutputFormat == "powershell"
-                ? GeneratePowerShell(_currentRequestData)
-                : GenerateCurl(_currentRequestData);
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-            CurlCommand = string.Empty;
-            _currentRequestData = null;
-        }
-    }
-
-    public void ConvertForm()
-    {
-        ErrorMessage = null;
-        try
-        {
-            var normalizedUrl = EnsureAbsoluteUrl(FormUrl, _IsHttps);
-            _currentRequestData = BuildFromForm(FormMethod, normalizedUrl, FormHeaders, FormBody);
+            _currentRequestData = build();
             if (_currentRequestData == null)
             {
                 ErrorMessage = "未能解析请求。";
@@ -547,7 +526,7 @@ public sealed class RequestToCurlVM : ViewModelBase
         {
             return target;
         }
-        if (_IsHttps)
+        if (_isHttps)
         {
             return $"https://{host}{target}";
 
