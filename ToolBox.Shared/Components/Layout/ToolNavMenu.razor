@@ -1,0 +1,28 @@
+@namespace ToolBox.Components.Layout
+
+<MudNavMenu>
+    <MudText Typo="Typo.h6" Align="Align.Center">@Title</MudText>
+    <MudDivider />
+
+    @foreach (var group in _groups)
+    {
+        <MudNavGroup title="@group.Title" Icon="@group.Icon" Expanded="true">
+            @foreach (var item in group.Items)
+            {
+                <MudNavLink Href="@item.Href" Icon="@item.Icon">@item.Title</MudNavLink>
+            }
+        </MudNavGroup>
+    }
+</MudNavMenu>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public bool ForWeb { get; set; }
+
+    private IReadOnlyList<ToolNavGroup> _groups = [];
+
+    protected override void OnParametersSet()
+    {
+        _groups = ForWeb ? ToolNavDefinition.GetGroupsForWeb() : ToolNavDefinition.GetGroupsForMaui();
+    }
+}
