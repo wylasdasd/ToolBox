@@ -2,12 +2,13 @@
 name: toolbox-calculation
 description: >-
   通过 user-toolbox MCP 做进制、Unix 时间戳、颜色、单位换算、位运算、struct 布局。
-  适用于进制转换、时间戳、十六进制颜色、存储带宽单位、位运算、C 结构体内存布局；或 @toolbox-calculation、计算工具。
+  适用于进制转换、时间戳、十六进制颜色、存储带宽单位、传输时间、位运算、C 结构体内存布局；
+  或 @toolbox-calculation、计算工具。
 ---
 
 # ToolBox 计算工具（toolbox-calculation）
 
-MCP 服务器：`toolbox`
+MCP 服务器：`toolbox`（Cursor 中可能为 `user-toolbox`）
 
 | 任务 | toolName | 关键参数 |
 | :--- | :--- | :--- |
@@ -22,6 +23,14 @@ MCP 服务器：`toolbox`
 ## categoryId（unit_convert）
 
 `storage-iec`, `storage-si`, `network-bit`, `network-byte`, `time`, `frequency`, `memory-page`。单位 id 见 ToolBox 单位页（如 `b`, `kib`, `mbps`, `s`）。
+
+## unit_transfer_time 的 fileSizeUnitId
+
+支持 **IEC 与 SI 字节单位**：`b`, `kib`, `mib`, `gib`, `tib`, `kb`, `mb`, `gb`, `tb`。
+
+带宽单位用 `network-bit` 的 id，如 `mbps`, `gbps`。
+
+示例：1 GiB @ 100 Mbps → 约 **85.9 s**（`fileSizeUnitId: "gib"`）。未知单位返回 `ERROR:`，不会静默按 1 字节计算。
 
 ## bitwise operation
 

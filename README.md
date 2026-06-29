@@ -21,6 +21,8 @@ ToolBox/              MAUI Blazor Hybrid 应用（平台服务 + WebView 壳）
 ToolBox.Shared/       共享 Razor 页面、ViewModel、服务接口
 ToolBox.Web/          Blazor Web App 宿主（SSR 壳）
 ToolBox.Web.Client/   WASM 客户端、Web 路由/布局、浏览器服务
+ToolBox.Tools/        可复用工具 Service 层（VM 与 MCP 共用）
+ToolBox.Mcp/          本地 stdio MCP Server（Agent 小工具，约 33 个 Tool）
 CommonHelp/           共享工具类库
 TestCommonHelp/       CommonHelp 单元测试
 ToolBox.slnx          解决方案入口
@@ -78,5 +80,7 @@ dotnet build ToolBox.slnx -c Debug
 
 ## 文档
 
-- [`AGENTS.md`](AGENTS.md)：Agent / 协作者约定
+- [`AGENTS.md`](AGENTS.md)：Agent / 协作者约定（含 MCP 与 Skill 路由）
+- [`ToolBox.Mcp/README.md`](ToolBox.Mcp/README.md)：本地 toolbox MCP 配置与工具列表
+- [`.agents/skills/`](.agents/skills/)：MCP 分类 Skill 真源（`.cursor/skills/`、`.cline/skills/` 为副本）
 - [`memory-bank/`](memory-bank/)：长期上下文（架构、进度、产品范围）

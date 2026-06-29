@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using ToolBox.Services.Ai;
 using ToolBox.Services.Picker;
+using ToolBox.Tools.Ai;
 
 namespace ToolBox.Components.Pages.AiExtract;
 
@@ -19,9 +20,9 @@ public sealed class AiExtractVM(
     private AiProviderKind _selectedProvider = AiProviderKind.OpenRouter;
     private string _model = AiProviderCatalog.GetDefaultModel(AiProviderKind.OpenRouter);
     private string _apiKey = string.Empty;
-    private string _selectedTemplateId = AiExtractTemplates.Presets[0].Id;
-    private string _extractTemplate = AiExtractTemplates.Presets[0].Template;
-    private string _systemPrompt = AiExtractTemplates.DefaultSystemPrompt;
+    private string _selectedTemplateId = AiExtractPromptService.Presets[0].Id;
+    private string _extractTemplate = AiExtractPromptService.Presets[0].Template;
+    private string _systemPrompt = AiExtractPromptService.DefaultSystemPrompt;
     private string _singleInputText = string.Empty;
     private string _outputJson = string.Empty;
     private string _logText = string.Empty;
@@ -35,7 +36,7 @@ public sealed class AiExtractVM(
     private readonly List<BatchInputItem> _batchItems = [];
 
     public IReadOnlyList<AiProviderKind> Providers => AiProviderCatalog.All;
-    public IReadOnlyList<AiExtractTemplate> TemplatePresets => AiExtractTemplates.Presets;
+    public IReadOnlyList<AiExtractTemplate> TemplatePresets => AiExtractPromptService.Presets;
 
     public Task<IEnumerable<string>> SearchModelsAsync(string value, CancellationToken cancellationToken = default)
     {
@@ -155,7 +156,7 @@ public sealed class AiExtractVM(
 
     private string EffectiveExtractTemplate =>
         string.IsNullOrWhiteSpace(ExtractTemplate)
-            ? AiExtractTemplates.Presets[0].Template
+            ? AiExtractPromptService.Presets[0].Template
             : ExtractTemplate.Trim();
 
     public override async Task OnInitializedAsync()
@@ -477,7 +478,7 @@ public sealed class AiExtractVM(
             Provider = SelectedProvider,
             ApiKey = ApiKey,
             Model = Model,
-            SystemPrompt = AiExtractTemplates.MergeBatchSystemPrompt,
+            SystemPrompt = AiExtractPromptService.MergeBatchSystemPrompt,
             UserPrompt = BuildMergedUserPrompt(items, includeImages),
             ImageDataUrls = imageUrls.Count > 0 ? imageUrls : null,
             JsonOnly = true,
@@ -618,7 +619,7 @@ public sealed class AiExtractVM(
 
     private async Task<string> ExtractOneAsync(string sourceName, string? text, string? imageDataUrl)
     {
-        var userPrompt = BuildUserPrompt(text, sourceName);
+        var userPrompt = AiExtractPromptService.BuildUserPrompt(EffectiveExtractTemplate, text, sourceName);
         var request = new AiChatRequest
         {
             Provider = SelectedProvider,
@@ -634,36 +635,9 @@ public sealed class AiExtractVM(
         return AiJsonResponseHelp.NormalizeToJson(raw);
     }
 
-    private string BuildUserPrompt(string? text, string sourceName)
-    {
-        var template = EffectiveExtractTemplate;
-
-        if (!string.IsNullOrWhiteSpace(text))
-        {
-            return $"""
-                来源：{sourceName}
-
-                提取模板：
-                {template}
-
-                待提取内容：
-                {text.Trim()}
-                """;
-        }
-
-        return $"""
-            来源：{sourceName}
-
-            提取模板：
-            {template}
-
-            请从附件图片中提取字段。
-            """;
-    }
-
     private void ApplyTemplatePreset(string templateId)
     {
-        var preset = AiExtractTemplates.Presets.FirstOrDefault(x => x.Id == templateId);
+        var preset = AiExtractPromptService.TryGetPreset(templateId);
         if (preset is not null)
             ExtractTemplate = preset.Template;
     }

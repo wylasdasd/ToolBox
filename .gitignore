@@ -366,3 +366,6 @@ FodyWeavers.xsd
 /CommonHelp/.git/
 /CommonHelp/.gitignore
 /CommonHelp/.gitattributes
+
+# Local test fixtures (not for commit)
+TestData/

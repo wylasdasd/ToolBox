@@ -13,6 +13,8 @@
 - `token消耗结论.md`：C# vs React+TS 的 AI token 消耗分析与文献综述
 - `agent七层模型.md`：Agent 七层分层模型解析（Skills vs MCP 错位比较、OSI 类比）
 
+Agent 调用 toolbox MCP 时，分类 Skill 见仓库 [`.agents/skills/`](../.agents/skills/)（含 `toolbox-system` / `directory_sync_plan` 等）；细则不在 memory-bank 重复维护。
+
 ## 建议使用方式
 
 1. 每次开始新任务前，先读 `activeContext.md` + `progress.md`。

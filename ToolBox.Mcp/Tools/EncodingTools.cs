@@ -39,4 +39,8 @@ public static class EncodingTools
     [McpServerTool, Description("Decode hex bytes to text.")]
     public static string HexToText(string hexInput, string encodingId = "utf-8") =>
         McpToolResponses.From(TextHexService.DecodeHexToText(hexInput, encodingId));
+
+    [McpServerTool, Description("Parse a data-URI or raw Base64 image string and return mime type plus data URL.")]
+    public static string DataUriImageParse(string input) =>
+        McpToolResponses.From(DataUriImageService.Parse(input));
 }

@@ -1,4 +1,5 @@
 using CommonTool.FileHelps;
+using ToolBox.Tools.DirectorySync;
 
 namespace ToolBox.Services.DirectorySync;
 
@@ -116,166 +117,82 @@ public sealed class DirectorySyncService : IDirectorySyncService
         bool deleteExtraFiles,
         CancellationToken cancellationToken)
     {
-        var normalizedSource = NormalizePath(sourcePath);
-        var normalizedTarget = NormalizePath(targetPath);
-        ValidatePaths(normalizedSource, normalizedTarget);
+        if (!Directory.Exists(NormalizePathForExistenceCheck(sourcePath)))
+            throw new DirectoryNotFoundException($"源目录不存在：{Path.GetFullPath(sourcePath.Trim())}");
 
-        if (!Directory.Exists(normalizedSource))
-        {
-            throw new DirectoryNotFoundException($"源目录不存在：{normalizedSource}");
-        }
+        Directory.CreateDirectory(NormalizePathForExistenceCheck(targetPath));
 
-        Directory.CreateDirectory(normalizedTarget);
+        var sourceFiles = EnumerateFileMap(sourcePath, cancellationToken);
+        var targetFiles = EnumerateFileMap(targetPath, cancellationToken);
 
-        var sourceFiles = EnumerateFileMap(normalizedSource, cancellationToken);
-        var targetFiles = EnumerateFileMap(normalizedTarget, cancellationToken);
-        var filesToCopy = new List<DirectorySyncFilePlan>();
-        var filesToDelete = new List<DirectorySyncFilePlan>();
-        var directoriesToEnsure = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            normalizedTarget
-        };
+        var sourceEntries = ToFileEntries(sourceFiles);
+        var targetEntries = ToFileEntries(targetFiles);
 
-        foreach (var pair in sourceFiles.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var relativePath = pair.Key;
-            var sourceFile = pair.Value;
-            var targetPathForFile = Path.Combine(normalizedTarget, relativePath);
-            directoriesToEnsure.Add(Path.GetDirectoryName(targetPathForFile) ?? normalizedTarget);
+        var result = DirectorySyncPlanService.BuildPlan(
+            sourcePath,
+            targetPath,
+            deleteExtraFiles,
+            sourceEntries,
+            targetEntries);
 
-            if (!targetFiles.TryGetValue(relativePath, out var targetFile)
-                || sourceFile.Length != targetFile.Length
-                || sourceFile.LastWriteTimeUtc != targetFile.LastWriteTimeUtc)
-            {
-                filesToCopy.Add(new DirectorySyncFilePlan(
-                    relativePath,
-                    sourceFile.FullName,
-                    targetPathForFile,
-                    sourceFile.Length,
-                    sourceFile.LastWriteTimeUtc));
-            }
-        }
+        if (!result.Success || result.Value is null)
+            throw new InvalidOperationException(result.Error ?? "无法生成同步计划。");
 
-        if (deleteExtraFiles)
-        {
-            foreach (var pair in targetFiles.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!sourceFiles.ContainsKey(pair.Key))
-                {
-                    filesToDelete.Add(new DirectorySyncFilePlan(
-                        pair.Key,
-                        string.Empty,
-                        pair.Value.FullName,
-                        pair.Value.Length,
-                        pair.Value.LastWriteTimeUtc));
-                }
-            }
-        }
+        var plan = result.Value;
+        if (!deleteExtraFiles)
+            return DirectorySyncPlan.FromResult(plan);
 
-        var directoriesToDelete = deleteExtraFiles
-            ? EnumerateDirectoriesForDeletion(normalizedTarget, sourceFiles.Keys, cancellationToken)
-            : [];
+        var normalizedTarget = plan.TargetPath;
+        var targetRelativeDirs = Directory
+            .EnumerateDirectories(normalizedTarget, "*", SearchOption.AllDirectories)
+            .Select(path => Path.GetRelativePath(normalizedTarget, path));
 
-        return new DirectorySyncPlan(
-            normalizedSource,
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var directoriesToDelete = DirectorySyncPlanService.ComputeDirectoriesForDeletion(
             normalizedTarget,
-            sourceFiles.Count,
-            targetFiles.Count,
-            filesToCopy,
-            filesToDelete,
-            directoriesToEnsure.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
-            directoriesToDelete);
+            sourceFiles.Keys,
+            targetRelativeDirs);
+
+        return DirectorySyncPlan.FromResult(
+            DirectorySyncPlanService.WithDirectoriesToDelete(plan, directoriesToDelete));
     }
+
+    private static Dictionary<string, DirectorySyncFileEntry> ToFileEntries(Dictionary<string, FileInfo> files) =>
+        files.ToDictionary(
+            pair => pair.Key,
+            pair => new DirectorySyncFileEntry(
+                pair.Value.Length,
+                pair.Value.LastWriteTimeUtc,
+                pair.Value.FullName),
+            StringComparer.OrdinalIgnoreCase);
 
     private static Dictionary<string, FileInfo> EnumerateFileMap(string rootPath, CancellationToken cancellationToken)
     {
+        var normalizedRoot = NormalizePathForExistenceCheck(rootPath);
         var files = new Dictionary<string, FileInfo>(StringComparer.OrdinalIgnoreCase);
-        foreach (var filePath in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
+        foreach (var filePath in Directory.EnumerateFiles(normalizedRoot, "*", SearchOption.AllDirectories))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var relativePath = Path.GetRelativePath(rootPath, filePath);
+            var relativePath = Path.GetRelativePath(normalizedRoot, filePath);
             files[relativePath] = new FileInfo(filePath);
         }
 
         return files;
     }
 
-    private static List<string> EnumerateDirectoriesForDeletion(
-        string targetPath,
-        IEnumerable<string> sourceRelativeFiles,
-        CancellationToken cancellationToken)
-    {
-        var sourceDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { string.Empty };
-        foreach (var relativeFile in sourceRelativeFiles)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var relativeDirectory = Path.GetDirectoryName(relativeFile) ?? string.Empty;
-            while (true)
-            {
-                sourceDirectories.Add(relativeDirectory);
-                if (string.IsNullOrEmpty(relativeDirectory))
-                {
-                    break;
-                }
-
-                relativeDirectory = Path.GetDirectoryName(relativeDirectory) ?? string.Empty;
-            }
-        }
-
-        return Directory
-            .EnumerateDirectories(targetPath, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(targetPath, path))
-            .Where(relativePath => !sourceDirectories.Contains(relativePath))
-            .OrderByDescending(path => path.Count(c => c == Path.DirectorySeparatorChar || c == Path.AltDirectorySeparatorChar))
-            .Select(relativePath => Path.Combine(targetPath, relativePath))
-            .ToList();
-    }
-
-    private static string NormalizePath(string path)
+    private static string NormalizePathForExistenceCheck(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
-        {
             throw new ArgumentException("目录路径不能为空。", nameof(path));
-        }
 
         return Path.GetFullPath(path.Trim());
-    }
-
-    private static void ValidatePaths(string sourcePath, string targetPath)
-    {
-        if (string.Equals(sourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("源目录和目标目录不能相同。");
-        }
-
-        if (IsSubPathOf(sourcePath, targetPath) || IsSubPathOf(targetPath, sourcePath))
-        {
-            throw new InvalidOperationException("源目录和目标目录不能互相嵌套。");
-        }
-    }
-
-    private static bool IsSubPathOf(string candidateParent, string candidateChild)
-    {
-        var parent = EnsureTrailingSeparator(candidateParent);
-        var child = EnsureTrailingSeparator(candidateChild);
-        return child.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string EnsureTrailingSeparator(string path)
-    {
-        return path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar)
-            ? path
-            : path + Path.DirectorySeparatorChar;
     }
 
     private static void EnsureWindowsSupported()
     {
         if (!OperatingSystem.IsWindows())
-        {
             throw new PlatformNotSupportedException("目录同步当前仅支持 Windows。");
-        }
     }
 }
 
@@ -289,6 +206,16 @@ internal sealed record DirectorySyncPlan(
     List<string> DirectoriesToEnsure,
     List<string> DirectoriesToDelete)
 {
+    public static DirectorySyncPlan FromResult(DirectorySyncPlanResult result) => new(
+        result.SourcePath,
+        result.TargetPath,
+        result.SourceFileCount,
+        result.TargetFileCount,
+        result.FilesToCopy.ToList(),
+        result.FilesToDelete.ToList(),
+        result.DirectoriesToEnsure.ToList(),
+        result.DirectoriesToDelete.ToList());
+
     public DirectorySyncPreview ToPreview() => new()
     {
         SourcePath = SourcePath,
@@ -301,10 +228,3 @@ internal sealed record DirectorySyncPlan(
         DeleteExtraFiles = FilesToDelete.Count > 0
     };
 }
-
-internal sealed record DirectorySyncFilePlan(
-    string RelativePath,
-    string SourcePath,
-    string TargetPath,
-    long Length,
-    DateTime LastWriteTimeUtc);

@@ -83,8 +83,16 @@ public static class UnitConvertService
         ]),
     ];
 
+    private static readonly HashSet<string> FileSizeUnitIds =
+        ["b", "kib", "mib", "gib", "tib", "kb", "mb", "gb", "tb"];
+
     public static IEnumerable<UnitDef> FileSizeUnits =>
-        Categories.First(c => c.Id == "storage-si").Units.Where(u => u.Id is "b" or "kb" or "mb" or "gb" or "tb");
+        Categories
+            .Where(c => c.Id is "storage-iec" or "storage-si")
+            .SelectMany(c => c.Units)
+            .Where(u => FileSizeUnitIds.Contains(u.Id))
+            .GroupBy(u => u.Id)
+            .Select(g => g.First());
 
     public static IEnumerable<UnitDef> BandwidthUnits =>
         Categories.First(c => c.Id == "network-bit").Units;
@@ -111,7 +119,9 @@ public static class UnitConvertService
         if (!TryParseInput(fileSize, out var size, out _) || !TryParseInput(bandwidth, out var bw, out _) || bw <= 0)
             return ToolResult<string>.Ok(string.Empty);
 
-        var sizeUnit = FileSizeUnits.FirstOrDefault(u => u.Id == fileSizeUnitId) ?? FileSizeUnits.First();
+        var sizeUnit = ResolveFileSizeUnit(fileSizeUnitId);
+        if (sizeUnit is null)
+            return ToolResult<string>.Fail($"不支持的文件大小单位：{fileSizeUnitId}");
         var bwUnit = BandwidthUnits.FirstOrDefault(u => u.Id == bandwidthUnitId) ?? BandwidthUnits.First();
 
         var bytes = size * sizeUnit.FactorToBase;
@@ -142,6 +152,9 @@ public static class UnitConvertService
 
     public static UnitCategory GetCategory(string id) =>
         Categories.FirstOrDefault(c => c.Id == id) ?? Categories[0];
+
+    private static UnitDef? ResolveFileSizeUnit(string unitId) =>
+        FileSizeUnits.FirstOrDefault(u => u.Id == unitId);
 
     private static string? BuildNetworkHint(string categoryId, decimal v, string fromUnitId, UnitCategory cat, UnitDef from)
     {

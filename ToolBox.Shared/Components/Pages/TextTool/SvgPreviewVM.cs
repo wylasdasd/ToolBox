@@ -1,4 +1,5 @@
 using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Text;
 
 namespace ToolBox.Components.Pages.TextTool;
 
@@ -45,21 +46,14 @@ public sealed class SvgPreviewVM : ViewModelBase
     {
         ErrorMessage = null;
 
-        var input = SvgInput?.Trim();
-        if (string.IsNullOrWhiteSpace(input))
+        var result = SvgPreviewService.Validate(SvgInput);
+        if (!result.Success)
         {
-            ErrorMessage = "SVG 内容不能为空。";
+            ErrorMessage = result.Error;
             return;
         }
 
-        if (!input.Contains("<svg", StringComparison.OrdinalIgnoreCase) ||
-            !input.Contains("</svg>", StringComparison.OrdinalIgnoreCase))
-        {
-            ErrorMessage = "请输入完整的 SVG 标签内容。";
-            return;
-        }
-
-        RenderedSvg = input;
+        RenderedSvg = result.Value!.NormalizedSvg;
     }
 
     public void Clear()

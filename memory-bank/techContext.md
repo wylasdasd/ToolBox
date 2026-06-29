@@ -51,6 +51,15 @@ dotnet build ToolBox.slnx -c Debug
 | Web 客户端 | `ToolBox.Web.Client/Program.cs` | `AddToolBoxWeb(WebAssembly)` |
 | Web 客户端 | `ToolBox.Web.Client/Components/ToolRouter.razor` | Web 路由根 |
 | Web 客户端 | `ToolBox.Web.Client/WebRouteRegistry.cs` | Web 开放路由白名单 |
+| Tools | `ToolBox.Tools/**/**Service.cs` | 纯逻辑，VM 与 MCP 共用 |
+| MCP | `ToolBox.Mcp/Tools/*.cs` | MCP 薄适配；`Program.cs` 注册 stdio |
+| MCP 文档 | `ToolBox.Mcp/README.md` | 编辑器 MCP 配置、约 33 Tool 列表 |
+
+## Agent / MCP
+
+- 项目级 MCP：`.cursor/mcp.json`、`.vscode/mcp.json`、`.cline/mcp.json`、`.codex/config.toml`
+- Skill 真源：`.agents/skills/`（`toolbox-mcp`、`toolbox-encoding`、`toolbox-system` 等）
+- 改 `ToolBox.Tools` 或 MCP 后：`dotnet build ToolBox.Mcp/ToolBox.Mcp.csproj -c Release`，再 Refresh MCP
 
 ## Web 渲染模型
 

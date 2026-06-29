@@ -1,4 +1,5 @@
 using Blazing.Mvvm.ComponentModel;
+using ToolBox.Tools.Text;
 
 namespace ToolBox.Components.Pages;
 
@@ -75,13 +76,9 @@ public sealed class ClipboardSequenceVM : ViewModelBase
 
     public void ImportSequencesFromClipboardLines()
     {
-        var lines = (ClipboardText ?? string.Empty)
-            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .ToArray();
-
+        var lines = ClipboardSequenceService.ParseNonEmptyLines(ClipboardText);
         AppendSequences(lines);
-        StatusMessage = lines.Length == 0 ? "剪贴板中没有可导入的非空行。" : $"已导入 {lines.Length} 条序列。";
+        StatusMessage = lines.Count == 0 ? "剪贴板中没有可导入的非空行。" : $"已导入 {lines.Count} 条序列。";
     }
 
     public void AddClipboardAsOneSequence()
@@ -92,7 +89,7 @@ public sealed class ClipboardSequenceVM : ViewModelBase
             return;
         }
 
-        AppendSequences(new[] { ClipboardText });
+        AppendSequences([ClipboardText]);
         StatusMessage = "已将整段剪贴板内容加入序列。";
     }
 
@@ -104,7 +101,7 @@ public sealed class ClipboardSequenceVM : ViewModelBase
             return;
         }
 
-        var updated = Sequences.Where(x => x != SelectedSequence).ToList();
+        var updated = ClipboardSequenceService.Remove(Sequences, SelectedSequence);
         Sequences = updated;
         SelectedSequence = updated.FirstOrDefault() ?? string.Empty;
         StatusMessage = "已删除所选序列。";
@@ -119,16 +116,11 @@ public sealed class ClipboardSequenceVM : ViewModelBase
 
     private void AppendSequences(IEnumerable<string> values)
     {
-        var merged = Sequences.Concat(values).Distinct().ToList();
+        var merged = ClipboardSequenceService.AppendDistinct(Sequences, values);
         Sequences = merged;
-        if (string.IsNullOrEmpty(SelectedSequence))
-        {
-            SelectedSequence = merged.FirstOrDefault() ?? string.Empty;
-        }
+        SelectedSequence = ClipboardSequenceService.SelectFirstOrKeep(merged, SelectedSequence) ?? string.Empty;
     }
 
-    public IReadOnlyList<string> GetBatchItems()
-    {
-        return Sequences.Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
-    }
+    public IReadOnlyList<string> GetBatchItems() =>
+        ClipboardSequenceService.GetBatchItems(Sequences);
 }

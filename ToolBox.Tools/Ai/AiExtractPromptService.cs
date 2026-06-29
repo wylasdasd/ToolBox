@@ -1,8 +1,8 @@
-namespace ToolBox.Services.Ai;
+namespace ToolBox.Tools.Ai;
 
 public sealed record AiExtractTemplate(string Id, string Name, string Template);
 
-public static class AiExtractTemplates
+public static class AiExtractPromptService
 {
     public const string DefaultSystemPrompt =
         "你是结构化数据提取助手。严格按用户模板提取信息，只输出一个合法 JSON 对象，不要 Markdown 代码块，不要额外说明。";
@@ -51,4 +51,34 @@ public static class AiExtractTemplates
             }
             """)
     ];
+
+    public static AiExtractTemplate? TryGetPreset(string templateId) =>
+        Presets.FirstOrDefault(x => x.Id == templateId);
+
+    public static string BuildUserPrompt(string? extractTemplate, string? text, string sourceName)
+    {
+        var template = extractTemplate ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            return $"""
+                来源：{sourceName}
+
+                提取模板：
+                {template}
+
+                待提取内容：
+                {text.Trim()}
+                """;
+        }
+
+        return $"""
+            来源：{sourceName}
+
+            提取模板：
+            {template}
+
+            请从附件图片中提取字段。
+            """;
+    }
 }

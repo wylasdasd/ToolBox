@@ -280,15 +280,10 @@ public sealed class WebSocketClientVM : WebSocketSessionVMBase
             var tokenName = (QueryTokenName ?? string.Empty).Trim();
             var token = AuthToken ?? string.Empty;
             if (string.IsNullOrWhiteSpace(tokenName))
-            {
                 throw new InvalidOperationException("Query 鉴权模式下 Query Name 不能为空。");
-            }
 
-            var baseUri = uri.GetLeftPart(UriPartial.Path);
-            var existing = uri.Query;
-            var separator = string.IsNullOrEmpty(existing) ? "?" : "&";
-            var appended = $"{baseUri}{existing}{separator}{Uri.EscapeDataString(tokenName)}={Uri.EscapeDataString(token)}";
-            return new Uri(appended);
+            var baseUri = uri.GetLeftPart(UriPartial.Path) + uri.Query;
+            return new Uri(WebSocketAuthHelper.AppendQueryToken(baseUri, tokenName, token));
         }
 
         return uri;
@@ -699,32 +694,21 @@ public sealed class WebSocketServerVM : WebSocketSessionVMBase
     private bool IsAuthorized(HttpListenerRequest request)
     {
         if (AuthMode == "None")
-        {
             return true;
-        }
 
         if (AuthMode == "Bearer")
-        {
-            var header = request.Headers["Authorization"];
-            return string.Equals(header, $"Bearer {AuthToken}", StringComparison.Ordinal);
-        }
+            return WebSocketAuthHelper.TryValidateBearer(request.Headers["Authorization"], AuthToken ?? string.Empty);
 
         if (AuthMode == "ApiKeyHeader")
-        {
-            var value = request.Headers[AuthHeaderName];
-            return string.Equals(value, AuthToken, StringComparison.Ordinal);
-        }
+            return WebSocketAuthHelper.TryValidateApiKeyHeader(request.Headers, AuthHeaderName, AuthToken ?? string.Empty);
 
         if (AuthMode == "QueryToken")
         {
             var key = (QueryTokenName ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(key))
-            {
                 return false;
-            }
 
-            var token = request.QueryString[key];
-            return string.Equals(token, AuthToken, StringComparison.Ordinal);
+            return WebSocketAuthHelper.TryValidateQueryToken(request.QueryString, key, AuthToken ?? string.Empty);
         }
 
         return false;

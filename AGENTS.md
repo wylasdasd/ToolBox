@@ -335,31 +335,35 @@ Cursor 中服务器标识为 **`user-toolbox`**（设置界面可能显示为 `t
 
 | 领域 | 典型任务 |
 | :--- | :--- |
-| 编码 | Base64、URL、JWT 解析、文本↔Hex |
+| 编码 | Base64、URL、JWT 解析、文本↔Hex、Data URI 图片解析 |
 | 文本 | 命名风格转换、正则匹配/替换、多行处理、文本 diff |
 | 格式 | JSON 格式化/压缩/校验/JSONPath、JSON/YAML/XML/TOML/CSV 互转、JSON→C# |
 | 网络 | Cron 解析、IPv4 子网、大小端、HTTP→curl/PowerShell（无出站 HTTP） |
 | 计算 | 进制、Unix 时间戳、颜色、单位换算、传输时间、位运算、struct 布局 |
 | 生成 | UUID/GUID |
 
-**不必用 MCP**：改代码、读仓库、跑 build/test、目录同步、OCR、AI 对话等 MCP 未暴露的能力。
+**不必用 MCP**：改代码、读仓库、跑 build/test、**执行**目录同步、OCR、AI 对话、C# 脚本执行、Socket/WebSocket 实时 I/O、剪贴板键入等。
+
+**刻意不上 MCP**（无安全/可预测边界）：`csharp_run` 执行、目录同步**执行**、Socket/WS 连接、剪贴板序列键入、AI API 调用、SVG 预览渲染、剪贴板列表解析（逻辑在 Tools，仅供 UI）。
+
+**预览类 MCP**（只读计划/解析）：`directory_sync_plan`（JSON 文件清单 → 同步预览统计，不读写磁盘）、`data_uri_image_parse`。
 
 ### 调用约定
 
 1. 调用前读取 `mcps/user-toolbox/tools/<tool>.json` 确认参数名与必填项。
 2. 失败时若返回以 `ERROR:` 开头，原样告知用户或换合法输入重试；不要在对话里绕过 Service 重算。
 3. 修改 `ToolBox.Tools` 或 `ToolBox.Mcp` 后需 `dotnet build ToolBox.Mcp/ToolBox.Mcp.csproj -c Release`，并在 Cursor MCP 面板 Refresh。
-4. 分类级操作细则见 [`.agents/skills/`](.agents/skills/) 下各 `toolbox-*` Skill（Cline 副本： [`.cline/skills/`](.cline/skills/)）。
+4. 分类级操作细则见 [`.agents/skills/`](.agents/skills/) 下各 `toolbox-*` Skill（含 `toolbox-system`；副本： [`.cursor/skills/`](.cursor/skills/) · [`.cline/skills/`](.cline/skills/)）。
 
 ### 如何使用 Skill
 
 | 方式 | 做法 |
 | :--- | :--- |
 | **自动** | 在 ToolBox 仓库开 Agent，直接说任务（如「格式化这段 JSON」）；匹配到 Skill 的 description 时 Agent 会读取并走 MCP。 |
-| **点名** | 对话里写 `@toolbox-format`、`@toolbox-encoding` 等，或说「按 toolbox 编码 skill 处理」。 |
+| **点名** | 对话里写 `@toolbox-format`、`@toolbox-encoding`、`@toolbox-system` 等，或说「按 toolbox 编码 skill 处理」。 |
 | **总览** | 不确定用哪个时 @`toolbox-mcp`，或说「走 toolbox MCP」。 |
 
-Skill 的 **`name` 必须是英文 slug**（如 `toolbox-format`）；正文标题用中文。真源目录 **`.agents/skills/`**；Cline 使用 **`.cline/skills/`** 副本（需与真源同步维护）。
+Skill 的 **`name` 必须是英文 slug**（如 `toolbox-format`）；正文标题用中文。真源目录 **`.agents/skills/`**；副本：**`.cursor/skills/`**、**`.cline/skills/`**（需与真源同步维护）。
 
 ## 安全
 

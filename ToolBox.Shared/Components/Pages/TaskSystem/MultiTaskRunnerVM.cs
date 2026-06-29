@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using ToolBox.Tools.CodeRunner;
 
 namespace ToolBox.Components.Pages.TaskSystem;
 
@@ -668,7 +669,7 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             typeof(MultiTaskRunnerVM).Assembly
         };
 
-        foreach (var name in ParseReferenceNames(ReferenceInput))
+        foreach (var name in CSharpScriptReferenceService.ParseReferenceNames(ReferenceInput))
         {
             try
             {
@@ -680,7 +681,7 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             }
         }
 
-        foreach (var path in ParseReferencePaths(ReferencePaths))
+        foreach (var path in CSharpScriptReferenceService.ParseReferencePaths(ReferencePaths))
         {
             if (!File.Exists(path))
             {
@@ -729,28 +730,6 @@ public sealed class MultiTaskRunnerVM : ViewModelBase
             item.Logs.RemoveRange(0, item.Logs.Count - 400);
 
         RefreshAllTaskLogs();
-    }
-
-    private static IReadOnlyList<string> ParseReferenceNames(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return Array.Empty<string>();
-
-        return value
-            .Split([',', ';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .ToArray();
-    }
-
-    private static IReadOnlyList<string> ParseReferencePaths(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return Array.Empty<string>();
-
-        return value
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .ToArray();
     }
 
     private static string RewriteForCooperativeCancellation(string code)

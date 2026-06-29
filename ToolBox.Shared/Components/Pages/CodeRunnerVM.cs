@@ -2,6 +2,7 @@ using Blazing.Mvvm.ComponentModel;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using System.Reflection;
+using ToolBox.Tools.CodeRunner;
 
 namespace ToolBox.Components.Pages;
 
@@ -102,7 +103,7 @@ numbers.Sum();
                 typeof(CodeRunnerVM).Assembly
             };
 
-            var referenceNames = ParseReferenceNames(ReferenceInput);
+            var referenceNames = CSharpScriptReferenceService.ParseReferenceNames(ReferenceInput);
             foreach (var name in referenceNames)
             {
                 var assembly = ResolveAssembly(name);
@@ -112,7 +113,7 @@ numbers.Sum();
                 }
             }
 
-            var referencePaths = ParseReferencePaths(ReferencePaths);
+            var referencePaths = CSharpScriptReferenceService.ParseReferencePaths(ReferencePaths);
             foreach (var path in referencePaths)
             {
                 if (!File.Exists(path))
@@ -185,32 +186,6 @@ numbers.Sum();
     {
         Output = string.Empty;
         ErrorMessage = null;
-    }
-
-    private static IReadOnlyList<string> ParseReferenceNames(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return Array.Empty<string>();
-        }
-
-        return value
-            .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .ToArray();
-    }
-
-    private static IReadOnlyList<string> ParseReferencePaths(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return Array.Empty<string>();
-        }
-
-        return value
-            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .ToArray();
     }
 
     private static Assembly? ResolveAssembly(string name)

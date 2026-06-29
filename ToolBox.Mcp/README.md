@@ -96,26 +96,28 @@ ToolBox.Tools/*Service  ← 业务逻辑（与 Blazor VM 共用）
 CommonHelp
 ```
 
-## 已注册 Tool（约 31 个）
+## 已注册 Tool（约 33 个）
 
 | 分类 | Tools |
 | :--- | :--- |
-| 编码 | `base64_encode`, `base64_decode`, `url_encode`, `url_decode`, `jwt_parse`, `text_to_hex`, `hex_to_text` |
+| 编码 | `base64_encode`, `base64_decode`, `url_encode`, `url_decode`, `jwt_parse`, `text_to_hex`, `hex_to_text`, `data_uri_image_parse` |
 | 文本 | `naming_style_convert`, `regex_match`, `text_lines_process`, `text_diff_compare` |
 | 格式 | `json_format`, `json_minify`, `json_validate`, `json_path_query`, `format_convert`, `json_to_csharp` |
 | 网络 | `cron_parse`, `ip_calculate`, `endian_value_to_hex`, `endian_hex_to_value`, `request_to_curl_from_raw`, `request_to_curl_from_form` |
 | 计算 | `radix_convert`, `timestamp_from_unix`, `color_from_hex`, `unit_convert`, `unit_transfer_time`, `bitwise_compute`, `struct_layout_calculate` |
 | 生成 | `uuid_generate` |
+| 系统 | `directory_sync_plan`（仅预览计划，不执行同步） |
 
 Tool 名称以 Cursor 中显示的为准（SDK 可能将 PascalCase 转为 snake_case）。
 
 ## 范围
 
-- **包含**：Web 与 MAUI 共通的工具页（见 `WebRouteRegistry` 子集）
-- **排除**：AI/OCR、目录同步、C# Runner、Socket/WebSocket 服务端、图片/SVG 预览页
+- **包含**：Web 与 MAUI 共通的工具页逻辑（见 `WebRouteRegistry` 子集），以及安全的只读 MCP：`data_uri_image_parse`、`directory_sync_plan`
+- **排除（UI / 执行）**：AI/OCR、目录同步**执行**、C# Runner **执行**、Socket/WebSocket 实时 I/O、SVG/图片**页面预览**、剪贴板键入
 
 ## 故障排查
 
 - MCP 进程日志输出到 **stderr**，不会污染 stdio 协议通道
 - 若 Cursor 报找不到 dotnet，在 `command` 中写 dotnet 的绝对路径
 - 修改 `ToolBox.Tools` 后需重新 build MCP 项目
+- **`dotnet build` 报 MSB3026 / 文件被锁定**：Cursor 等编辑器若已启用 MCP，会占用 `ToolBox.Mcp.dll`；先在 MCP 面板 **Disable/Refresh 关闭** toolbox，再 build；完成后重新 Enable
