@@ -1,0 +1,27 @@
+**/.git
+**/.vs
+**/.vscode
+**/.cursor
+**/.cline
+**/.codex
+**/.agents
+**/.gemini
+**/bin
+**/obj
+**/out
+**/publish
+**/node_modules
+
+# MAUI / MCP / 测试 — Web 镜像不需要
+ToolBox/
+ToolBox.Mcp/
+TestCommonHelp/
+
+# 文档与杂项
+memory-bank/
+**/*.md
+!README.md
+**/*.user
+**/*.suo
+**/Thumbs.db
+**/.DS_Store

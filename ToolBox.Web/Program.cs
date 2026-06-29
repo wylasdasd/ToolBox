@@ -19,7 +19,8 @@ if (app.Environment.IsDevelopment()) app.UseWebAssemblyDebugging();
 else { app.UseExceptionHandler("/Error", createScopeForErrors: true); app.UseHsts(); }
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+if (!builder.Configuration.GetValue("App:DisableHttpsRedirection", false))
+    app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.MapAiChatApi();
 app.MapStaticAssets();

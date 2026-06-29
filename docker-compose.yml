@@ -1,0 +1,13 @@
+services:
+  toolbox-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: toolbox-web:latest
+    ports:
+      - "${TOOLBOX_WEB_PORT:-18488}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      App__DisableHttpsRedirection: "true"
+    restart: unless-stopped
