@@ -59,7 +59,7 @@ public sealed class OpenAiCompatChatService(IHttpService httpService) : IAiChatS
             cancellationToken: cancellationToken);
         var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("AI 调用失败", response.StatusCode, responseText));
+            throw new InvalidOperationException(HttpErrorHelp.FormatFailure("AI 调用失败", response.StatusCode, responseText));
 
         var content = TryExtractAssistantText(responseText);
         if (string.IsNullOrWhiteSpace(content))

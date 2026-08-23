@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 
 namespace TestCommonHelp;
 
@@ -106,6 +107,102 @@ public class CommonHelpTests
         Assert.Equal("raw body", await response.Content.ReadAsStringAsync());
         Assert.NotNull(response.RequestMessage?.Content);
         Assert.Equal("application/json", response.RequestMessage!.Content!.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public void JsonSeNoLow_SupportsValueTypes_SuchAsJsonElement()
+    {
+        using var doc = JsonDocument.Parse("{\"名称\":\"工具箱\"}");
+
+        var json = doc.RootElement.JsonSeNoLow();
+
+        Assert.Contains("\"名称\": \"工具箱\"", json);
+    }
+
+    [Fact]
+    public void JsonSeToLow_LowerCasesPropertyNames_AndKeepsChineseUnescaped()
+    {
+        var json = new SampleModel { Name = "工具箱", Count = 2 }.JsonSeToLow();
+
+        Assert.Contains("\"name\": \"工具箱\"", json);
+    }
+
+    [Fact]
+    public void HttpErrorHelp_TryExtractMessage_SupportsOpenAiStyleNestedError()
+    {
+        var message = HttpErrorHelp.TryExtractMessage("{\"error\":{\"message\":\"Rate limit exceeded\"}}");
+
+        Assert.Equal("Rate limit exceeded", message);
+    }
+
+    [Fact]
+    public void HttpErrorHelp_TryExtractMessage_ReturnsNullOnNonJsonOrMissingFields()
+    {
+        Assert.Null(HttpErrorHelp.TryExtractMessage("<html>502 Bad Gateway</html>"));
+        Assert.Null(HttpErrorHelp.TryExtractMessage("{\"ok\":true}"));
+        Assert.Null(HttpErrorHelp.TryExtractMessage(""));
+    }
+
+    [Fact]
+    public void HttpErrorHelp_FormatFailure_AppendsDetailWhenAvailable()
+    {
+        var withDetail = HttpErrorHelp.FormatFailure("调用失败", HttpStatusCode.TooManyRequests, "{\"message\":\"额度不足\"}");
+        var withoutDetail = HttpErrorHelp.FormatFailure("调用失败", HttpStatusCode.BadGateway, "oops");
+
+        Assert.Equal("调用失败：HTTP 429，额度不足", withDetail);
+        Assert.Equal("调用失败：HTTP 502。", withoutDetail);
+    }
+
+    [Fact]
+    public void MarkdownJsonHelp_NormalizeToJson_StripsFenceAndIndents()
+    {
+        var raw = "前置说明\n```json\n{\"名称\":\"工具箱\"}\n```\n后置说明";
+
+        var json = MarkdownJsonHelp.NormalizeToJson(raw);
+
+        Assert.Contains("\"名称\": \"工具箱\"", json);
+    }
+
+    [Fact]
+    public void MarkdownJsonHelp_StripCodeFence_ReturnsTrimmedTextWhenNoFence()
+    {
+        Assert.Equal("  {\"a\":1}  ".Trim(), MarkdownJsonHelp.StripCodeFence("  {\"a\":1}  "));
+        Assert.Equal("{\"a\":1}", MarkdownJsonHelp.StripCodeFence("```\n{\"a\":1}\n```"));
+    }
+
+    [Fact]
+    public void MimeHelp_GuessContentType_MapsCommonExtensions()
+    {
+        Assert.Equal("image/png", MimeHelp.GuessContentType("a.PNG"));
+        Assert.Equal("application/json", MimeHelp.GuessContentType("b.json"));
+        Assert.Equal("text/plain", MimeHelp.GuessContentType("c.unknown"));
+    }
+
+    [Fact]
+    public void MimeHelp_DetectImageMimeType_AndIsValidBase64()
+    {
+        Assert.Equal("image/png", MimeHelp.DetectImageMimeType("iVBORw0KGgoAAAANS"));
+        Assert.Equal(string.Empty, MimeHelp.DetectImageMimeType("not-an-image"));
+
+        Assert.True(MimeHelp.IsValidBase64("aGVsbG8="));
+        Assert.False(MimeHelp.IsValidBase64("aGVsb-G!"));
+        Assert.False(MimeHelp.IsValidBase64(""));
+    }
+
+    [Fact]
+    public void MimeHelp_TryParseDataUrl_AndBuildDataUrl_RoundTrip()
+    {
+        var dataUrl = MimeHelp.BuildDataUrl("image/png", [1, 2, 3]);
+
+        Assert.StartsWith("data:image/png;base64,", dataUrl);
+
+        var parsed = MimeHelp.TryParseDataUrl(dataUrl, out var normalized, out var base64Part, out var mimeType);
+
+        Assert.True(parsed);
+        Assert.Equal("image/png", mimeType);
+        Assert.Equal(dataUrl, normalized);
+        Assert.True(MimeHelp.IsValidBase64(base64Part));
+        Assert.False(MimeHelp.TryParseDataUrl("https://example.com/a.png", out _, out _, out _));
     }
 
     private static string CreateTempFilePath()

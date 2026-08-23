@@ -177,6 +177,19 @@ Base64 编解码，支持标准与 URL-safe 两种字母表。
 
 解码结果：`Output`（文本输出）、`ByteCount`（字节数）。
 
+### `MimeHelp`  `static class`
+
+MIME 类型辅助工具：扩展名推断、Base64 图片魔数检测、Base64 校验与 Data URI 解析/构建。
+
+| 方法 | 签名 | 说明 |
+|:---|:---|:---|
+| `GuessContentType` | `string GuessContentType(string path)` | 按扩展名推断常见 MIME（png/jpeg/webp/gif/bmp/svg/json/csv/md 等）；未知返回 text/plain |
+| `GuessImageMime` | `string GuessImageMime(string fileName, string contentType)` | contentType 以 image/ 开头时原样返回，否则按扩展名推断（缺省 image/jpeg） |
+| `DetectImageMimeType` | `string DetectImageMimeType(string base64)` | 按 Base64 前缀魔数检测图片类型（png/jpeg/gif/svg/bmp/webp）；无法识别返回空字符串 |
+| `IsValidBase64` | `bool IsValidBase64(string value)` | 校验字符串是否为合法 Base64 |
+| `TryParseDataUrl` | `bool TryParseDataUrl(string input, out string dataUrl, out string base64Part, out string mimeType)` | 拆解 `data:<mime>;base64,<payload>`（RFC 2397）；非该形式返回 false |
+| `BuildDataUrl` | `string BuildDataUrl(string mimeType, byte[] bytes)` | 构建 `data:<mime>;base64,<payload>` 形式的 Data URI |
+
 ### `JwtParseHelp`  `static class`
 
 JWT（JSON Web Token）解析工具：解码 Header/Payload 并提取过期时间。
@@ -262,7 +275,7 @@ URL 编解码工具。
 
 ### `JsonExtensions`  `static class`
 
-`System.Text.Json` 序列化/反序列化扩展方法。
+`System.Text.Json` 序列化/反序列化扩展方法。序列化方法（`JsonSeToLow`/`JsonSeNoLow`/`JsonSe`）不限制泛型约束，支持值类型（如 `JsonElement`/`JsonNode`）；内部缓存 `JsonSerializerOptions` 实例，避免每次调用重建序列化元数据。
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
@@ -275,6 +288,15 @@ URL 编解码工具。
 #### `LowerCaseNamingPolicy`  `class : JsonNamingPolicy`
 
 属性名全小写命名策略（`ConvertName` → `name.ToLowerInvariant()`）。
+
+### `MarkdownJsonHelp`  `static class`
+
+Markdown 围栏 JSON 提取工具：剥离代码围栏并规范化 JSON 文本（LLM 输出清洗常用）。
+
+| 方法 | 签名 | 说明 |
+|:---|:---|:---|
+| `StripCodeFence` | `string StripCodeFence(string text)` | 剥离 ```/```json 围栏：命中时返回围栏内文本（已 Trim），否则返回原文本 Trim |
+| `NormalizeToJson` | `string NormalizeToJson(string raw)` | 剥围栏后解析并重新序列化为缩进、非 ASCII 不转义的展示格式；输入为空或解析失败时抛出异常 |
 
 ### `FlexibleBoolConverter`  `class : JsonConverter<bool>`
 
@@ -296,6 +318,15 @@ URL 编解码工具。
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
 | `ToCurlStringAsync` | `Task<string> ToCurlStringAsync(this HttpRequestMessage request)` | 转换为 curl 命令字符串（含方法、URL、请求头、JSON/表单体） |
+
+### `HttpErrorHelp`  `static class`
+
+HTTP 错误响应消息提取工具：从 JSON 错误体提取用户可读消息。
+
+| 方法 | 签名 | 说明 |
+|:---|:---|:---|
+| `FormatFailure` | `string FormatFailure(string prefix, HttpStatusCode code, string responseText)` | 拼接用户可读失败消息：能提取到消息时为「prefix：HTTP 500，detail」，否则「prefix：HTTP 500。」 |
+| `TryExtractMessage` | `string? TryExtractMessage(string responseText)` | 依次识别 `error`（字符串）、`error.message`（嵌套对象）、`message`（字符串）；解析失败或无匹配返回 null |
 
 ### `EndianHexHelp`  `static class`
 

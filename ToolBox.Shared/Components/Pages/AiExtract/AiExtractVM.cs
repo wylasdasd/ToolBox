@@ -217,7 +217,7 @@ public sealed class AiExtractVM(
         if (isImage)
         {
             var mime = AiBatchFileHelp.GuessImageMime(fileName, contentType);
-            dataUrl = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+            dataUrl = MimeHelp.BuildDataUrl(mime, bytes);
         }
         else
         {

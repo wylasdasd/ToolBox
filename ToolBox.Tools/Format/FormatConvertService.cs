@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
@@ -69,13 +68,11 @@ public static class FormatConvertService
 
             if (targetFormat == "JSON")
             {
-                var options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-                output = intermediateObj?.ToJsonString(options) ?? "";
+                output = intermediateObj?.JsonSeNoLow() ?? "";
             }
             else if (targetFormat == "YAML")
             {
-                var options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-                string jsonStr = intermediateObj?.ToJsonString(options) ?? "{}";
+                string jsonStr = intermediateObj?.JsonSeNoLow() ?? "{}";
 
                 var deserializer = new DeserializerBuilder().Build();
                 var yamlObj = deserializer.Deserialize(new StringReader(jsonStr));

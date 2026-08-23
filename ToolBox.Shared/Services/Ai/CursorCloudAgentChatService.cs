@@ -46,7 +46,7 @@ public sealed class CursorCloudAgentChatService(IHttpService httpService)
             cancellationToken: cancellationToken);
         var createText = await createResponse.Content.ReadAsStringAsync(cancellationToken);
         if (!createResponse.IsSuccessStatusCode)
-            throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("Cursor 调用失败", createResponse.StatusCode, createText));
+            throw new InvalidOperationException(HttpErrorHelp.FormatFailure("Cursor 调用失败", createResponse.StatusCode, createText));
 
         var (agentId, runId) = ParseCreateResponse(createText);
         return await PollRunResultAsync(httpService, request.ApiKey, agentId, runId, cancellationToken);
@@ -143,7 +143,7 @@ public sealed class CursorCloudAgentChatService(IHttpService httpService)
                 cancellationToken: cancellationToken);
             var getText = await getResponse.Content.ReadAsStringAsync(cancellationToken);
             if (!getResponse.IsSuccessStatusCode)
-                throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("Cursor 调用失败", getResponse.StatusCode, getText));
+                throw new InvalidOperationException(HttpErrorHelp.FormatFailure("Cursor 调用失败", getResponse.StatusCode, getText));
 
             using var doc = JsonDocument.Parse(getText);
             var root = doc.RootElement;

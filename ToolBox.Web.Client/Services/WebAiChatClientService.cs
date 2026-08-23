@@ -17,7 +17,7 @@ public sealed class WebAiChatClientService(IHttpService httpService) : IAiChatSe
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var detail = AiHttpErrorHelp.TryExtractMessage(body);
+            var detail = HttpErrorHelp.TryExtractMessage(body);
             throw new InvalidOperationException(detail ?? $"AI 代理调用失败：HTTP {(int)response.StatusCode}");
         }
 

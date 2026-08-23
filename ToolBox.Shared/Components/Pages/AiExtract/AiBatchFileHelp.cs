@@ -1,3 +1,5 @@
+using CommonHelp;
+
 namespace ToolBox.Components.Pages.AiExtract;
 
 internal static class AiBatchFileHelp
@@ -24,31 +26,8 @@ internal static class AiBatchFileHelp
         return ImageExtensions.Contains(Path.GetExtension(fileName));
     }
 
-    public static string GuessContentType(string path) =>
-        Path.GetExtension(path).ToLowerInvariant() switch
-        {
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".json" => "application/json",
-            ".csv" => "text/csv",
-            _ => "text/plain"
-        };
+    public static string GuessContentType(string path) => MimeHelp.GuessContentType(path);
 
-    public static string GuessImageMime(string fileName, string contentType)
-    {
-        if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            return contentType;
-
-        return Path.GetExtension(fileName).ToLowerInvariant() switch
-        {
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            _ => "image/jpeg"
-        };
-    }
+    public static string GuessImageMime(string fileName, string contentType) =>
+        MimeHelp.GuessImageMime(fileName, contentType);
 }
