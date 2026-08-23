@@ -1,10 +1,16 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Text;
 
+/// <summary>
+/// NamingStyleService：用于表示和处理相关的。
+/// </summary>
 public static class NamingStyleService
 {
+    /// <summary>
+    /// 执行 Convert 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<NamingStyleResult> Convert(string? input)
     {
         var text = input ?? string.Empty;
@@ -36,6 +42,9 @@ public static class NamingStyleService
         }
     }
 
+    /// <summary>
+    /// 执行 Capitalize 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string Capitalize(string word) =>
         word.Length switch
         {
@@ -44,6 +53,9 @@ public static class NamingStyleService
             _ => char.ToUpperInvariant(word[0]) + word[1..]
         };
 
+    /// <summary>
+    /// 执行 SplitWords 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static List<string> SplitWords(string input)
     {
         var normalized = input.Trim()

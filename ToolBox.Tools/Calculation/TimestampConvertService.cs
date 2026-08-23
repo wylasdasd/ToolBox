@@ -1,10 +1,16 @@
-﻿using System.Globalization;
+using System.Globalization;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Calculation;
 
+/// <summary>
+/// TimestampTimeZoneOption：用于表示和处理相关的。
+/// </summary>
 public sealed record TimestampTimeZoneOption(string Id, string Label);
 
+/// <summary>
+/// TimestampDisplayResult：用于表示和处理相关的。
+/// </summary>
 public sealed record TimestampDisplayResult(
     string UnixSeconds,
     string UnixMilliseconds,
@@ -14,12 +20,18 @@ public sealed record TimestampDisplayResult(
     string Iso8601Utc,
     string RelativeHint);
 
+/// <summary>
+/// TimestampConvertService：用于表示和处理相关的。
+/// </summary>
 public static class TimestampConvertService
 {
     private const string DisplayFormat = "yyyy-MM-dd HH:mm:ss";
 
     public static IReadOnlyList<TimestampTimeZoneOption> TimeZoneOptions { get; } = BuildTimeZoneOptions();
 
+    /// <summary>
+    /// 执行 ParseUnix 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds, UnixFieldPrefer preferField)
     {
         if (string.IsNullOrWhiteSpace(unixSeconds) && string.IsNullOrWhiteSpace(unixMilliseconds))
@@ -40,9 +52,15 @@ public static class TimestampConvertService
         return ToolResult<DateTimeOffset>.Fail("invalid");
     }
 
+    /// <summary>
+    /// 执行 ParseUnix 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds) =>
         ParseUnix(unixSeconds, unixMilliseconds, UnixFieldPrefer.Seconds);
 
+    /// <summary>
+    /// 执行 ParseFromTime 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<DateTimeOffset> ParseFromTime(string? localTime, string? utcTime, string timeZoneId)
     {
         var hasLocal = !string.IsNullOrWhiteSpace(localTime);
@@ -77,6 +95,9 @@ public static class TimestampConvertService
         return ToolResult<DateTimeOffset>.Ok(dto);
     }
 
+    /// <summary>
+    /// 执行 BuildDisplay 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static TimestampDisplayResult BuildDisplay(DateTimeOffset dto, string timeZoneId)
     {
         var tz = FindTimeZone(timeZoneId);
@@ -94,6 +115,9 @@ public static class TimestampConvertService
             FormatRelative(dto, zoned));
     }
 
+    /// <summary>
+    /// 执行 FormatLocalTimeLabel 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string FormatLocalTimeLabel(string timeZoneId)
     {
         var tz = FindTimeZone(timeZoneId);
@@ -101,6 +125,9 @@ public static class TimestampConvertService
         return $"{tz.DisplayName} ({FormatUtcOffset(offset)})";
     }
 
+    /// <summary>
+    /// 执行 TryParseUnixToken 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static bool TryParseUnixToken(string text, out DateTimeOffset dto)
     {
         dto = default;
@@ -125,6 +152,9 @@ public static class TimestampConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 TryParseLocalTimeInZone 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool TryParseLocalTimeInZone(string value, string timeZoneId, out DateTimeOffset dto)
     {
         dto = default;
@@ -146,6 +176,9 @@ public static class TimestampConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 TryParseDateTimeOnly 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool TryParseDateTimeOnly(string value, out DateTime dt)
     {
         dt = default;
@@ -161,6 +194,9 @@ public static class TimestampConvertService
         return DateTime.TryParse(value, CultureInfo.InvariantCulture, styles, out dt);
     }
 
+    /// <summary>
+    /// 执行 TryParseDateTimeInput 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool TryParseDateTimeInput(string value, bool preferUtc, out DateTimeOffset dto)
     {
         dto = default;
@@ -178,6 +214,9 @@ public static class TimestampConvertService
         return DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, styles, out dto);
     }
 
+    /// <summary>
+    /// 执行 FindTimeZone 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static TimeZoneInfo FindTimeZone(string timeZoneId)
     {
         try
@@ -190,6 +229,9 @@ public static class TimestampConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 FormatRelative 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatRelative(DateTimeOffset dto, DateTime zoned)
     {
         var delta = dto - DateTimeOffset.UtcNow;
@@ -210,6 +252,9 @@ public static class TimestampConvertService
         return $"{abs.TotalSeconds:0.#} 秒{prefix}";
     }
 
+    /// <summary>
+    /// 执行 BuildTimeZoneOptions 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static IReadOnlyList<TimestampTimeZoneOption> BuildTimeZoneOptions()
     {
         var preferredIds = new[]
@@ -261,6 +306,9 @@ public static class TimestampConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 CreateOption 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static TimestampTimeZoneOption CreateOption(TimeZoneInfo tz, bool pin)
     {
         var offset = tz.GetUtcOffset(DateTimeOffset.UtcNow);
@@ -269,6 +317,9 @@ public static class TimestampConvertService
         return new TimestampTimeZoneOption(tz.Id, label);
     }
 
+    /// <summary>
+    /// 执行 FormatUtcOffset 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatUtcOffset(TimeSpan offset)
     {
         var sign = offset < TimeSpan.Zero ? '-' : '+';
@@ -277,6 +328,9 @@ public static class TimestampConvertService
     }
 }
 
+/// <summary>
+/// UnixFieldPrefer：用于表示和处理相关的。
+/// </summary>
 public enum UnixFieldPrefer
 {
     Seconds,

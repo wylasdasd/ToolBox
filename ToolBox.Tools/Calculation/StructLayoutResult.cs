@@ -1,5 +1,8 @@
 namespace ToolBox.Tools.Calculation;
 
+/// <summary>
+/// StructLayoutResult：用于表示和处理相关的。
+/// </summary>
 public sealed record StructLayoutResult(
     string LayoutKindText,
     IReadOnlyList<FieldLayoutItem> Fields,
@@ -8,12 +11,18 @@ public sealed record StructLayoutResult(
     int TotalSize,
     int StructAlignment);
 
+/// <summary>
+/// LayoutKind：用于表示和处理相关的。
+/// </summary>
 public enum LayoutKind
 {
     Struct,
     Union
 }
 
+/// <summary>
+/// FieldLayoutItem：用于表示和处理相关的。
+/// </summary>
 public sealed record FieldLayoutItem(
     string Name,
     string TypeDisplay,
@@ -28,10 +37,19 @@ public sealed record FieldLayoutItem(
     bool IsBitField,
     bool IsUnionMember);
 
+/// <summary>
+/// ByteRowItem：用于表示和处理相关的。
+/// </summary>
 public sealed record ByteRowItem(int StartOffset, List<ByteCellItem> Bytes);
 
+/// <summary>
+/// ByteCellItem：用于表示和处理相关的。
+/// </summary>
 public sealed record ByteCellItem(int ByteOffset, List<BitCellItem> Bits);
 
+/// <summary>
+/// BitCellItem：用于表示和处理相关的。
+/// </summary>
 public sealed record BitCellItem(
     int BitIndex,
     string Label,

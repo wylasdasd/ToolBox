@@ -1,12 +1,18 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Network;
 
+/// <summary>
+/// IpCalculatorService：用于表示和处理相关的。
+/// </summary>
 public static class IpCalculatorService
 {
+    /// <summary>
+    /// 执行 Calculate 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<IpCalculatorResult> Calculate(string? input)
     {
         var text = (input ?? string.Empty).Trim();
@@ -59,6 +65,9 @@ public static class IpCalculatorService
         }
     }
 
+    /// <summary>
+    /// 执行 TryParseInput 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool TryParseInput(string text, out uint ip, out int prefix)
     {
         ip = 0;
@@ -93,6 +102,9 @@ public static class IpCalculatorService
         return prefix >= 0;
     }
 
+    /// <summary>
+    /// 执行 TryParseIp 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool TryParseIp(string text, out uint value)
     {
         value = 0;
@@ -104,9 +116,15 @@ public static class IpCalculatorService
         return true;
     }
 
+    /// <summary>
+    /// 执行 PrefixToMask 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static uint PrefixToMask(int prefix) =>
         prefix == 0 ? 0u : uint.MaxValue << (32 - prefix);
 
+    /// <summary>
+    /// 执行 MaskToPrefix 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int MaskToPrefix(uint mask)
     {
         var seenZero = false;
@@ -124,6 +142,9 @@ public static class IpCalculatorService
         return prefix;
     }
 
+    /// <summary>
+    /// 执行 UInt32ToIp 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string UInt32ToIp(uint value)
     {
         var bytes = new byte[]

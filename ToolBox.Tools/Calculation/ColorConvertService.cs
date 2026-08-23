@@ -1,8 +1,11 @@
-﻿using System.Globalization;
+using System.Globalization;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Calculation;
 
+/// <summary>
+/// ColorState：用于表示和处理相关的。
+/// </summary>
 public sealed record ColorState(
     string HexDigits,
     int R,
@@ -19,8 +22,14 @@ public sealed record ColorState(
     public int AlphaPercent => (int)Math.Round(A * 100.0 / 255);
 }
 
+/// <summary>
+/// ColorConvertService：用于表示和处理相关的。
+/// </summary>
 public static class ColorConvertService
 {
+    /// <summary>
+    /// 执行 NormalizeHexDigits 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string NormalizeHexDigits(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -35,6 +44,9 @@ public static class ColorConvertService
         };
     }
 
+    /// <summary>
+    /// 执行 FromHex 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<ColorState> FromHex(string hexDigits)
     {
         try
@@ -55,14 +67,26 @@ public static class ColorConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 FromRgba 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ColorState FromRgba(int r, int g, int b, int a) =>
         BuildFromRgba(ClampByte(r), ClampByte(g), ClampByte(b), ClampByte(a));
 
+    /// <summary>
+    /// 执行 ClampByte 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static int ClampByte(int value) => Math.Clamp(value, 0, 255);
 
+    /// <summary>
+    /// 执行 AlphaPercentToByte 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static int AlphaPercentToByte(int alphaPercent) =>
         (int)Math.Round(ClampByte(alphaPercent) * 255.0 / 100);
 
+    /// <summary>
+    /// 执行 BuildFromRgba 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static ColorState BuildFromRgba(int r, int g, int b, int a)
     {
         var hexDigits = a >= 255
@@ -73,6 +97,9 @@ public static class ColorConvertService
         return new ColorState(hexDigits, r, g, b, a, h, s, l);
     }
 
+    /// <summary>
+    /// 执行 ComputeHsl 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static void ComputeHsl(int r, int g, int b, out double h, out double s, out double l)
     {
         var rd = r / 255.0;
@@ -108,6 +135,9 @@ public static class ColorConvertService
         l *= 100;
     }
 
+    /// <summary>
+    /// 执行 ParseHexByte 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int ParseHexByte(string hex, int start) =>
         int.Parse(hex.AsSpan(start, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 }

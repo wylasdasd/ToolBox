@@ -2,8 +2,14 @@ using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.DirectorySync;
 
+/// <summary>
+/// DirectorySyncFileEntry：用于表示和处理相关的。
+/// </summary>
 public sealed record DirectorySyncFileEntry(long Length, DateTime LastWriteTimeUtc, string FullName = "");
 
+/// <summary>
+/// DirectorySyncFilePlan：用于表示和处理相关的。
+/// </summary>
 public sealed record DirectorySyncFilePlan(
     string RelativePath,
     string SourcePath,
@@ -11,6 +17,9 @@ public sealed record DirectorySyncFilePlan(
     long Length,
     DateTime LastWriteTimeUtc);
 
+/// <summary>
+/// DirectorySyncPlanResult：用于表示和处理相关的。
+/// </summary>
 public sealed record DirectorySyncPlanResult(
     string SourcePath,
     string TargetPath,
@@ -25,8 +34,14 @@ public sealed record DirectorySyncPlanResult(
     long EstimatedCopyBytes,
     bool DeleteExtraFiles);
 
+/// <summary>
+/// DirectorySyncPlanService：用于表示和处理相关的。
+/// </summary>
 public static class DirectorySyncPlanService
 {
+    /// <summary>
+    /// 执行 BuildPlan 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<DirectorySyncPlanResult> BuildPlan(
         string sourcePath,
         string targetPath,
@@ -109,6 +124,9 @@ public static class DirectorySyncPlanService
         }
     }
 
+    /// <summary>
+    /// 执行 ComputeDirectoriesForDeletion 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static IReadOnlyList<string> ComputeDirectoriesForDeletion(
         string normalizedTarget,
         IEnumerable<string> sourceRelativeFiles,
@@ -123,11 +141,17 @@ public static class DirectorySyncPlanService
             .ToList();
     }
 
+    /// <summary>
+    /// 执行 WithDirectoriesToDelete 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static DirectorySyncPlanResult WithDirectoriesToDelete(
         DirectorySyncPlanResult plan,
         IReadOnlyList<string> directoriesToDelete) =>
         plan with { DirectoriesToDelete = directoriesToDelete };
 
+    /// <summary>
+    /// 执行 BuildSourceDirectorySet 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static HashSet<string> BuildSourceDirectorySet(IEnumerable<string> sourceRelativeFiles)
     {
         var sourceDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { string.Empty };
@@ -147,6 +171,9 @@ public static class DirectorySyncPlanService
         return sourceDirectories;
     }
 
+    /// <summary>
+    /// 执行 NormalizePath 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string NormalizePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -155,6 +182,9 @@ public static class DirectorySyncPlanService
         return Path.GetFullPath(path.Trim());
     }
 
+    /// <summary>
+    /// 执行 ValidatePaths 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static void ValidatePaths(string sourcePath, string targetPath)
     {
         if (string.Equals(sourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
@@ -164,6 +194,9 @@ public static class DirectorySyncPlanService
             throw new InvalidOperationException("源目录和目标目录不能互相嵌套。");
     }
 
+    /// <summary>
+    /// 执行 IsSubPathOf 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool IsSubPathOf(string candidateParent, string candidateChild)
     {
         var parent = EnsureTrailingSeparator(candidateParent);
@@ -171,6 +204,9 @@ public static class DirectorySyncPlanService
         return child.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// 执行 EnsureTrailingSeparator 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string EnsureTrailingSeparator(string path) =>
         path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar)
             ? path

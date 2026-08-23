@@ -4,10 +4,16 @@ using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Text;
 
+/// <summary>
+/// RegexMatchService：用于表示和处理相关的。
+/// </summary>
 public static class RegexMatchService
 {
     private const int RegexTimeoutMs = 200;
 
+    /// <summary>
+    /// 执行 Match 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<RegexMatchResult> Match(
         string? pattern,
         string? inputText,
@@ -84,6 +90,9 @@ public static class RegexMatchService
         }
     }
 
+    /// <summary>
+    /// 执行 BuildOptions 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static RegexOptions BuildOptions(RegexMatchOptions options)
     {
         var result = RegexOptions.None;
@@ -96,6 +105,9 @@ public static class RegexMatchService
         return result;
     }
 
+    /// <summary>
+    /// 执行 FormatOptionsSummary 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatOptionsSummary(RegexOptions options)
     {
         var flags = new List<string>(3);
@@ -108,6 +120,9 @@ public static class RegexMatchService
         return flags.Count == 0 ? "无修饰符" : $"(?{string.Join("", flags)})";
     }
 
+    /// <summary>
+    /// 执行 BuildSegments 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static IReadOnlyList<RegexTextSegment> BuildSegments(string text, IReadOnlyList<(int Index, int Length)> matches)
     {
         if (string.IsNullOrEmpty(text))
@@ -134,6 +149,9 @@ public static class RegexMatchService
         return segments;
     }
 
+    /// <summary>
+    /// 执行 BuildGroupMatch 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static RegexGroupMatch BuildGroupMatch(Match match, string[] groupNames, int matchIndex)
     {
         var groups = new List<RegexGroupInfo>(match.Groups.Count);
@@ -151,8 +169,14 @@ public static class RegexMatchService
         return new RegexGroupMatch(matchIndex + 1, groups);
     }
 
+    /// <summary>
+    /// FilteredResult：用于表示和处理相关的。
+    /// </summary>
     private sealed record FilteredResult(string FilteredText, IReadOnlyList<(int Index, int Length)> FilteredSpans);
 
+    /// <summary>
+    /// 执行 FilterToMatchedLines 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static FilteredResult FilterToMatchedLines(string text, IReadOnlyList<(int Index, int Length)> matches)
     {
         var lineRanges = GetLineRanges(text);
@@ -195,6 +219,9 @@ public static class RegexMatchService
         return new FilteredResult(builder.ToString(), filteredSpans);
     }
 
+    /// <summary>
+    /// 计算文本各行的起始位置和长度范围。
+    /// </summary>
     private static List<(int Start, int Length)> GetLineRanges(string text)
     {
         var ranges = new List<(int Start, int Length)>();
@@ -232,6 +259,9 @@ public static class RegexMatchService
         return ranges;
     }
 
+    /// <summary>
+    /// 执行 FindLineIndex 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int FindLineIndex(IReadOnlyList<(int Start, int Length)> lineRanges, int index)
     {
         for (var i = 0; i < lineRanges.Count; i++)

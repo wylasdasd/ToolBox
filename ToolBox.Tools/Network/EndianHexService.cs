@@ -1,8 +1,11 @@
-﻿using System.Globalization;
+using System.Globalization;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Network;
 
+/// <summary>
+/// EndianHexService：用于表示和处理相关的。
+/// </summary>
 public static class EndianHexService
 {
     public static IReadOnlyList<EndianHexDataType> DataTypes { get; } =
@@ -19,6 +22,9 @@ public static class EndianHexService
         new("float64", "float64", 8, true),
     ];
 
+    /// <summary>
+    /// 执行 ConvertValueToHex 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<EndianHexResult> ConvertValueToHex(
         string? input, string? dataTypeId, bool bigEndian, bool inputIsHex)
     {
@@ -37,6 +43,9 @@ public static class EndianHexService
         }
     }
 
+    /// <summary>
+    /// 执行 ConvertHexToValue 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<EndianHexResult> ConvertHexToValue(string? input, string? dataTypeId, bool bigEndian)
     {
         var type = ResolveDataType(dataTypeId);
@@ -51,15 +60,24 @@ public static class EndianHexService
         }
     }
 
+    /// <summary>
+    /// 执行 ResolveDataType 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static EndianHexDataType ResolveDataType(string? dataTypeId) =>
         DataTypes.FirstOrDefault(t => t.Id == dataTypeId) ?? DataTypes[4];
 
+    /// <summary>
+    /// 执行 BuildResult 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static EndianHexResult BuildResult(byte[] bytes, EndianHexDataType type, bool bigEndian) =>
         new(
             FormatHex(bytes),
             string.Join(" ", bytes.Select(b => Convert.ToString(b, 2).PadLeft(8, '0'))),
             DecodeBytes(bytes, type, bigEndian));
 
+    /// <summary>
+    /// 执行 EncodeValue 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] EncodeValue(string text, EndianHexDataType type, bool bigEndian)
     {
         text = text.Trim();
@@ -79,6 +97,9 @@ public static class EndianHexService
         };
     }
 
+    /// <summary>
+    /// 执行 DecodeBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string DecodeBytes(byte[] bytes, EndianHexDataType type, bool bigEndian) =>
         type.Id switch
         {
@@ -95,6 +116,9 @@ public static class EndianHexService
             _ => throw new InvalidOperationException("未知类型。"),
         };
 
+    /// <summary>
+    /// 执行 ParseHexBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] ParseHexBytes(string input, int expectedSize)
     {
         var cleaned = input.Trim()
@@ -120,6 +144,9 @@ public static class EndianHexService
         return bytes;
     }
 
+    /// <summary>
+    /// 执行 Order 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] Order(byte[] bytes, bool bigEndian)
     {
         if (bigEndian == BitConverter.IsLittleEndian)
@@ -131,6 +158,9 @@ public static class EndianHexService
         return bytes;
     }
 
+    /// <summary>
+    /// 执行 Int16ToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] Int16ToBytes(short v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -138,6 +168,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 UInt16ToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] UInt16ToBytes(ushort v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -145,6 +178,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 Int32ToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] Int32ToBytes(int v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -152,6 +188,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 UInt32ToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] UInt32ToBytes(uint v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -159,6 +198,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 Int64ToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] Int64ToBytes(long v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -166,6 +208,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 UInt64ToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] UInt64ToBytes(ulong v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -173,6 +218,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 FloatToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] FloatToBytes(float v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -180,6 +228,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 DoubleToBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] DoubleToBytes(double v, bool bigEndian)
     {
         var b = BitConverter.GetBytes(v);
@@ -187,6 +238,9 @@ public static class EndianHexService
         return b;
     }
 
+    /// <summary>
+    /// 执行 FormatHex 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatHex(byte[] bytes) =>
         string.Join(" ", bytes.Select(b => b.ToString("X2", CultureInfo.InvariantCulture)));
 }

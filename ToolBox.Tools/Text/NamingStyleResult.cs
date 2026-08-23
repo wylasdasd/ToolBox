@@ -1,5 +1,8 @@
-﻿namespace ToolBox.Tools.Text;
+namespace ToolBox.Tools.Text;
 
+/// <summary>
+/// NamingStyleResult：用于表示和处理相关的。
+/// </summary>
 public sealed record NamingStyleResult(
     string CamelCase,
     string PascalCase,

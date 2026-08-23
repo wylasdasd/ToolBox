@@ -10,11 +10,17 @@ using YamlDotNet.Serialization;
 
 namespace ToolBox.Tools.Format;
 
+/// <summary>
+/// FormatConvertService：用于表示和处理相关的。
+/// </summary>
 public static class FormatConvertService
 {
     public static IReadOnlyList<string> SupportedFormats { get; } =
         ["JSON", "YAML", "XML", "TOML", "CSV"];
 
+    /// <summary>
+    /// 执行 Convert 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<FormatConvertResult> Convert(string? input, string sourceFormat, string targetFormat)
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -109,6 +115,9 @@ public static class FormatConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 XmlToJson 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static JsonNode? XmlToJson(XElement element)
     {
         var obj = new JsonObject();
@@ -149,6 +158,9 @@ public static class FormatConvertService
         return obj;
     }
 
+    /// <summary>
+    /// 执行 JsonToXml 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static XDocument JsonToXml(JsonNode node)
     {
         XElement rootElement;
@@ -177,6 +189,9 @@ public static class FormatConvertService
         return new XDocument(rootElement);
     }
 
+    /// <summary>
+    /// 执行 AddJsonContent 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static void AddJsonContent(XElement parent, string name, JsonNode? node)
     {
         if (node == null) return;
@@ -210,6 +225,9 @@ public static class FormatConvertService
         }
     }
 
+    /// <summary>
+    /// 执行 CreateElement 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static XElement CreateElement(string name, JsonNode? node)
     {
         var elem = new XElement(name);
@@ -227,6 +245,9 @@ public static class FormatConvertService
         return elem;
     }
 
+    /// <summary>
+    /// 执行 TomlToJsonNode 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static JsonNode? TomlToJsonNode(string toml)
     {
         var model = Toml.ToModel(toml);
@@ -234,6 +255,9 @@ public static class FormatConvertService
         return JsonNode.Parse(json);
     }
 
+    /// <summary>
+    /// 执行 JsonNodeToToml 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string JsonNodeToToml(JsonNode node)
     {
         if (node is JsonObject obj)
@@ -243,6 +267,9 @@ public static class FormatConvertService
         return Toml.FromModel(new TomlTable { ["value"] = JsonNodeToTomlValue(node) ?? string.Empty });
     }
 
+    /// <summary>
+    /// 执行 JsonObjectToTomlTable 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static TomlTable JsonObjectToTomlTable(JsonObject obj)
     {
         var table = new TomlTable();
@@ -254,6 +281,9 @@ public static class FormatConvertService
         return table;
     }
 
+    /// <summary>
+    /// 执行 JsonNodeToTomlValue 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static object? JsonNodeToTomlValue(JsonNode? node) => node switch
     {
         null => null,
@@ -266,6 +296,9 @@ public static class FormatConvertService
         _ => node.ToString()
     };
 
+    /// <summary>
+    /// 执行 CsvToJsonNode 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static JsonNode? CsvToJsonNode(string csv)
     {
         var rows = ParseCsv(csv);
@@ -295,6 +328,9 @@ public static class FormatConvertService
         return result;
     }
 
+    /// <summary>
+    /// 执行 JsonNodeToCsv 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string JsonNodeToCsv(JsonNode node)
     {
         var sb = new StringBuilder();
@@ -321,6 +357,9 @@ public static class FormatConvertService
         throw new InvalidOperationException("CSV 输出需要 JSON 数组（对象数组或纯值数组）。");
     }
 
+    /// <summary>
+    /// 执行 ParseCsv 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static List<List<string>> ParseCsv(string csv)
     {
         var rows = new List<List<string>>();
@@ -334,6 +373,9 @@ public static class FormatConvertService
         return rows;
     }
 
+    /// <summary>
+    /// 执行 ParseCsvLine 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static List<string> ParseCsvLine(string line)
     {
         var cells = new List<string>();
@@ -362,6 +404,9 @@ public static class FormatConvertService
         return cells;
     }
 
+    /// <summary>
+    /// 执行 EscapeCsvCell 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string EscapeCsvCell(string? value)
     {
         value ??= string.Empty;

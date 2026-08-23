@@ -2,14 +2,23 @@ using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Encoding;
 
+/// <summary>
+/// DataUriImageParseResult：用于表示和处理相关的。
+/// </summary>
 public sealed record DataUriImageParseResult(
     string DataUrl,
     string? MimeType,
     string? DetectedMimeType,
     bool IsDataUrlInput);
 
+/// <summary>
+/// DataUriImageService：用于表示和处理相关的。
+/// </summary>
 public static class DataUriImageService
 {
+    /// <summary>
+    /// 执行 Parse 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<DataUriImageParseResult> Parse(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -49,6 +58,9 @@ public static class DataUriImageService
         }
     }
 
+    /// <summary>
+    /// 执行 DetectImageMimeType 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string DetectImageMimeType(string base64)
     {
         if (base64.StartsWith("iVBORw0KGgo")) return "image/png";
@@ -60,6 +72,9 @@ public static class DataUriImageService
         return string.Empty;
     }
 
+    /// <summary>
+    /// 执行 IsValidBase64 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static bool IsValidBase64(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -69,6 +84,9 @@ public static class DataUriImageService
         return Convert.TryFromBase64String(value, buffer, out _);
     }
 
+    /// <summary>
+    /// 执行 TryParseDataUrl 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static bool TryParseDataUrl(
         string input,
         out string dataUrl,

@@ -5,8 +5,14 @@ using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Diff;
 
+/// <summary>
+/// TextDiffService：用于表示和处理相关的。
+/// </summary>
 public static class TextDiffService
 {
+    /// <summary>
+    /// 执行 Compare 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<TextDiffResult> Compare(string? text1, string? text2, TextDiffOptions options)
     {
         try
@@ -29,6 +35,9 @@ public static class TextDiffService
         }
     }
 
+    /// <summary>
+    /// 执行 PrepareText 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string PrepareText(string? text, TextDiffOptions options)
     {
         var value = text ?? string.Empty;
@@ -42,6 +51,9 @@ public static class TextDiffService
         return string.Join('\n', lines.Select(NormalizeLineWhitespace));
     }
 
+    /// <summary>
+    /// 执行 NormalizeLineWhitespace 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string NormalizeLineWhitespace(string line)
     {
         if (string.IsNullOrEmpty(line))

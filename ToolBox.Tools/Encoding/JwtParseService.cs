@@ -1,11 +1,17 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Encoding;
 
+/// <summary>
+/// JwtParseService：用于表示和处理相关的。
+/// </summary>
 public static class JwtParseService
 {
+    /// <summary>
+    /// 执行 Parse 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<JwtParseResult> Parse(string? token)
     {
         var trimmed = (token ?? string.Empty).Trim();
@@ -41,6 +47,9 @@ public static class JwtParseService
         }
     }
 
+    /// <summary>
+    /// 执行 DecodePart 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string DecodePart(string base64Url)
     {
         var jsonBytes = Convert.FromBase64String(FixBase64Padding(base64Url));
@@ -49,6 +58,9 @@ public static class JwtParseService
         return JsonSerializer.Serialize(doc.RootElement, new JsonSerializerOptions { WriteIndented = true });
     }
 
+    /// <summary>
+    /// 执行 FixBase64Padding 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FixBase64Padding(string base64Url)
     {
         var restored = base64Url.Replace('-', '+').Replace('_', '/');
@@ -59,6 +71,9 @@ public static class JwtParseService
         return restored;
     }
 
+    /// <summary>
+    /// 执行 TryReadExpiry 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static bool TryReadExpiry(string payloadJson, out DateTimeOffset expiry)
     {
         expiry = default;

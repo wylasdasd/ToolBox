@@ -1,8 +1,11 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Calculation;
 
+/// <summary>
+/// StructLayoutService：用于表示和处理相关的。
+/// </summary>
 public static class StructLayoutService
 {
     private const int PointerSize = 8;
@@ -14,6 +17,9 @@ public static class StructLayoutService
     ];
 
 
+    /// <summary>
+    /// 执行 Calculate 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<StructLayoutResult> Calculate(string? structDefinition, int pack)
     {
         try
@@ -49,6 +55,9 @@ public static class StructLayoutService
         }
     }
 
+    /// <summary>
+    /// 执行 BuildStructLayout 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static LayoutResult BuildStructLayout(
         List<FieldDecl> declarations,
         int pack,
@@ -218,6 +227,9 @@ public static class StructLayoutService
         return new LayoutResult(fields, BuildRows(totalSize, bitOwners), rawSize, totalSize, structAlign);
     }
 
+    /// <summary>
+    /// 执行 BuildUnionLayout 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static LayoutResult BuildUnionLayout(
         List<FieldDecl> declarations,
         int pack,
@@ -325,6 +337,9 @@ public static class StructLayoutService
         return new LayoutResult(fields, BuildRows(totalSize, bitOwners), rawSize, totalSize, structAlign);
     }
 
+    /// <summary>
+    /// 执行 BuildRows 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static List<ByteRowItem> BuildRows(int totalBytes, Dictionary<int, List<BitOwner>> bitOwners)
     {
         var rows = new List<ByteRowItem>();
@@ -351,6 +366,9 @@ public static class StructLayoutService
         return rows;
     }
 
+    /// <summary>
+    /// 执行 BuildBitItem 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static BitCellItem BuildBitItem(int bitIndex, List<BitOwner> owners)
     {
         if (owners.Count == 0)
@@ -381,6 +399,9 @@ public static class StructLayoutService
         return new BitCellItem(bitIndex, "重叠", tooltip, BuildGradient(top.Select(x => x.Color).ToList()), false, true);
     }
 
+    /// <summary>
+    /// 执行 BuildGradient 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string BuildGradient(List<string> colors)
     {
         if (colors.Count == 0)
@@ -405,6 +426,9 @@ public static class StructLayoutService
         return $"linear-gradient(135deg, {string.Join(", ", parts)})";
     }
 
+    /// <summary>
+    /// 执行 ResolveType 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static PrimitiveTypeInfo ResolveType(FieldDecl decl, Dictionary<string, PrimitiveTypeInfo>? customTypes = null)
     {
         if (decl.IsPointer)
@@ -425,6 +449,9 @@ public static class StructLayoutService
         return type;
     }
 
+    /// <summary>
+    /// 执行 ApplyPack 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int ApplyPack(int align, int pack)
     {
         if (pack <= 0)
@@ -435,6 +462,9 @@ public static class StructLayoutService
         return Math.Min(align, pack);
     }
 
+    /// <summary>
+    /// 执行 ResolveFieldAlign 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int ResolveFieldAlign(int baseAlign, int? alignAs, int pack)
     {
         var align = baseAlign;
@@ -446,6 +476,9 @@ public static class StructLayoutService
         return ApplyPack(align, pack);
     }
 
+    /// <summary>
+    /// 执行 ResolveStructAlign 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int ResolveStructAlign(int baseAlign, int? alignAs, int pack)
     {
         var align = baseAlign;
@@ -458,6 +491,9 @@ public static class StructLayoutService
         return Math.Max(1, align);
     }
 
+    /// <summary>
+    /// 执行 AlignUp 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static int AlignUp(int value, int align)
     {
         if (align <= 1)
@@ -469,6 +505,9 @@ public static class StructLayoutService
         return remainder == 0 ? value : value + align - remainder;
     }
 
+    /// <summary>
+    /// 执行 GetColor 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string GetColor(Dictionary<string, string> cache, string name, int index)
     {
         if (cache.TryGetValue(name, out var exists))
@@ -481,6 +520,9 @@ public static class StructLayoutService
         return color;
     }
 
+    /// <summary>
+    /// 创建 C/C++ 基础类型到布局信息的映射。
+    /// </summary>
     private static Dictionary<string, PrimitiveTypeInfo> BuildTypeMap()
     {
         return new Dictionary<string, PrimitiveTypeInfo>(StringComparer.Ordinal)
@@ -539,6 +581,9 @@ public static class StructLayoutService
         };
     }
 
+    /// <summary>
+    /// SourceParser：用于表示和处理相关的。
+    /// </summary>
     private static class SourceParser
     {
         private static readonly string[] PrefixKeywords =
@@ -548,6 +593,9 @@ public static class StructLayoutService
 
         private static int _anonymousTypeSeed = 0;
 
+        /// <summary>
+        /// 执行 NormalizeSource 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static string NormalizeSource(string source)
         {
             var text = source ?? string.Empty;
@@ -556,6 +604,9 @@ public static class StructLayoutService
             return text;
         }
 
+        /// <summary>
+        /// 执行 DetectLayoutKind 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static LayoutKind DetectLayoutKind(string source)
         {
             var header = source;
@@ -570,12 +621,18 @@ public static class StructLayoutService
                 : LayoutKind.Struct;
         }
 
+        /// <summary>
+        /// 执行 DetectTopLevelAlignas 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static int? DetectTopLevelAlignas(string source)
         {
             var m = Regex.Match(source, @"alignas\s*\(\s*(?<n>\d+)\s*\)\s*(struct|class|union)", RegexOptions.IgnoreCase);
             return m.Success ? int.Parse(m.Groups["n"].Value) : null;
         }
 
+        /// <summary>
+        /// 执行 DetectPragmaPack 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static int DetectPragmaPack(string source)
         {
             var m = Regex.Matches(source, @"#\s*pragma\s+pack\s*\(\s*(?:push\s*,\s*)?(?<n>\d+)\s*\)", RegexOptions.IgnoreCase);
@@ -592,6 +649,9 @@ public static class StructLayoutService
             return 0;
         }
 
+        /// <summary>
+        /// 执行 ParseDeclarations 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static List<FieldDecl> ParseDeclarations(string source, out Dictionary<string, PrimitiveTypeInfo> customTypes)
         {
             customTypes = new Dictionary<string, PrimitiveTypeInfo>(StringComparer.Ordinal);
@@ -660,6 +720,9 @@ public static class StructLayoutService
             return result;
         }
 
+        /// <summary>
+        /// 执行 StripAccessLabelPrefix 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static string StripAccessLabelPrefix(string statement)
         {
             var s = statement.Trim();
@@ -679,6 +742,9 @@ public static class StructLayoutService
             }
         }
 
+        /// <summary>
+        /// 执行 TryParseComposite 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static bool TryParseComposite(
             string statement,
             int? alignAs,
@@ -756,6 +822,9 @@ public static class StructLayoutService
             return true;
         }
 
+        /// <summary>
+        /// 执行 TryParseBitField 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static FieldDecl? TryParseBitField(string statement, int? alignAs)
         {
             // 先匹配“有名字”的位域，避免 anonymous 位域把类型错误截断（例如 uint32_t : 0）。
@@ -794,6 +863,9 @@ public static class StructLayoutService
             return new FieldDecl(baseTypeAnon, rawTypeAnon, "_", bitsAnon, 1, false, alignAs, $"{baseTypeAnon}:{bitsAnon}");
         }
 
+        /// <summary>
+        /// 执行 TryParseNormalField 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static FieldDecl? TryParseNormalField(string statement, int? alignAs)
         {
             var m = Regex.Match(statement,
@@ -821,6 +893,9 @@ public static class StructLayoutService
             return new FieldDecl(baseType, rawType, m.Groups["name"].Value, null, count, isPointer, alignAs, typeDisplay);
         }
 
+        /// <summary>
+        /// 执行 ParseAndStripAlignAs 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static int? ParseAndStripAlignAs(ref string statement)
         {
             var m = Regex.Match(statement, @"^alignas\s*\(\s*(?<n>\d+)\s*\)\s*(?<rest>.+)$", RegexOptions.IgnoreCase);
@@ -833,6 +908,9 @@ public static class StructLayoutService
             return int.Parse(m.Groups["n"].Value);
         }
 
+        /// <summary>
+        /// 执行 StripAttributes 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static string StripAttributes(string statement)
         {
             var s = Regex.Replace(statement, @"\[\[.*?\]\]", string.Empty);
@@ -840,6 +918,9 @@ public static class StructLayoutService
             return s.Trim();
         }
 
+        /// <summary>
+        /// 执行 StripPrefixKeywords 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static string StripPrefixKeywords(string statement)
         {
             var s = statement.Trim();
@@ -860,6 +941,9 @@ public static class StructLayoutService
             return s;
         }
 
+        /// <summary>
+        /// 执行 ExtractBody 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static string ExtractBody(string source)
         {
             var start = source.IndexOf('{');
@@ -888,6 +972,9 @@ public static class StructLayoutService
             return source;
         }
 
+        /// <summary>
+        /// 执行 SplitTopLevelStatements 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static List<string> SplitTopLevelStatements(string body)
         {
             var list = new List<string>();
@@ -934,6 +1021,9 @@ public static class StructLayoutService
             return list;
         }
 
+        /// <summary>
+        /// 执行 NormalizeType 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         private static string NormalizeType(string type)
         {
             var t = Regex.Replace(type.Trim(), @"\s+", " ");
@@ -944,6 +1034,9 @@ public static class StructLayoutService
         }
     }
 
+    /// <summary>
+    /// PrimitiveTypeInfo：用于表示和处理相关的。
+    /// </summary>
     private sealed class PrimitiveTypeInfo(int size, int align, bool allowBitField)
     {
         public int Size { get; } = size;
@@ -951,6 +1044,9 @@ public static class StructLayoutService
         public bool AllowBitField { get; } = allowBitField;
     }
 
+    /// <summary>
+    /// BitContainer：用于表示和处理相关的。
+    /// </summary>
     private sealed class BitContainer(string typeKey, int startByte, int sizeBytes)
     {
         public string TypeKey { get; } = typeKey;
@@ -960,8 +1056,14 @@ public static class StructLayoutService
         public int UsedBits { get; set; }
     }
 
+    /// <summary>
+    /// LayoutResult：用于表示和处理相关的。
+    /// </summary>
     private sealed record LayoutResult(List<FieldLayoutItem> Fields, List<ByteRowItem> Rows, int RawSize, int TotalSize, int StructAlign);
 
+    /// <summary>
+    /// FieldDecl：用于表示和处理相关的。
+    /// </summary>
     private sealed record FieldDecl(
         string BaseType,
         string RawType,
@@ -972,12 +1074,24 @@ public static class StructLayoutService
         int? AlignAs,
         string DisplayType);
 
+    /// <summary>
+    /// BitOwner：用于表示和处理相关的。
+    /// </summary>
     private sealed record BitOwner(string Name, string Color, OwnerKind Kind)
     {
+        /// <summary>
+        /// 执行 Field 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static BitOwner Field(FieldLayoutItem field) => new(field.Name, field.Color, OwnerKind.Field);
+        /// <summary>
+        /// 执行 Padding 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static BitOwner Padding(string name, string color) => new(name, color, OwnerKind.Padding);
     }
 
+    /// <summary>
+    /// OwnerKind：用于表示和处理相关的。
+    /// </summary>
     private enum OwnerKind
     {
         Field,

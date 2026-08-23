@@ -4,16 +4,34 @@ using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Format;
 
+/// <summary>
+/// JsonFormatService：用于表示和处理相关的。
+/// </summary>
 public static class JsonFormatService
 {
     public static IReadOnlyList<JsonTemplateOption> TemplateOptions { get; } =
     [
+        /// <summary>
+        /// 执行 JsonTemplateOption 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         new JsonTemplateOption("simple", "简单对象"),
+        /// <summary>
+        /// 执行 JsonTemplateOption 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         new JsonTemplateOption("list", "列表数据"),
+        /// <summary>
+        /// 执行 JsonTemplateOption 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         new JsonTemplateOption("user", "用户资料"),
+        /// <summary>
+        /// 执行 JsonTemplateOption 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         new JsonTemplateOption("api", "接口响应")
     ];
 
+    /// <summary>
+    /// 执行 Process 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<JsonFormatOutputResult> Process(string? input, bool indent, bool sortKeys)
     {
         try
@@ -34,6 +52,9 @@ public static class JsonFormatService
         }
     }
 
+    /// <summary>
+    /// 执行 Validate 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<JsonValidateResult> Validate(string? input)
     {
         try
@@ -47,6 +68,9 @@ public static class JsonFormatService
         }
     }
 
+    /// <summary>
+    /// 执行 QueryJsonPath 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<JsonPathQueryResult> QueryJsonPath(string? input, string? jsonPath)
     {
         if (string.IsNullOrWhiteSpace(jsonPath))
@@ -73,6 +97,9 @@ public static class JsonFormatService
     }
 
 
+    /// <summary>
+    /// 执行 GetTemplate 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string GetTemplate(string key)
     {
         return key switch
@@ -119,7 +146,13 @@ public static class JsonFormatService
         };
     }
 
+    /// <summary>
+    /// JsonTemplateOption：用于表示和处理相关的。
+    /// </summary>
     public sealed record JsonTemplateOption(string Key, string Label);
+    /// <summary>
+    /// 执行 EvaluateJsonPath 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static List<JsonElement> EvaluateJsonPath(JsonElement root, string jsonPath)
     {
         var tokens = JsonPathTokenizer.Parse(jsonPath);
@@ -178,8 +211,14 @@ public static class JsonFormatService
     }
 
     
+    /// <summary>
+    /// JsonPathTokenizer：用于表示和处理相关的。
+    /// </summary>
     private static class JsonPathTokenizer
     {
+        /// <summary>
+        /// 执行 Parse 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static List<JsonPathToken> Parse(string jsonPath)
         {
             if (string.IsNullOrWhiteSpace(jsonPath))
@@ -260,13 +299,28 @@ public static class JsonFormatService
         }
     }
 
+    /// <summary>
+    /// JsonPathToken：用于表示和处理相关的。
+    /// </summary>
     private sealed record JsonPathToken(JsonPathTokenKind Kind, string Value, int Index)
     {
+        /// <summary>
+        /// 执行 Property 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static JsonPathToken Property(string name) => new(JsonPathTokenKind.Property, name, -1);
+        /// <summary>
+        /// 执行 ArrayIndex 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static JsonPathToken ArrayIndex(int index) => new(JsonPathTokenKind.Index, string.Empty, index);
+        /// <summary>
+        /// 执行 Wildcard 操作，完成该方法对应的工具处理逻辑。
+        /// </summary>
         public static JsonPathToken Wildcard() => new(JsonPathTokenKind.Wildcard, string.Empty, -1);
     }
 
+    /// <summary>
+    /// JsonPathTokenKind：用于表示和处理相关的。
+    /// </summary>
     private enum JsonPathTokenKind
     {
         Property,
@@ -274,6 +328,9 @@ public static class JsonFormatService
         Wildcard
     }
 
+    /// <summary>
+    /// 执行 WriteElement 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static void WriteElement(Utf8JsonWriter writer, JsonElement element, bool sortKeys)
     {
         switch (element.ValueKind)

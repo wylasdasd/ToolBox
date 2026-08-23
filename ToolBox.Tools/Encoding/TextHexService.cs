@@ -1,4 +1,4 @@
-﻿using CommonHelp;
+using CommonHelp;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -6,8 +6,14 @@ using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Encoding;
 
+/// <summary>
+/// TextHexService：用于表示和处理相关的。
+/// </summary>
 public static class TextHexService
 {
+    /// <summary>
+    /// 执行 EncodeTextToHex 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<TextHexEncodeResult> EncodeTextToHex(
         string? textInput,
         string encodingId,
@@ -30,6 +36,9 @@ public static class TextHexService
         }
     }
 
+    /// <summary>
+    /// 执行 DecodeHexToText 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<TextHexDecodeResult> DecodeHexToText(string? hexInput, string encodingId)
     {
         try
@@ -45,12 +54,18 @@ public static class TextHexService
         }
     }
 
+    /// <summary>
+    /// 执行 FormatBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatBytes(byte[] bytes, bool uppercaseHex)
     {
         var fmt = uppercaseHex ? "X2" : "x2";
         return string.Join(" ", bytes.Select(b => b.ToString(fmt, CultureInfo.InvariantCulture)));
     }
 
+    /// <summary>
+    /// 执行 BuildDisplay 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string BuildDisplay(
         byte[] bytes,
         System.Text.Encoding encoding,
@@ -78,6 +93,9 @@ public static class TextHexService
         return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
 
+    /// <summary>
+    /// 执行 BuildUnicodeEscape 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string BuildUnicodeEscape(byte[] bytes, System.Text.Encoding encoding)
     {
         var text = encoding.GetString(bytes);
@@ -93,6 +111,9 @@ public static class TextHexService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// 执行 ParseHexBytes 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static byte[] ParseHexBytes(string input)
     {
         if (string.IsNullOrWhiteSpace(input))

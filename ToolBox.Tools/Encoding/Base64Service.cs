@@ -1,10 +1,16 @@
-﻿using System.Text;
+using System.Text;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Encoding;
 
+/// <summary>
+/// Base64Service：用于表示和处理相关的。
+/// </summary>
 public static class Base64Service
 {
+    /// <summary>
+    /// 执行 Encode 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<string> Encode(string? plainText, bool useUrlSafe)
     {
         try
@@ -20,6 +26,9 @@ public static class Base64Service
         }
     }
 
+    /// <summary>
+    /// 执行 Decode 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<string> Decode(string? base64Text, bool useUrlSafe)
     {
         try
@@ -37,9 +46,15 @@ public static class Base64Service
         }
     }
 
+    /// <summary>
+    /// 执行 ToUrlSafe 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string ToUrlSafe(string base64) =>
         base64.Replace('+', '-').Replace('/', '_').TrimEnd('=');
 
+    /// <summary>
+    /// 执行 FromUrlSafe 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FromUrlSafe(string base64)
     {
         var restored = base64.Replace('-', '+').Replace('_', '/');

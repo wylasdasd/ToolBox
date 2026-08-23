@@ -1,10 +1,16 @@
-﻿using System.Text;
+using System.Text;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Network;
 
+/// <summary>
+/// RequestToCurlService：用于表示和处理相关的。
+/// </summary>
 public static class RequestToCurlService
 {
+    /// <summary>
+    /// 执行 ConvertFromRaw 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<RequestToCurlResult> ConvertFromRaw(string? raw, bool isHttps, string outputFormat)
     {
         try
@@ -25,6 +31,9 @@ public static class RequestToCurlService
         }
     }
 
+    /// <summary>
+    /// 执行 ConvertFromForm 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<RequestToCurlResult> ConvertFromForm(
         string? method, string? url, string? headersText, string? body, bool isHttps, string outputFormat)
     {
@@ -46,6 +55,9 @@ public static class RequestToCurlService
         }
     }
 
+    /// <summary>
+    /// 执行 BuildFromRaw 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static HttpRequestData? BuildFromRaw(string? raw, bool isHttps)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -97,6 +109,9 @@ public static class RequestToCurlService
         return new HttpRequestData(method, url, headers, bodyBuilder.ToString());
     }
 
+    /// <summary>
+    /// 执行 BuildFromForm 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static HttpRequestData? BuildFromForm(
         string? method, string? url, string? headersText, string? body, bool isHttps)
     {
@@ -110,6 +125,9 @@ public static class RequestToCurlService
         return new HttpRequestData(normalizedMethod, normalizedUrl.Trim(), headers, body ?? string.Empty);
     }
 
+    /// <summary>
+    /// 执行 GenerateCurl 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string GenerateCurl(HttpRequestData data)
     {
         var sb = new StringBuilder();
@@ -139,6 +157,9 @@ public static class RequestToCurlService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// 执行 GeneratePowerShell 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string GeneratePowerShell(HttpRequestData data)
     {
         var sb = new StringBuilder();
@@ -181,6 +202,9 @@ public static class RequestToCurlService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// 执行 BuildUrl 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string BuildUrl(string target, List<(string Name, string Value)> headers, bool isHttps)
     {
         if (target.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -194,12 +218,18 @@ public static class RequestToCurlService
         return isHttps ? $"https://{host}{target}" : $"http://{host}{target}";
     }
 
+    /// <summary>
+    /// 执行 NormalizeLines 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static List<string> NormalizeLines(string raw)
     {
         var normalized = raw.Replace("\r\n", "\n").Replace('\r', '\n');
         return normalized.Split('\n', StringSplitOptions.None).ToList();
     }
 
+    /// <summary>
+    /// 解析请求头文本，返回请求头名称和值的集合。
+    /// </summary>
     private static List<(string Name, string Value)> ParseHeaders(string headersText)
     {
         var lines = NormalizeLines(headersText);
@@ -224,6 +254,9 @@ public static class RequestToCurlService
         return headers;
     }
 
+    /// <summary>
+    /// 执行 EscapeArg 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string EscapeArg(string value)
     {
         if (string.IsNullOrEmpty(value))
@@ -232,6 +265,9 @@ public static class RequestToCurlService
         return "\"" + value.Replace("\"", "\\\"") + "\"";
     }
 
+    /// <summary>
+    /// 执行 EscapePowerShellArg 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string EscapePowerShellArg(string value)
     {
         if (string.IsNullOrEmpty(value))
@@ -240,6 +276,9 @@ public static class RequestToCurlService
         return "'" + value.Replace("'", "''") + "'";
     }
 
+    /// <summary>
+    /// 执行 EscapePowerShellKey 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string EscapePowerShellKey(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -248,6 +287,9 @@ public static class RequestToCurlService
         return "'" + value.Replace("'", "''") + "'";
     }
 
+    /// <summary>
+    /// 执行 EnsureAbsoluteUrl 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string EnsureAbsoluteUrl(string url, bool https)
     {
         url = url.Trim();

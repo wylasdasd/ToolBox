@@ -1,16 +1,31 @@
-﻿using System.Globalization;
+using System.Globalization;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Calculation;
 
+/// <summary>
+/// UnitDef：用于表示和处理相关的。
+/// </summary>
 public sealed record UnitDef(string Id, string Label, decimal FactorToBase);
 
+/// <summary>
+/// UnitCategory：用于表示和处理相关的。
+/// </summary>
 public sealed record UnitCategory(string Id, string Label, string BaseHint, UnitDef[] Units);
 
+/// <summary>
+/// UnitConversionRow：用于表示和处理相关的。
+/// </summary>
 public sealed record UnitConversionRow(string Label, string Value, bool IsActive);
 
+/// <summary>
+/// UnitConversionResult：用于表示和处理相关的。
+/// </summary>
 public sealed record UnitConversionResult(IReadOnlyList<UnitConversionRow> Rows, string? NetworkHint, string? ErrorMessage);
 
+/// <summary>
+/// UnitConvertService：用于表示和处理相关的。
+/// </summary>
 public static class UnitConvertService
 {
     public static IReadOnlyList<UnitCategory> Categories { get; } =
@@ -97,6 +112,9 @@ public static class UnitConvertService
     public static IEnumerable<UnitDef> BandwidthUnits =>
         Categories.First(c => c.Id == "network-bit").Units;
 
+    /// <summary>
+    /// 执行 Convert 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static UnitConversionResult Convert(string? input, string categoryId, string fromUnitId)
     {
         if (!TryParseInput(input, out var inputValue, out var parseError))
@@ -114,6 +132,9 @@ public static class UnitConvertService
         return new UnitConversionResult(rows, hint, null);
     }
 
+    /// <summary>
+    /// 执行 CalculateTransferTime 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<string> CalculateTransferTime(string? fileSize, string fileSizeUnitId, string? bandwidth, string bandwidthUnitId)
     {
         if (!TryParseInput(fileSize, out var size, out _) || !TryParseInput(bandwidth, out var bw, out _) || bw <= 0)
@@ -133,6 +154,9 @@ public static class UnitConvertService
         return ToolResult<string>.Ok(FormatDuration(seconds));
     }
 
+    /// <summary>
+    /// 执行 TryParseInput 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static bool TryParseInput(string? text, out decimal value, out string? errorMessage)
     {
         value = 0;
@@ -150,12 +174,21 @@ public static class UnitConvertService
         return true;
     }
 
+    /// <summary>
+    /// 执行 GetCategory 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static UnitCategory GetCategory(string id) =>
         Categories.FirstOrDefault(c => c.Id == id) ?? Categories[0];
 
+    /// <summary>
+    /// 执行 ResolveFileSizeUnit 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static UnitDef? ResolveFileSizeUnit(string unitId) =>
         FileSizeUnits.FirstOrDefault(u => u.Id == unitId);
 
+    /// <summary>
+    /// 执行 BuildNetworkHint 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string? BuildNetworkHint(string categoryId, decimal v, string fromUnitId, UnitCategory cat, UnitDef from)
     {
         if (categoryId is not ("network-bit" or "network-byte" or "storage-iec" or "storage-si"))
@@ -181,6 +214,9 @@ public static class UnitConvertService
         return null;
     }
 
+    /// <summary>
+    /// 执行 FormatValue 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatValue(decimal value)
     {
         if (value == 0) return "0";
@@ -191,6 +227,9 @@ public static class UnitConvertService
         return value.ToString("0.##e+0", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// 执行 FormatDuration 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatDuration(decimal seconds)
     {
         if (seconds < 0) return "—";

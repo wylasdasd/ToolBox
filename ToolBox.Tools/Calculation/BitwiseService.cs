@@ -1,17 +1,32 @@
-﻿using System.Text;
+using System.Text;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Calculation;
 
+/// <summary>
+/// BitwiseComputeResult：用于表示和处理相关的。
+/// </summary>
 public sealed record BitwiseComputeResult(long Result);
 
+/// <summary>
+/// BitwiseService：用于表示和处理相关的。
+/// </summary>
 public static class BitwiseService
 {
+    /// <summary>
+    /// 执行 IsShiftOp 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static bool IsShiftOp(string op) => op is "SHL" or "SHR_A" or "SHR_L";
 
+    /// <summary>
+    /// 执行 GetMask 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static long GetMask(int bitWidth) =>
         bitWidth == 64 ? -1L : (1L << bitWidth) - 1;
 
+    /// <summary>
+    /// 执行 SignExtend 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static long SignExtend(long value, int bitWidth)
     {
         if (bitWidth == 64) return value;
@@ -24,6 +39,9 @@ public static class BitwiseService
         return value & mask;
     }
 
+    /// <summary>
+    /// 执行 NormalizeResult 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static long NormalizeResult(long res, int bitWidth, bool isSigned, bool signExtendWhenSigned = true)
     {
         res &= GetMask(bitWidth);
@@ -32,6 +50,9 @@ public static class BitwiseService
         return res;
     }
 
+    /// <summary>
+    /// 执行 Compute 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<BitwiseComputeResult> Compute(
         string operation,
         long operandA,
@@ -76,6 +97,9 @@ public static class BitwiseService
         }
     }
 
+    /// <summary>
+    /// 执行 ApplyShift 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static long ApplyShift(
         string operation,
         long operandA,
@@ -104,6 +128,9 @@ public static class BitwiseService
         return NormalizeResult(res, bitWidth, isSigned, signExtendWhenSigned: false);
     }
 
+    /// <summary>
+    /// 执行 FormatValue 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string FormatValue(long value, int bitWidth, bool isSigned)
     {
         var maskedValue = value & GetMask(bitWidth);
@@ -114,6 +141,9 @@ public static class BitwiseService
         return ((ulong)maskedValue).ToString();
     }
 
+    /// <summary>
+    /// 执行 FormatBinary 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string FormatBinary(long value, int bitWidth)
     {
         var maskedValue = value & GetMask(bitWidth);
@@ -133,21 +163,33 @@ public static class BitwiseService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// 执行 FormatHex 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static string FormatHex(long value, int bitWidth) =>
         (value & GetMask(bitWidth)).ToString("X");
 
+    /// <summary>
+    /// 执行 ShiftLeft 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static long ShiftLeft(long value, int shift, int bitWidth, long mask)
     {
         if (shift >= bitWidth) return 0;
         return (value & mask) << shift & mask;
     }
 
+    /// <summary>
+    /// 执行 ShiftRightLogical 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static long ShiftRightLogical(long value, int shift, int bitWidth, long mask)
     {
         if (shift >= bitWidth) return 0;
         return (long)((ulong)(value & mask) >> shift);
     }
 
+    /// <summary>
+    /// 执行 ShiftRightArithmetic 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static long ShiftRightArithmetic(long value, int shift, int bitWidth, long mask)
     {
         if (shift >= bitWidth)

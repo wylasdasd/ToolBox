@@ -1,12 +1,18 @@
-﻿using Cronos;
+using Cronos;
 using System.Globalization;
 using System.Text;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Network;
 
+/// <summary>
+/// CronParseService：用于表示和处理相关的。
+/// </summary>
 public static class CronParseService
 {
+    /// <summary>
+    /// 执行 Parse 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<CronParseResult> Parse(string? expression, bool includeSeconds)
     {
         var expr = (expression ?? string.Empty).Trim();
@@ -27,6 +33,9 @@ public static class CronParseService
         }
     }
 
+    /// <summary>
+    /// 执行 BuildNextRuns 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string BuildNextRuns(CronExpression cron)
     {
         var tz = TimeZoneInfo.Local;
@@ -50,6 +59,9 @@ public static class CronParseService
         return sb.ToString().TrimEnd();
     }
 
+    /// <summary>
+    /// 执行 Describe 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string Describe(string expr, CronFormat format)
     {
         var parts = expr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -62,12 +74,21 @@ public static class CronParseService
             : DescribeFiveField(parts);
     }
 
+    /// <summary>
+    /// 执行 DescribeFiveField 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string DescribeFiveField(string[] p) =>
         $"分 {DescribeField(p[0], "分")} · 时 {DescribeField(p[1], "时")} · 日 {DescribeField(p[2], "日")} · 月 {DescribeField(p[3], "月")} · 周 {DescribeField(p[4], "周")}";
 
+    /// <summary>
+    /// 执行 DescribeSixField 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string DescribeSixField(string[] p) =>
         $"秒 {DescribeField(p[0], "秒")} · 分 {DescribeField(p[1], "分")} · 时 {DescribeField(p[2], "时")} · 日 {DescribeField(p[3], "日")} · 月 {DescribeField(p[4], "月")} · 周 {DescribeField(p[5], "周")}";
 
+    /// <summary>
+    /// 执行 DescribeField 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string DescribeField(string field, string unit)
     {
         if (field == "*") return $"每{unit}";

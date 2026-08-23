@@ -1,11 +1,17 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using ToolBox.Tools.Common;
 
 namespace ToolBox.Tools.Format;
 
+/// <summary>
+/// JsonToCSharpService：用于表示和处理相关的。
+/// </summary>
 public static class JsonToCSharpService
 {
+    /// <summary>
+    /// 执行 Convert 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     public static ToolResult<JsonToCSharpResult> Convert(string? jsonInput, JsonToCSharpOptions options)
     {
         if (string.IsNullOrWhiteSpace(jsonInput))
@@ -49,6 +55,9 @@ public static class JsonToCSharpService
             return ToolResult<JsonToCSharpResult>.Fail($"Error: {ex.Message}");
         }
     }
+/// <summary>
+/// 执行 EnumerateJsonArray 操作，完成该方法对应的工具处理逻辑。
+/// </summary>
 private static IEnumerable<JsonElement> EnumerateJsonArray(JsonElement arrayElement)
     {
         if (arrayElement.ValueKind != JsonValueKind.Array) yield break;
@@ -58,6 +67,9 @@ private static IEnumerable<JsonElement> EnumerateJsonArray(JsonElement arrayElem
         }
     }
 
+    /// <summary>
+    /// 执行 GenerateClass 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static void GenerateClass(string className, IEnumerable<JsonElement> objects, Dictionary<string, string> classes, JsonToCSharpOptions options)
     {
         string formattedClassName = FormatClassName(className, options);
@@ -151,6 +163,9 @@ private static IEnumerable<JsonElement> EnumerateJsonArray(JsonElement arrayElem
         classes[formattedClassName] = sb.ToString();
     }
 
+    /// <summary>
+    /// 执行 GetTypeName 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string GetTypeName(string rawPropName, List<JsonElement> values, Dictionary<string, string> classes, bool isMissing, JsonToCSharpOptions options)
     {
         // 1. Analyze all values to determine the common type
@@ -263,6 +278,9 @@ private static IEnumerable<JsonElement> EnumerateJsonArray(JsonElement arrayElem
         }
     }
 
+    /// <summary>
+    /// 执行 FormatPropertyName 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatPropertyName(string name, JsonToCSharpOptions options)
     {
         if (options.IsLowerCase) return name.ToLowerInvariant();
@@ -270,6 +288,9 @@ private static IEnumerable<JsonElement> EnumerateJsonArray(JsonElement arrayElem
         return name;
     }
 
+    /// <summary>
+    /// 执行 FormatClassName 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string FormatClassName(string name, JsonToCSharpOptions options)
     {
         // Singularize? "Users" -> "User". (Optional, not requested)
@@ -277,6 +298,9 @@ private static IEnumerable<JsonElement> EnumerateJsonArray(JsonElement arrayElem
         return ToPascalCase(name);
     }
 
+    /// <summary>
+    /// 执行 ToPascalCase 操作，完成该方法对应的工具处理逻辑。
+    /// </summary>
     private static string ToPascalCase(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
