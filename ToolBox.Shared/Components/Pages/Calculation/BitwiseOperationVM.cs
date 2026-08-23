@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Calculation;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Calculation;
 
@@ -38,7 +38,7 @@ public partial class BitwiseOperationVM : ViewModelBase
             if (SetProperty(ref _isSigned, value))
             {
                 MaskValues();
-                if (BitwiseService.IsShiftOp(SelectedOperation))
+                if (BitwiseHelp.IsShiftOp(SelectedOperation))
                     OnShiftInputsChanged();
                 else
                     Calculate();
@@ -164,7 +164,7 @@ public partial class BitwiseOperationVM : ViewModelBase
             if (!SetProperty(ref _selectedOperation, value))
                 return;
 
-            if (BitwiseService.IsShiftOp(value))
+            if (BitwiseHelp.IsShiftOp(value))
                 ApplyShift(fromResult: _shiftChainActive);
             else
             {
@@ -190,14 +190,14 @@ public partial class BitwiseOperationVM : ViewModelBase
 
     private void MaskValues()
     {
-        var mask = BitwiseService.GetMask(BitWidth);
+        var mask = BitwiseHelp.GetMask(BitWidth);
         _operandA &= mask;
         _operandB &= mask;
 
         if (IsSigned)
         {
-            _operandA = BitwiseService.SignExtend(_operandA, BitWidth);
-            _operandB = BitwiseService.SignExtend(_operandB, BitWidth);
+            _operandA = BitwiseHelp.SignExtend(_operandA, BitWidth);
+            _operandB = BitwiseHelp.SignExtend(_operandB, BitWidth);
         }
 
         OnPropertyChanged(nameof(OperandA));
@@ -224,13 +224,13 @@ public partial class BitwiseOperationVM : ViewModelBase
     }
 
     private string FormatValue(long value) =>
-        BitwiseService.FormatValue(value, BitWidth, IsSigned);
+        BitwiseHelp.FormatValue(value, BitWidth, IsSigned);
 
     private string FormatBinary(long value) =>
-        BitwiseService.FormatBinary(value, BitWidth);
+        BitwiseHelp.FormatBinary(value, BitWidth);
 
     private string FormatHex(long value) =>
-        BitwiseService.FormatHex(value, BitWidth);
+        BitwiseHelp.FormatHex(value, BitWidth);
 
     public void ToggleBitA(int bitIndex)
     {
@@ -252,18 +252,18 @@ public partial class BitwiseOperationVM : ViewModelBase
 
     private void CaptureShiftBase()
     {
-        _shiftBaseValue = OperandA & BitwiseService.GetMask(BitWidth);
+        _shiftBaseValue = OperandA & BitwiseHelp.GetMask(BitWidth);
         _shiftBaseCaptured = true;
     }
 
     private void RestoreShiftBaseToResult()
     {
-        Result = BitwiseService.NormalizeResult(_shiftBaseValue, BitWidth, IsSigned);
+        Result = BitwiseHelp.NormalizeResult(_shiftBaseValue, BitWidth, IsSigned);
     }
 
     public void ResetShiftFromA()
     {
-        if (!BitwiseService.IsShiftOp(SelectedOperation)) return;
+        if (!BitwiseHelp.IsShiftOp(SelectedOperation)) return;
         if (!_shiftBaseCaptured)
             CaptureShiftBase();
         ResetShiftChain();
@@ -272,7 +272,7 @@ public partial class BitwiseOperationVM : ViewModelBase
 
     private void OnShiftInputsChanged()
     {
-        if (BitwiseService.IsShiftOp(SelectedOperation))
+        if (BitwiseHelp.IsShiftOp(SelectedOperation))
         {
             CaptureShiftBase();
             ResetShiftChain();
@@ -287,7 +287,7 @@ public partial class BitwiseOperationVM : ViewModelBase
         if (!fromResult)
             CaptureShiftBase();
 
-        Result = BitwiseService.ApplyShift(
+        Result = BitwiseHelp.ApplyShift(
             SelectedOperation,
             OperandA,
             Result,
@@ -301,14 +301,14 @@ public partial class BitwiseOperationVM : ViewModelBase
 
     private void Calculate()
     {
-        if (BitwiseService.IsShiftOp(SelectedOperation))
+        if (BitwiseHelp.IsShiftOp(SelectedOperation))
         {
             if (!_shiftChainActive)
                 ApplyShift(fromResult: false);
             return;
         }
 
-        var computed = BitwiseService.Compute(
+        var computed = BitwiseHelp.Compute(
             SelectedOperation,
             OperandA,
             OperandB,

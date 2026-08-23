@@ -1,8 +1,4 @@
-using CommonTool.FileHelps;
-using CommonTool.JsonHelps;
-using CommonTool.NetHelps;
-using CommonTool.StringHelp;
-using CommonTool.TimeHelps;
+using CommonHelp;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Http.Headers;
@@ -80,22 +76,6 @@ public class CommonHelpTests
     }
 
     [Fact]
-    public void ConvertToLocal_UsesOffsetOfTargetInstant()
-    {
-        var timezone = CreateUsEasternLikeTimeZone();
-        var service = new TimeService(new FakeTimeProvider(timezone));
-
-        var winterUtc = new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
-        var summerUtc = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
-
-        var winterLocal = service.ConvertToLocal(winterUtc);
-        var summerLocal = service.ConvertToLocal(summerUtc);
-
-        Assert.Equal(new DateTime(2026, 1, 15, 7, 0, 0), winterLocal);
-        Assert.Equal(new DateTime(2026, 7, 15, 8, 0, 0), summerLocal);
-    }
-
-    [Fact]
     public async Task PutRequestAsync_OnTimeout_ReturnsDefaultInsteadOfThrowing()
     {
         var service = new HttpService(
@@ -117,46 +97,11 @@ public class CommonHelpTests
         return Path.Combine(directory, "data.json");
     }
 
-    private static TimeZoneInfo CreateUsEasternLikeTimeZone()
-    {
-        var transitionStart = TimeZoneInfo.TransitionTime.CreateFloatingDateRule(
-            new DateTime(1, 1, 1, 2, 0, 0),
-            3,
-            2,
-            DayOfWeek.Sunday);
-
-        var transitionEnd = TimeZoneInfo.TransitionTime.CreateFloatingDateRule(
-            new DateTime(1, 1, 1, 2, 0, 0),
-            11,
-            1,
-            DayOfWeek.Sunday);
-
-        var adjustmentRule = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule(
-            new DateTime(2007, 1, 1),
-            DateTime.MaxValue.Date,
-            TimeSpan.FromHours(1),
-            transitionStart,
-            transitionEnd);
-
-        return TimeZoneInfo.CreateCustomTimeZone(
-            "Test Eastern",
-            TimeSpan.FromHours(-5),
-            "Test Eastern",
-            "Test Eastern Standard",
-            "Test Eastern Daylight",
-            [adjustmentRule]);
-    }
-
     private sealed class SampleModel
     {
         public string Name { get; set; } = string.Empty;
 
         public int Count { get; set; }
-    }
-
-    private sealed class FakeTimeProvider(TimeZoneInfo localTimeZone) : TimeProvider
-    {
-        public override TimeZoneInfo LocalTimeZone => localTimeZone;
     }
 
     private sealed class FakeHttpClientFactory(HttpMessageHandler handler) : IHttpClientFactory

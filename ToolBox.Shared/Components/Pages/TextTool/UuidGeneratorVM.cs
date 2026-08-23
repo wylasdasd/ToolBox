@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Generate;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages;
 
@@ -35,7 +35,7 @@ public class UuidGeneratorVM : ViewModelBase
 
     public void GenerateUuids()
     {
-        var result = UuidGenerateService.Generate(Count, IncludeHyphens, UpperCase);
+        var result = RandomHelp.GenerateUuids(Count, IncludeHyphens, UpperCase);
         GeneratedUuids = result.Value!.Output;
     }
 }

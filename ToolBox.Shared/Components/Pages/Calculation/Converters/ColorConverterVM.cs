@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Calculation;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Converters;
 
@@ -21,7 +21,7 @@ public partial class ColorConverterVM : ViewModelBase
         get => _hexDigits;
         set
         {
-            if (SetProperty(ref _hexDigits, ColorConvertService.NormalizeHexDigits(value)))
+            if (SetProperty(ref _hexDigits, ColorConvertHelp.NormalizeHexDigits(value)))
                 UpdateFromHex();
         }
     }
@@ -31,7 +31,7 @@ public partial class ColorConverterVM : ViewModelBase
         get => _r;
         set
         {
-            if (SetProperty(ref _r, ColorConvertService.ClampByte(value)))
+            if (SetProperty(ref _r, ColorConvertHelp.ClampByte(value)))
                 UpdateFromRgba();
         }
     }
@@ -41,7 +41,7 @@ public partial class ColorConverterVM : ViewModelBase
         get => _g;
         set
         {
-            if (SetProperty(ref _g, ColorConvertService.ClampByte(value)))
+            if (SetProperty(ref _g, ColorConvertHelp.ClampByte(value)))
                 UpdateFromRgba();
         }
     }
@@ -51,7 +51,7 @@ public partial class ColorConverterVM : ViewModelBase
         get => _b;
         set
         {
-            if (SetProperty(ref _b, ColorConvertService.ClampByte(value)))
+            if (SetProperty(ref _b, ColorConvertHelp.ClampByte(value)))
                 UpdateFromRgba();
         }
     }
@@ -61,7 +61,7 @@ public partial class ColorConverterVM : ViewModelBase
         get => _a;
         set
         {
-            if (SetProperty(ref _a, ColorConvertService.ClampByte(value)))
+            if (SetProperty(ref _a, ColorConvertHelp.ClampByte(value)))
             {
                 UpdateFromRgba();
                 OnPropertyChanged(nameof(AlphaPercent));
@@ -72,7 +72,7 @@ public partial class ColorConverterVM : ViewModelBase
     public int AlphaPercent
     {
         get => (int)Math.Round(_a * 100.0 / 255);
-        set => A = ColorConvertService.AlphaPercentToByte(value);
+        set => A = ColorConvertHelp.AlphaPercentToByte(value);
     }
 
     public double H => _h;
@@ -106,7 +106,7 @@ public partial class ColorConverterVM : ViewModelBase
         _isUpdating = true;
         try
         {
-            var result = ColorConvertService.FromHex(_hexDigits);
+            var result = ColorConvertHelp.FromHex(_hexDigits);
             if (!result.Success)
                 return;
 
@@ -127,7 +127,7 @@ public partial class ColorConverterVM : ViewModelBase
         _isUpdating = true;
         try
         {
-            ApplyState(ColorConvertService.FromRgba(_r, _g, _b, _a));
+            ApplyState(ColorConvertHelp.FromRgba(_r, _g, _b, _a));
             NotifyAllColorProperties();
         }
         finally

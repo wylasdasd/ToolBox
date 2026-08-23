@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using ToolBox.Tools.Common;
+using CommonHelp;
 
 namespace ToolBox.Tools.Text;
 

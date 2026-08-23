@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Calculation;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Converters;
 
@@ -21,7 +21,7 @@ public sealed class TimestampConverterVM : ViewModelBase
     public sealed record TimeZoneOption(string Id, string Label);
 
     public static IReadOnlyList<TimeZoneOption> TimeZoneOptions { get; } =
-        TimestampConvertService.TimeZoneOptions
+        TimestampConvertHelp.TimeZoneOptions
             .Select(o => new TimeZoneOption(o.Id, o.Label))
             .ToList();
 
@@ -109,7 +109,7 @@ public sealed class TimestampConverterVM : ViewModelBase
     public void FromUnix()
     {
         ErrorMessage = null;
-        var result = TimestampConvertService.ParseUnix(UnixSeconds, UnixMilliseconds);
+        var result = TimestampConvertHelp.ParseUnix(UnixSeconds, UnixMilliseconds);
         if (!result.Success)
         {
             ErrorMessage = "请输入有效的 Unix 时间戳（秒 10 位左右 / 毫秒 13 位左右，可自动识别）。";
@@ -122,7 +122,7 @@ public sealed class TimestampConverterVM : ViewModelBase
     public void FromTime()
     {
         ErrorMessage = null;
-        var result = TimestampConvertService.ParseFromTime(LocalTime, UtcTime, SelectedTimeZoneId);
+        var result = TimestampConvertHelp.ParseFromTime(LocalTime, UtcTime, SelectedTimeZoneId);
         if (!result.Success)
         {
             ErrorMessage = result.Error;
@@ -158,7 +158,7 @@ public sealed class TimestampConverterVM : ViewModelBase
         if (string.IsNullOrWhiteSpace(UnixSeconds) && string.IsNullOrWhiteSpace(UnixMilliseconds))
             return;
 
-        var result = TimestampConvertService.ParseUnix(UnixSeconds, UnixMilliseconds, preferField);
+        var result = TimestampConvertHelp.ParseUnix(UnixSeconds, UnixMilliseconds, preferField);
         if (result.Success)
         {
             ErrorMessage = null;
@@ -175,7 +175,7 @@ public sealed class TimestampConverterVM : ViewModelBase
     private void ApplyDisplay(DateTimeOffset dto)
     {
         _isUpdating = true;
-        var display = TimestampConvertService.BuildDisplay(dto, SelectedTimeZoneId);
+        var display = TimestampConvertHelp.BuildDisplay(dto, SelectedTimeZoneId);
 
         UnixSeconds = display.UnixSeconds;
         UnixMilliseconds = display.UnixMilliseconds;
@@ -189,5 +189,5 @@ public sealed class TimestampConverterVM : ViewModelBase
     }
 
     private void UpdateLocalTimeLabel() =>
-        LocalTimeLabel = TimestampConvertService.FormatLocalTimeLabel(SelectedTimeZoneId);
+        LocalTimeLabel = TimestampConvertHelp.FormatLocalTimeLabel(SelectedTimeZoneId);
 }

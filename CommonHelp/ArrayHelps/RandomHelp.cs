@@ -1,33 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 
-namespace CommonTool.ArrayHelps
+namespace CommonHelp;
+
+/// <summary>
+/// UUID 批量生成结果：每行一个的 UUID 文本。
+/// </summary>
+public sealed record UuidGenerateResult(string Output);
+
+/// <summary>
+/// 随机与唯一标识工具：从序列随机抽取元素、批量生成 UUID/GUID。
+/// </summary>
+public class RandomHelp
 {
-    public class RandomHelp
+    /// <summary>
+    /// 从可遍历序列中随机抽取 count 个元素（返回新列表，不修改原序列）。
+    /// </summary>
+    public static List<T> GetRandomList<T>(IEnumerable<T> list, int count)
     {
-        /// <summary>
-        ///从可遍历类型里面随机获取几个
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
-        /// <param name="count"></param>
-        /// <returns></returns>
-        public static List<T> GetRandomList<T>(IEnumerable<T> list, int count)
+        Random rng = new Random();
+        List<T> result = new List<T>(list); // 拷贝一份防止修改原列表
+        int n = result.Count;
+
+        for (int i = 0; i < count && i < n; i++)
         {
-            Random rng = new Random();
-            List<T> result = new List<T>(list); // 拷贝一份防止修改原列表
-            int n = result.Count;
-
-            for (int i = 0; i < count && i < n; i++)
-            {
-                int r = i + rng.Next(n - i);
-                T temp = result[r];
-                result[r] = result[i];
-                result[i] = temp;
-            }
-
-            return result.Take(count).ToList();
+            int r = i + rng.Next(n - i);
+            T temp = result[r];
+            result[r] = result[i];
+            result[i] = temp;
         }
+
+        return result.Take(count).ToList();
+    }
+
+    /// <summary>
+    /// 批量生成 UUID/GUID 字符串：可选连字符（N 格式）与大小写，每行一个。
+    /// </summary>
+    public static ToolResult<UuidGenerateResult> GenerateUuids(int count, bool includeHyphens, bool upperCase)
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < count; i++)
+        {
+            var uuid = Guid.NewGuid();
+            var uuidString = includeHyphens ? uuid.ToString() : uuid.ToString("N");
+            if (upperCase)
+                uuidString = uuidString.ToUpperInvariant();
+
+            sb.AppendLine(uuidString);
+        }
+
+        return ToolResult<UuidGenerateResult>.Ok(new UuidGenerateResult(sb.ToString()));
     }
 }

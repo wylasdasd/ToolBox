@@ -1,6 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
 using CommonHelp;
-using ToolBox.Tools.Encoding;
 
 namespace ToolBox.Components.Pages;
 
@@ -85,7 +84,7 @@ public sealed class TextHexVM : ViewModelBase
     public void EncodeTextToHex()
     {
         ErrorMessage = null;
-        var result = TextHexService.EncodeTextToHex(
+        var result = TextHexHelp.EncodeTextToHex(
             TextInput,
             EncodingId,
             DisplayModeId,
@@ -106,7 +105,7 @@ public sealed class TextHexVM : ViewModelBase
     public void DecodeHexToText()
     {
         ErrorMessage = null;
-        var result = TextHexService.DecodeHexToText(HexInput, EncodingId);
+        var result = TextHexHelp.DecodeHexToText(HexInput, EncodingId);
         if (!result.Success)
         {
             ErrorMessage = result.Error;

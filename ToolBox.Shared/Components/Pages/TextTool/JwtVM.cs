@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Encoding;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.TextTool;
 
@@ -56,7 +56,7 @@ public sealed class JwtVM : ViewModelBase
         ExpiryUtc = string.Empty;
         ExpiryLocal = string.Empty;
 
-        var result = JwtParseService.Parse(Token);
+        var result = JwtParseHelp.Parse(Token);
         if (!result.Success)
         {
             ErrorMessage = result.Error;

@@ -1,5 +1,5 @@
 using System.Globalization;
-using ToolBox.Tools.Common;
+using CommonHelp;
 
 namespace ToolBox.Tools.Calculation;
 

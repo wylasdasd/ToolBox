@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Text;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.TextTool;
 
@@ -112,15 +112,15 @@ public sealed class TextLinesVM : ViewModelBase
     public int OutputCharCount { get => _outputCharCount; private set => SetProperty(ref _outputCharCount, value); }
     public int OutputCharNoWhitespaceCount { get => _outputCharNoWhitespaceCount; private set => SetProperty(ref _outputCharNoWhitespaceCount, value); }
 
-    public void Deduplicate() => ApplyOperation(TextLinesService.Deduplicate(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase, KeepOrder));
+    public void Deduplicate() => ApplyOperation(TextLinesHelp.Deduplicate(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase, KeepOrder));
 
-    public void SortAsc() => ApplyOperation(TextLinesService.SortAsc(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase));
+    public void SortAsc() => ApplyOperation(TextLinesHelp.SortAsc(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase));
 
-    public void SortDesc() => ApplyOperation(TextLinesService.SortDesc(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase));
+    public void SortDesc() => ApplyOperation(TextLinesHelp.SortDesc(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase));
 
-    public void RemoveEmptyLines() => ApplyOperation(TextLinesService.RemoveEmptyLines(InputText, TrimLines));
+    public void RemoveEmptyLines() => ApplyOperation(TextLinesHelp.RemoveEmptyLines(InputText, TrimLines));
 
-    public void TrimOnly() => ApplyOperation(TextLinesService.TrimOnly(InputText));
+    public void TrimOnly() => ApplyOperation(TextLinesHelp.TrimOnly(InputText));
 
     public void UseOutputAsInput()
     {
@@ -135,7 +135,7 @@ public sealed class TextLinesVM : ViewModelBase
         StatusMessage = string.Empty;
     }
 
-    private void ApplyOperation(ToolBox.Tools.Common.ToolResult<TextLinesOperationResult> result)
+    private void ApplyOperation(ToolResult<TextLinesOperationResult> result)
     {
         if (!result.Success)
         {
@@ -147,9 +147,9 @@ public sealed class TextLinesVM : ViewModelBase
         StatusMessage = result.Value.StatusMessage;
     }
 
-    private void UpdateInputStats() => ApplyStats(TextLinesService.ComputeStats(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase), input: true);
+    private void UpdateInputStats() => ApplyStats(TextLinesHelp.ComputeStats(InputText, TrimLines, IgnoreEmptyLines, IgnoreCase), input: true);
 
-    private void UpdateOutputStats() => ApplyStats(TextLinesService.ComputeStats(OutputText, TrimLines, IgnoreEmptyLines, IgnoreCase), input: false);
+    private void UpdateOutputStats() => ApplyStats(TextLinesHelp.ComputeStats(OutputText, TrimLines, IgnoreEmptyLines, IgnoreCase), input: false);
 
     private void ApplyStats(TextLineStats stats, bool input)
     {

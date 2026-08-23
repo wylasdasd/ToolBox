@@ -1,6 +1,6 @@
 using Blazing.Mvvm.ComponentModel;
 using ToolBox.Services;
-using ToolBox.Tools.Text;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages;
 
@@ -113,7 +113,7 @@ public sealed class NamingStyleVM : ViewModelBase
             return;
         }
 
-        var result = NamingStyleService.Convert(Input);
+        var result = NamingStyleHelp.Convert(Input);
         if (!result.Success)
         {
             ErrorMessage = result.Error;

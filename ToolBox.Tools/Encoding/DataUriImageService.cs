@@ -1,4 +1,4 @@
-using ToolBox.Tools.Common;
+using CommonHelp;
 
 namespace ToolBox.Tools.Encoding;
 

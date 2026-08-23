@@ -1,4 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
+using CommonHelp;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
@@ -137,7 +138,7 @@ public sealed class RequestToCurlVM : ViewModelBase
     public void ConvertForm() =>
         ApplyConvertResult(RequestToCurlService.ConvertFromForm(FormMethod, FormUrl, FormHeaders, FormBody, IsHttps, OutputFormat));
 
-    private void ApplyConvertResult(ToolBox.Tools.Common.ToolResult<RequestToCurlResult> result)
+    private void ApplyConvertResult(ToolResult<RequestToCurlResult> result)
     {
         ErrorMessage = null;
         if (!result.Success)

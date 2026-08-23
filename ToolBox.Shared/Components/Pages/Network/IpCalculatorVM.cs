@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Network;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Network;
 
@@ -102,7 +102,7 @@ public sealed class IpCalculatorVM : ViewModelBase
         ErrorMessage = null;
         ClearResults();
 
-        var result = IpCalculatorService.Calculate(Input);
+        var result = IpCalculatorHelp.Calculate(Input);
         if (!result.Success)
         {
             ErrorMessage = result.Error;

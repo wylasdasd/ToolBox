@@ -1,11 +1,11 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Calculation;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Converters;
 
 public partial class NumberBaseConverterVM : ViewModelBase
 {
-    private readonly Dictionary<int, string> _values = RadixConvertService.ProgrammerBases.ToDictionary(b => b, _ => string.Empty);
+    private readonly Dictionary<int, string> _values = RadixHelp.ProgrammerBases.ToDictionary(b => b, _ => string.Empty);
     private string? _errorMessage;
 
     public string? ErrorMessage
@@ -14,7 +14,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
         set => SetProperty(ref _errorMessage, value);
     }
 
-    public string DigitAlphabetHint => RadixConvertService.DigitAlphabetHint;
+    public string DigitAlphabetHint => RadixHelp.DigitAlphabetHint;
 
     public string Binary
     {
@@ -58,7 +58,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
         set => Set(128, value);
     }
 
-    public IReadOnlyList<int> Bases => RadixConvertService.ProgrammerBases;
+    public IReadOnlyList<int> Bases => RadixHelp.ProgrammerBases;
 
     private bool _isUpdating;
 
@@ -98,7 +98,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
                 return;
             }
 
-            var result = RadixConvertService.ConvertFrom(value, fromBase);
+            var result = RadixHelp.ConvertFrom(value, fromBase);
             if (!result.Success)
             {
                 ErrorMessage = result.Error;
@@ -120,7 +120,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
 
     public void ClearAll()
     {
-        foreach (var (radix, text) in RadixConvertService.Clear().ValuesByRadix)
+        foreach (var (radix, text) in RadixHelp.ClearRadixValues().ValuesByRadix)
         {
             _values[radix] = text;
             OnPropertyChanged(GetPropertyName(radix));

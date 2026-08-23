@@ -52,7 +52,7 @@
 | `ToolBox.Shared/Components/` | `.razor` 视图 + 同目录 `*VM.cs`（**仅交互**） | 算法、解析、转换（应放 `ToolBox.Tools`） |
 | `ToolBox/Services/` | MAUI / Windows 平台实装 | Web 逻辑 |
 | `ToolBox.Web.Client/Services/` | WASM 实装；不支持的能力用 `Unsupported*` stub | MAUI 逻辑 |
-| `CommonHelp/` | 历史通用工具；命名空间多为 `CommonTool.*` | 新功能优先放 `ToolBox.Tools`，除非与现有 Help 强相关 |
+| `CommonHelp/` | 跨项目通用工具库；命名空间统一为 `CommonHelp`（file-scoped），文件夹仅做领域归类 | 新功能优先放 `ToolBox.Tools`，除非与现有 Help 强相关 |
 
 ### VM 与 Tools 的分工
 

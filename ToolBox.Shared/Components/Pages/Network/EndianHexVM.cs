@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Network;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages.Network;
 
@@ -30,7 +30,7 @@ public sealed class EndianHexVM : ViewModelBase
         new("int64-max", "int64 · MaxValue", "int64", "9223372036854775807", true, false),
     ];
 
-    public static IReadOnlyList<EndianHexDataType> DataTypes => EndianHexService.DataTypes;
+    public static IReadOnlyList<EndianHexDataType> DataTypes => EndianHexHelp.DataTypes;
 
     public string DataTypeId
     {
@@ -112,7 +112,7 @@ public sealed class EndianHexVM : ViewModelBase
         ErrorMessage = null;
         HexOutput = BinaryOutput = DecimalOutput = string.Empty;
 
-        var result = EndianHexService.ConvertValueToHex(Input, DataTypeId, BigEndian, InputIsHex);
+        var result = EndianHexHelp.ConvertValueToHex(Input, DataTypeId, BigEndian, InputIsHex);
         if (!result.Success)
         {
             ErrorMessage = result.Error;
@@ -127,7 +127,7 @@ public sealed class EndianHexVM : ViewModelBase
         ErrorMessage = null;
         HexOutput = BinaryOutput = DecimalOutput = string.Empty;
 
-        var result = EndianHexService.ConvertHexToValue(Input, DataTypeId, BigEndian);
+        var result = EndianHexHelp.ConvertHexToValue(Input, DataTypeId, BigEndian);
         if (!result.Success)
         {
             ErrorMessage = result.Error;

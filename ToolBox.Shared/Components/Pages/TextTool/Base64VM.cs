@@ -1,5 +1,5 @@
 ﻿using Blazing.Mvvm.ComponentModel;
-using ToolBox.Tools.Encoding;
+using CommonHelp;
 
 namespace ToolBox.Components.Pages;
 
@@ -38,7 +38,7 @@ public sealed class Base64VM : ViewModelBase
     public void Encode()
     {
         ErrorMessage = null;
-        var result = Base64Service.Encode(PlainText, UseUrlSafe);
+        var result = Base64Help.Encode(PlainText, UseUrlSafe);
         if (!result.Success)
         {
             ErrorMessage = result.Error;
@@ -51,7 +51,7 @@ public sealed class Base64VM : ViewModelBase
     public void Decode()
     {
         ErrorMessage = null;
-        var result = Base64Service.Decode(Base64Text, UseUrlSafe);
+        var result = Base64Help.Decode(Base64Text, UseUrlSafe);
         if (!result.Success)
         {
             ErrorMessage = result.Error;

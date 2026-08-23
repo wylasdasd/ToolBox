@@ -1,5 +1,5 @@
 using System.Text;
-using ToolBox.Tools.Common;
+using CommonHelp;
 
 namespace ToolBox.Tools.Network;
 

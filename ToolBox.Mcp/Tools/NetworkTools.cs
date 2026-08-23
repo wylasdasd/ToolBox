@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using CommonHelp;
 using ToolBox.Tools.Network;
 
 namespace ToolBox.Mcp.Tools;
@@ -13,7 +14,7 @@ public static class NetworkTools
 
     [McpServerTool, Description("Calculate IPv4 network details from CIDR or address + mask.")]
     public static string IpCalculate(string input) =>
-        McpToolResponses.From(IpCalculatorService.Calculate(input));
+        McpToolResponses.From(IpCalculatorHelp.Calculate(input));
 
     [McpServerTool, Description("Convert a numeric value to hex bytes with endianness control.")]
     public static string EndianValueToHex(
@@ -21,14 +22,14 @@ public static class NetworkTools
         string dataTypeId = "int32",
         bool bigEndian = false,
         bool inputIsHex = false) =>
-        McpToolResponses.From(EndianHexService.ConvertValueToHex(input, dataTypeId, bigEndian, inputIsHex));
+        McpToolResponses.From(EndianHexHelp.ConvertValueToHex(input, dataTypeId, bigEndian, inputIsHex));
 
     [McpServerTool, Description("Decode hex bytes to a typed numeric value.")]
     public static string EndianHexToValue(
         string hexInput,
         string dataTypeId = "int32",
         bool bigEndian = false) =>
-        McpToolResponses.From(EndianHexService.ConvertHexToValue(hexInput, dataTypeId, bigEndian));
+        McpToolResponses.From(EndianHexHelp.ConvertHexToValue(hexInput, dataTypeId, bigEndian));
 
     [McpServerTool, Description("Convert a raw HTTP request text to curl or PowerShell (no outbound HTTP).")]
     public static string RequestToCurlFromRaw(
