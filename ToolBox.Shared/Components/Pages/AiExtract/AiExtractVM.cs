@@ -206,7 +206,7 @@ public sealed class AiExtractVM(
         if (!IsSupportedBatchFile(fileName))
             throw new InvalidOperationException($"不支持的文件类型：{fileName}");
 
-        var bytes = await ReadAllBytesAsync(content, cancellationToken);
+        var bytes = await FileHelp.ReadAllBytesAsync(content, cancellationToken);
         if (bytes.Length > MaxBatchFileBytes)
             throw new InvalidOperationException($"文件超过 20MB：{fileName}");
 
@@ -652,16 +652,6 @@ public sealed class AiExtractVM(
     {
         var stamp = DateTime.Now.ToString("HH:mm:ss");
         LogText = string.IsNullOrEmpty(LogText) ? $"[{stamp}] {line}" : $"{LogText}{Environment.NewLine}[{stamp}] {line}";
-    }
-
-    private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken)
-    {
-        if (stream.CanSeek)
-            stream.Position = 0;
-
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms, cancellationToken);
-        return ms.ToArray();
     }
 
     public sealed record BatchInputItem(

@@ -14,6 +14,11 @@ namespace CommonHelp;
 public static class FileHelp
 {
     /// <summary>
+    /// 人类可读的文件大小单位（B/KB/MB/GB/TB，按 1024 进位）。
+    /// </summary>
+    private static readonly string[] FileSizeUnits = ["B", "KB", "MB", "GB", "TB"];
+
+    /// <summary>
     /// 确保路径的目录存在。
     /// 如果传入的是目录路径则创建该目录；如果是文件路径则创建其父目录。
     /// </summary>
@@ -29,6 +34,38 @@ public static class FileHelp
 
         if (!Directory.Exists(dir))
             Directory.CreateDirectory(dir);
+    }
+
+    /// <summary>
+    /// 将任意流完整读入内存并返回字节数组（可寻址流会先重置到起始位置）。适用于上传文件、网络流等场景。
+    /// </summary>
+    /// <param name="stream">输入流。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    public static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken = default)
+    {
+        if (stream.CanSeek)
+            stream.Position = 0;
+
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms, cancellationToken);
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// 将字节数格式化为人类可读的文件大小（如 <c>1.5 MB</c>），按 1024 进位，最多保留两位小数。
+    /// </summary>
+    /// <param name="bytes">字节数。</param>
+    public static string FormatFileSize(long bytes)
+    {
+        double value = bytes;
+        var unitIndex = 0;
+        while (value >= 1024 && unitIndex < FileSizeUnits.Length - 1)
+        {
+            value /= 1024d;
+            unitIndex++;
+        }
+
+        return $"{value:0.##} {FileSizeUnits[unitIndex]}";
     }
 
     /// <summary>

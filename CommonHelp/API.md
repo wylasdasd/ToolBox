@@ -235,6 +235,8 @@ URL 编解码工具。
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
 | `EnsureDirectoryExists` | `void EnsureDirectoryExists(string filePath)` | 确保文件所在目录存在 |
+| `ReadAllBytesAsync` | `Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken ct)` | 将任意流完整读入内存并返回字节数组（可寻址流先重置到起始位置）；适用于上传文件/网络流 |
+| `FormatFileSize` | `string FormatFileSize(long bytes)` | 字节数格式化为人类可读大小（如 `1.5 MB`），按 1024 进位，最多两位小数 |
 | `CreateFile` | `void CreateFile(string filePath)` | 创建或覆盖文件 |
 | `WriteAllText` | `void WriteAllText(string filePath, string contents)` | 同步写入全部文本 |
 | `WriteAllTextAsync` | `Task WriteAllTextAsync(string filePath, string contents, CancellationToken ct)` | 异步写入全部文本 |

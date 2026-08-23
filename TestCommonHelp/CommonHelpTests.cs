@@ -205,6 +205,29 @@ public class CommonHelpTests
         Assert.False(MimeHelp.TryParseDataUrl("https://example.com/a.png", out _, out _, out _));
     }
 
+    [Fact]
+    public async Task FileHelp_ReadAllBytesAsync_ResetsSeekableStreamAndReadsAll()
+    {
+        using var stream = new MemoryStream([1, 2, 3, 4, 5]);
+        stream.Position = 3;
+
+        var bytes = await FileHelp.ReadAllBytesAsync(stream);
+
+        Assert.Equal([1, 2, 3, 4, 5], bytes);
+    }
+
+    [Fact]
+    public void FileHelp_FormatFileSize_Uses1024StepsAndTrimsDecimals()
+    {
+        Assert.Equal("0 B", FileHelp.FormatFileSize(0));
+        Assert.Equal("512 B", FileHelp.FormatFileSize(512));
+        Assert.Equal("1 KB", FileHelp.FormatFileSize(1024));
+        Assert.Equal("1.5 KB", FileHelp.FormatFileSize(1024 + 512));
+        Assert.Equal("1.5 MB", FileHelp.FormatFileSize(1024L * 1024 + 512 * 1024));
+        Assert.Equal("1 TB", FileHelp.FormatFileSize(1024L * 1024 * 1024 * 1024));
+        Assert.Equal("1024 TB", FileHelp.FormatFileSize(1024L * 1024 * 1024 * 1024 * 1024));
+    }
+
     private static string CreateTempFilePath()
     {
         var directory = Path.Combine(Path.GetTempPath(), "ToolBoxCommonHelpTests", Guid.NewGuid().ToString("N"));

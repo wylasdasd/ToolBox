@@ -1,4 +1,5 @@
 using Blazing.Mvvm.ComponentModel;
+using CommonHelp;
 using ToolBox.Services.DirectorySync;
 using ToolBox.Services.Picker;
 
@@ -106,7 +107,7 @@ public sealed class DirectorySyncVM : ViewModelBase
 
     public string PreviewSummary => Preview is null
         ? "尚未执行预检查。"
-        : $"源文件 {Preview.SourceFileCount} 个，目标文件 {Preview.TargetFileCount} 个，待复制/覆盖 {Preview.FilesToCopyCount} 个，待删除 {Preview.FilesToDeleteCount} 个，预计写入 {FormatBytes(Preview.EstimatedCopyBytes)}。";
+        : $"源文件 {Preview.SourceFileCount} 个，目标文件 {Preview.TargetFileCount} 个，待复制/覆盖 {Preview.FilesToCopyCount} 个，待删除 {Preview.FilesToDeleteCount} 个，预计写入 {FileHelp.FormatFileSize(Preview.EstimatedCopyBytes)}。";
 
     public async Task PickSourceFolderAsync()
     {
@@ -190,7 +191,7 @@ public sealed class DirectorySyncVM : ViewModelBase
             CopiedBytes = result.BytesCopied;
             ProgressPercent = 100;
             Preview = await _directorySyncService.PreviewAsync(SourcePath, TargetPath, DeleteExtraFiles);
-            StatusMessage = $"同步完成：复制/覆盖 {result.FilesCopied} 个，删除 {result.FilesDeleted} 个，写入 {FormatBytes(result.BytesCopied)}。";
+            StatusMessage = $"同步完成：复制/覆盖 {result.FilesCopied} 个，删除 {result.FilesDeleted} 个，写入 {FileHelp.FormatFileSize(result.BytesCopied)}。";
             AppendLog(StatusMessage);
         }
         catch (Exception ex)
@@ -238,19 +239,5 @@ public sealed class DirectorySyncVM : ViewModelBase
         LogText = string.IsNullOrWhiteSpace(LogText)
             ? line
             : $"{LogText}{Environment.NewLine}{line}";
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double value = bytes;
-        var unitIndex = 0;
-        while (value >= 1024 && unitIndex < units.Length - 1)
-        {
-            value /= 1024d;
-            unitIndex++;
-        }
-
-        return $"{value:0.##} {units[unitIndex]}";
     }
 }

@@ -1,10 +1,13 @@
 using Blazing.Mvvm.ComponentModel;
+using CommonHelp;
+using ToolBox.Services;
 using ToolBox.Tools.Text;
 
 namespace ToolBox.Components.Pages;
 
-public sealed class ClipboardSequenceVM : ViewModelBase
+public sealed class ClipboardSequenceVM(IClipboardService clipboardService) : ViewModelBase
 {
+    private CancellationTokenSource? _typingCts;
     private string _clipboardText = string.Empty;
     private IReadOnlyList<string> _sequences = Array.Empty<string>();
     private string _selectedSequence = string.Empty;
@@ -123,4 +126,101 @@ public sealed class ClipboardSequenceVM : ViewModelBase
 
     public IReadOnlyList<string> GetBatchItems() =>
         ClipboardSequenceService.GetBatchItems(Sequences);
+
+    public async Task ReadClipboardAsync()
+    {
+        StatusMessage = "正在读取 Windows 系统剪贴板...";
+        try
+        {
+            var text = await clipboardService.GetTextAsync();
+            SetClipboardText(text ?? string.Empty);
+            StatusMessage = string.IsNullOrEmpty(text)
+                ? "已读取系统剪贴板，但当前没有文本内容。"
+                : "已读取 Windows 系统剪贴板。";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"读取剪贴板失败: {ex.Message}";
+        }
+    }
+
+    public async Task TypeSelectedSequenceAsync()
+    {
+        if (IsTyping)
+        {
+            StatusMessage = "输入任务正在执行中。";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SelectedSequence))
+        {
+            StatusMessage = "请先选择一个序列。";
+            return;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            StatusMessage = "当前平台不是 Windows，无法使用系统键盘模拟输入。";
+            return;
+        }
+
+        try
+        {
+            _typingCts?.Dispose();
+            _typingCts = new CancellationTokenSource();
+            IsTyping = true;
+
+            if (EnableBatchInput)
+            {
+                var items = GetBatchItems();
+                if (items.Count == 0)
+                {
+                    StatusMessage = "序列列表为空，无法批量输入。";
+                    return;
+                }
+
+                StatusMessage = $"将在 {StartDelayMs}ms 后开始批量输入 {items.Count} 条，请切换到目标窗口。";
+                await KeyboardInputHelp.TypeBatchAsync(
+                    items,
+                    StartDelayMs,
+                    CharIntervalMs,
+                    BatchItemIntervalMs,
+                    pressEnterAfterEach: true,
+                    cancellationToken: _typingCts.Token);
+                StatusMessage = "批量模拟输入完成。";
+            }
+            else
+            {
+                StatusMessage = $"将在 {StartDelayMs}ms 后开始输入，请切换到目标窗口。";
+                await KeyboardInputHelp.TypeTextAsync(SelectedSequence, StartDelayMs, CharIntervalMs, _typingCts.Token);
+                StatusMessage = "模拟输入完成。";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "输入已中断。";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"模拟输入失败: {ex.Message}";
+        }
+        finally
+        {
+            IsTyping = false;
+            _typingCts?.Dispose();
+            _typingCts = null;
+        }
+    }
+
+    public void CancelTyping()
+    {
+        if (!IsTyping || _typingCts is null)
+        {
+            StatusMessage = "当前没有正在执行的输入任务。";
+            return;
+        }
+
+        _typingCts.Cancel();
+        StatusMessage = "正在中断输入...";
+    }
 }
