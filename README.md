@@ -28,12 +28,13 @@ TestCommonHelp/       CommonHelp 单元测试
 ToolBox.slnx          解决方案入口
 ```
 
-Shared 组件被 MAUI 与 Web 共同引用；Web 通过 `WebRouteRegistry` 控制开放页面子集。
+Shared 组件被 MAUI 与 Web 共同引用；Web 开放页面由 `ToolNavDefinition`（导航数据源）与 `WebRouteRegistry`（路由白名单）共同维护。
 
 ## 开发环境
 
 - .NET SDK 10（与项目 `net10.0-*` 目标框架一致）
 - Windows 本地开发建议先使用 Windows 目标框架进行 MAUI 构建验证
+- **Docker 部署 Web** 需安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（或 Docker Engine + Compose）
 
 ## 构建与运行
 
@@ -55,6 +56,30 @@ dotnet run --project ToolBox.Web/ToolBox.Web.csproj
 dotnet publish ToolBox.Web/ToolBox.Web.csproj -c Release -o ./publish/web
 ```
 
+**Web Docker 部署**（默认 http://localhost:18488）
+
+```powershell
+# Windows
+.\scripts\deploy-web-docker.ps1
+.\scripts\deploy-web-docker.ps1 -Down    # 停止
+.\scripts\deploy-web-docker.ps1 -Logs    # 日志
+```
+
+```bash
+# Linux / macOS
+./scripts/deploy-web-docker.sh
+./scripts/deploy-web-docker.sh --down
+```
+
+也可直接使用 Compose：
+
+```bash
+docker compose up -d --build
+docker compose down
+```
+
+相关文件：`Dockerfile`、`docker-compose.yml`、`.dockerignore`。容器内监听 `8080`，宿主机默认映射 `18488`（可通过环境变量 `TOOLBOX_WEB_PORT` 修改）。`ToolBox.Web.csproj` 含 `<RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>`；Docker 构建时 **不要** 对 `dotnet publish` 使用 `--no-restore`，否则 .NET 10 可能缺少 `_framework/blazor.web.js` 导致静态资源 404。
+
 **整个解决方案**
 
 ```bash
@@ -69,6 +94,7 @@ dotnet build ToolBox.slnx -c Debug
 - 优先复用 `CommonHelp`，避免在业务目录新增零散工具函数
 - Shared 页面**不要**加 `@rendermode`（MAUI 不支持）；Web 交互由 `App.razor` 的 `ToolRouter` 统一提供
 - Web 专用路由/布局放在 `ToolBox.Web.Client`
+- 导航与 Web 路由：`ToolBox.Shared/Components/Layout/ToolNavDefinition.cs` 为单一数据源；`NavMenu.razor` / `WebNavMenu.razor` 为薄包装；`WebRouteRegistry` 从 Web 可见项自动生成，别名路由见 `AdditionalWebRoutes`
 
 ## 技术栈
 

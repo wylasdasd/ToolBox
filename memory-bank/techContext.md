@@ -34,6 +34,12 @@ dotnet run --project ToolBox.Web/ToolBox.Web.csproj
 # Web 发布
 dotnet publish ToolBox.Web/ToolBox.Web.csproj -c Release -o ./publish/web
 
+# Web Docker 部署（默认 http://localhost:18488）
+.\scripts\deploy-web-docker.ps1          # Windows
+./scripts/deploy-web-docker.sh           # Linux / macOS
+docker compose up -d --build             # 或直接 Compose
+docker compose down
+
 # 整个解决方案
 dotnet build ToolBox.slnx -c Debug
 ```
@@ -50,7 +56,9 @@ dotnet build ToolBox.slnx -c Debug
 | Web 宿主 | `ToolBox.Web/Components/App.razor` | SSR 壳 + `<ToolRouter @rendermode="InteractiveWebAssembly" />` |
 | Web 客户端 | `ToolBox.Web.Client/Program.cs` | `AddToolBoxWeb(WebAssembly)` |
 | Web 客户端 | `ToolBox.Web.Client/Components/ToolRouter.razor` | Web 路由根 |
-| Web 客户端 | `ToolBox.Web.Client/WebRouteRegistry.cs` | Web 开放路由白名单 |
+| Web 客户端 | `ToolBox.Web.Client/WebRouteRegistry.cs` | Web 路由白名单（源自 `ToolNavDefinition` + 别名） |
+| Shared | `ToolBox.Shared/Components/Layout/ToolNavDefinition.cs` | MAUI/Web 导航单一数据源 |
+| Web 部署 | `Dockerfile`、`docker-compose.yml` | Docker 多阶段构建与 Compose 启动 |
 | Tools | `ToolBox.Tools/**/**Service.cs` | 纯逻辑，VM 与 MCP 共用 |
 | MCP | `ToolBox.Mcp/Tools/*.cs` | MCP 薄适配；`Program.cs` 注册 stdio |
 | MCP 文档 | `ToolBox.Mcp/README.md` | 编辑器 MCP 配置、约 33 Tool 列表 |

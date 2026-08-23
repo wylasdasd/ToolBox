@@ -16,6 +16,7 @@
 - Windows MAUI 快速构建：`dotnet build ToolBox/ToolBox.csproj -c Debug -f net10.0-windows10.0.19041.0`
 - Web 本地运行：`dotnet run --project ToolBox.Web/ToolBox.Web.csproj`
 - Web 发布：`dotnet publish ToolBox.Web/ToolBox.Web.csproj -c Release -o ./publish/web`
+- Web Docker 部署：`.\scripts\deploy-web-docker.ps1`（或 `docker compose up -d --build`；默认 http://localhost:18488）
 - 构建整个解决方案：`dotnet build ToolBox.slnx -c Debug`
 
 ## Web 架构要点
@@ -25,7 +26,10 @@
 - Shared **不是 WASM 专属**；MAUI 通过 WebView 引用 Shared，Web 通过 Client 引用 Shared
 - **禁止**在 Shared 页面使用 `@rendermode`（会破坏 MAUI Hybrid）
 - Web 交互组件（`ToolRouter`、`WebRouteView`、`WebMainLayout`、`WebNavMenu`）必须在 `ToolBox.Web.Client`
-- Web 开放路由由 `ToolBox.Web.Client/WebRouteRegistry.cs` 白名单控制；新增 Web 工具需同步更新
+- 导航定义在 `ToolBox.Shared/Components/Layout/ToolNavDefinition.cs`；`NavMenu.razor` / `WebNavMenu.razor` 渲染 `ToolNavMenu`（`ForWeb` 区分平台）
+- Web 开放路由由 `WebRouteRegistry.cs` 控制：`ToolNavDefinition.GetWebRoutePaths()` + `AdditionalWebRoutes`（遗留/别名）；新增 Web 工具只需改 `ToolNavDefinition`，若有重定向路由再补 `AdditionalWebRoutes`
+- 共享 Mud 主题：`ToolBox.Shared/Components/Layout/ToolBoxTheme.cs`（`MainLayout` / `WebMainLayout` 共用）
+- Docker 部署 Web：`Dockerfile` + `docker-compose.yml`；`dotnet publish` **勿** 加 `--no-restore`；`ToolBox.Web.csproj` 需 `<RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>`
 
 ## 约定
 
@@ -271,8 +275,8 @@ public interface IDirectorySyncService
 1. **先**把算法与转换逻辑放入 `ToolBox.Tools/{领域}/{Name}Service.cs`（及 `*Result.cs`），确保无 UI 依赖
 2. 页面 → `ToolBox.Shared/Components/Pages/{分类}/{Name}.razor` + `{Name}VM.cs`（VM 只做绑定与命令编排，调用上一步 Service）
 3. 路由 → `@page "/kebab-case"`
-4. 导航 → `ToolBox.Shared/Components/Layout/NavMenu.razor`（MAUI / Shared）
-5. Web 开放 → `ToolBox.Web.Client/WebRouteRegistry.cs` 白名单 + `WebNavMenu.razor`
+4. 导航 → `ToolBox.Shared/Components/Layout/ToolNavDefinition.cs`（`WebEnabled` / `MauiEnabled`）；`NavMenu.razor` / `WebNavMenu.razor` 无需再手写链接
+5. Web 别名/重定向路由（如有）→ `ToolBox.Web.Client/WebRouteRegistry.cs` 的 `AdditionalWebRoutes`
 6. 若涉及 OS/设备 → Shared `I*` 接口 + MAUI 实装 + Web stub/实装 + DI 注册
 
 ### DI 注册入口

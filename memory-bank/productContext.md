@@ -18,7 +18,7 @@
 | 形态 | 入口 | 能力范围 |
 |------|------|----------|
 | MAUI 桌面/移动 | 本地安装 | 全功能 |
-| Web 浏览器 | `dotnet run --project ToolBox.Web` | 文本/计算/部分网络工具 |
+| Web 浏览器 | `dotnet run --project ToolBox.Web` 或 Docker（http://localhost:18488） | 文本/计算/部分网络工具 |
 
 ## 当前功能版图
 
@@ -30,7 +30,7 @@
 - 文本：整理、正则、Base64、URL、JWT、时间戳、JSON、UUID、Diff、SVG、剪贴板序列等
 - AI / OCR / 目录同步 / 多任务等桌面专属能力
 
-**Web 已开放**（见 `WebRouteRegistry`）
+**Web 已开放**（见 `ToolNavDefinition` 中 `WebEnabled=true` 的项；路由白名单由 `WebRouteRegistry` 自动生成）
 
 - 文本：text-lines、regex、diff、base64、url-codec、jwt、json-format、json-to-csharp、timestamp、uuid、base64-image、svg-preview
 - 计算：bitwise、struct-layout、converters

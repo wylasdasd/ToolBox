@@ -6,6 +6,8 @@ Blazor Web App 拆分已完成；**Phase A'/B'** 已将剩余 VM 逻辑下沉 `T
 
 ## 最近完成（2026-06-29）
 
+- **导航重构**：`ToolNavDefinition` 单一数据源；`ToolNavMenu` 共享渲染；`WebRouteRegistry` 自动生成 Web 路由；`ToolBoxTheme` 共享主题
+- **Web Docker 部署**：`Dockerfile`、`docker-compose.yml`、部署脚本；修复 .NET 10 容器内 `blazor.web.js` 404（`RequiresAspNetWebAssets`、publish 勿 `--no-restore`）
 - **Phase A'**：Base64 图片、SVG 校验、剪贴板序列、C# 引用解析、目录同步计划、AI 提取模板等迁入 `ToolBox.Tools`
 - **Phase B'**：MCP 新增 `data_uri_image_parse`、`directory_sync_plan`（仅预览，不执行同步）
 - **Bugfix**：`unit_transfer_time` 支持 `gib`/`mib` 等 IEC 单位
@@ -26,7 +28,7 @@ Blazor Web App 拆分已完成；**Phase A'/B'** 已将剩余 VM 逻辑下沉 `T
 
 - MCP 与 Skill 文档与 Release DLL 同步（Refresh 后应见 33 个 Tool）
 - Web 端到端验证：首页跳转、各工具页 WASM 交互
-- 新增工具时同步评估是否加入 `WebRouteRegistry` 与 MCP 白名单
+- 新增工具时更新 `ToolNavDefinition`（Web 路由自动同步）；别名路由补 `WebRouteRegistry.AdditionalWebRoutes`；评估 MCP 白名单
 
 ## 已知限制 / 待办
 

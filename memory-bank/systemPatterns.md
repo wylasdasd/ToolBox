@@ -26,20 +26,32 @@ Shared **不是 WASM 专属**：MAUI 通过 BlazorWebView 引用，Web 通过 `T
 **MAUI**
 
 - 路由根：`ToolBox.Shared/Components/Routes.razor`
-- 导航：`ToolBox.Shared/Components/Layout/NavMenu.razor` + `MainLayout.razor`
+- 导航：`NavMenu.razor` → `ToolNavMenu`（`ToolNavDefinition.GetGroupsForMaui()`）+ `MainLayout.razor`（`ToolBoxTheme.Default`）
 - 首页：`IndexRedirect.razor` → `/csharp-run`
 
 **Web**
 
 - 路由根：`ToolBox.Web.Client/Components/ToolRouter.razor`
 - 路由过滤：`WebRouteView.razor` + `WebRouteRegistry.IsEnabled()`
-- 导航/布局：`WebMainLayout.razor`、`WebNavMenu.razor`（仅 Web.Client）
+- 导航/布局：`WebMainLayout.razor`、`WebNavMenu.razor` → `ToolNavMenu ForWeb="true"`
 - 首页：`IndexRedirect.razor` → `/json-format`
 - 未开放路由直接渲染 `NotFound`
 
+**导航与路由单一数据源**
+
+- `ToolBox.Shared/Components/Layout/ToolNavDefinition.cs`：分组、链接、`WebEnabled` / `MauiEnabled`
+- `WebRouteRegistry.cs`：`/` + `ToolNavDefinition.GetWebRoutePaths()` + `AdditionalWebRoutes`（`/timestamp`、OCR 重定向、`/not-found` 等）
+
+## Web Docker 部署
+
+- `Dockerfile`（多阶段 build + `aspnet:10.0` runtime）
+- `docker-compose.yml`（默认宿主机端口 `18488` → 容器 `8080`）
+- `scripts/deploy-web-docker.ps1` / `.sh`：封装 `docker compose up/down/logs`
+- 注意：`dotnet publish` 勿 `--no-restore`；`RequiresAspNetWebAssets=true` 确保 `blazor.web.js` 等资源入包
+
 ## Web 开放路由（WebRouteRegistry）
 
-`/`, `/text-lines`, `/regex`, `/diff`, `/base64`, `/url-codec`, `/jwt`, `/json-format`, `/json-to-csharp`, `/timestamp`, `/uuid`, `/base64-image`, `/svg-preview`, `/bitwise`, `/struct-layout`, `/converters`, `/request-to-curl`, `/not-found`
+由 `ToolNavDefinition` 中 `WebEnabled=true` 的项自动生成，另含 `AdditionalWebRoutes` 别名。完整列表以 `ToolNavDefinition.cs` 与 `WebRouteRegistry.AdditionalWebRoutes` 为准。
 
 ## 代码约束（项目内约定）
 
