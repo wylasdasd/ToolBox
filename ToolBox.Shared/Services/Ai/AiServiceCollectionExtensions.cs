@@ -1,3 +1,4 @@
+using CommonHelp;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ToolBox.Services.Ai;
@@ -9,6 +10,8 @@ public static class AiServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddToolBoxAiChatBackend(this IServiceCollection services)
     {
+        services.AddHttpClient();
+        services.AddScoped<IHttpService, HttpService>();
         services.AddScoped<OpenAiCompatChatService>();
         services.AddScoped<CursorCloudAgentChatService>();
         services.AddScoped<IAiChatService, AiChatServiceRouter>();

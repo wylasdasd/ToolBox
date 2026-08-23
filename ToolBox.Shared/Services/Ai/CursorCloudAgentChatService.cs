@@ -1,11 +1,11 @@
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CommonHelp;
 
 namespace ToolBox.Services.Ai;
 
-public sealed class CursorCloudAgentChatService
+public sealed class CursorCloudAgentChatService(IHttpService httpService)
 {
     private static readonly Regex DataUrlRegex = new(
         @"^data:(?<mime>[^;]+);base64,(?<data>.+)$",
@@ -37,24 +37,19 @@ public sealed class CursorCloudAgentChatService
             ["model"] = new { id = model }
         };
 
-        using var httpClient = CreateHttpClient(request.ApiKey);
-        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.cursor.com/v1/agents");
-        createRequest.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-        using var createResponse = await httpClient.SendAsync(createRequest, cancellationToken);
+        using var createResponse = await httpService.SendAsync(
+            HttpMethod.Post,
+            "https://api.cursor.com/v1/agents",
+            JsonSerializer.Serialize(payload),
+            timeoutSeconds: 5 * 60,
+            action: headers => headers.Authorization = new AuthenticationHeaderValue("Bearer", request.ApiKey.Trim()),
+            cancellationToken: cancellationToken);
         var createText = await createResponse.Content.ReadAsStringAsync(cancellationToken);
         if (!createResponse.IsSuccessStatusCode)
             throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("Cursor 调用失败", createResponse.StatusCode, createText));
 
         var (agentId, runId) = ParseCreateResponse(createText);
-        return await PollRunResultAsync(httpClient, agentId, runId, cancellationToken);
-    }
-
-    private static HttpClient CreateHttpClient(string apiKey)
-    {
-        var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
-        return httpClient;
+        return await PollRunResultAsync(httpService, request.ApiKey, agentId, runId, cancellationToken);
     }
 
     private static string BuildPromptText(AiChatRequest request)
@@ -130,7 +125,8 @@ public sealed class CursorCloudAgentChatService
     }
 
     private static async Task<string> PollRunResultAsync(
-        HttpClient httpClient,
+        IHttpService httpService,
+        string apiKey,
         string agentId,
         string runId,
         CancellationToken cancellationToken)
@@ -139,11 +135,12 @@ public sealed class CursorCloudAgentChatService
         while (DateTime.UtcNow < deadline)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            using var getRequest = new HttpRequestMessage(
+            using var getResponse = await httpService.SendAsync(
                 HttpMethod.Get,
-                $"https://api.cursor.com/v1/agents/{agentId}/runs/{runId}");
-
-            using var getResponse = await httpClient.SendAsync(getRequest, cancellationToken);
+                $"https://api.cursor.com/v1/agents/{agentId}/runs/{runId}",
+                timeoutSeconds: 5 * 60,
+                action: headers => headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim()),
+                cancellationToken: cancellationToken);
             var getText = await getResponse.Content.ReadAsStringAsync(cancellationToken);
             if (!getResponse.IsSuccessStatusCode)
                 throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("Cursor 调用失败", getResponse.StatusCode, getText));

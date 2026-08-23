@@ -1,11 +1,11 @@
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CommonHelp;
 
 namespace ToolBox.Services.Ai;
 
-public sealed class OpenAiCompatChatService : IAiChatService
+public sealed class OpenAiCompatChatService(IHttpService httpService) : IAiChatService
 {
     private static readonly Regex ModelIdRegex = new("^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127}$", RegexOptions.Compiled);
 
@@ -46,18 +46,17 @@ public sealed class OpenAiCompatChatService : IAiChatService
         if (request.JsonOnly && !request.JsonArrayOutput && request.Provider != AiProviderKind.DeepSeek)
             payload["response_format"] = new { type = "json_object" };
 
-        using var httpClient = new HttpClient
-        {
-            Timeout = request.GetImageUrls().Count > 1
-                ? TimeSpan.FromMinutes(5)
-                : TimeSpan.FromMinutes(3)
-        };
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AiProviderCatalog.GetChatCompletionsEndpoint(request.Provider));
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", request.ApiKey.Trim());
-        ApplyProviderHeaders(httpRequest, request.Provider);
-        httpRequest.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-        using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
+        using var response = await httpService.SendAsync(
+            HttpMethod.Post,
+            AiProviderCatalog.GetChatCompletionsEndpoint(request.Provider).ToString(),
+            JsonSerializer.Serialize(payload),
+            timeoutSeconds: imageUrls.Count > 1 ? 5 * 60 : 3 * 60,
+            action: headers =>
+            {
+                headers.Authorization = new AuthenticationHeaderValue("Bearer", request.ApiKey.Trim());
+                ApplyProviderHeaders(headers, request.Provider);
+            },
+            cancellationToken: cancellationToken);
         var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(AiHttpErrorHelp.FormatFailure("AI 调用失败", response.StatusCode, responseText));
@@ -92,13 +91,13 @@ public sealed class OpenAiCompatChatService : IAiChatService
         return messages;
     }
 
-    private static void ApplyProviderHeaders(HttpRequestMessage httpRequest, AiProviderKind provider)
+    private static void ApplyProviderHeaders(HttpRequestHeaders headers, AiProviderKind provider)
     {
         if (provider != AiProviderKind.OpenRouter)
             return;
 
-        httpRequest.Headers.TryAddWithoutValidation("HTTP-Referer", "https://toolbox.local");
-        httpRequest.Headers.TryAddWithoutValidation("X-Title", "ToolBox");
+        headers.TryAddWithoutValidation("HTTP-Referer", "https://toolbox.local");
+        headers.TryAddWithoutValidation("X-Title", "ToolBox");
     }
 
     private static void ValidateModelId(string model)

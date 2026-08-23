@@ -346,10 +346,11 @@ IPv4 子网计算器：由 IP + CIDR/掩码计算网络地址、广播地址、�
 | `DeleteRequestAsync<T>` | `Task<T?> DeleteRequestAsync<T>(string url, int timeoutSeconds, Action<HttpRequestHeaders>? action)` | DELETE 请求并反序列化响应 |
 | `GetRequestAsync<T>` | `Task<T?> GetRequestAsync<T>(string url, int timeoutSeconds, Action<HttpRequestHeaders>? action)` | GET 请求并反序列化响应 |
 | `PostFormRequestAsync<T>` | `Task<T?> PostFormRequestAsync<T>(string url, Dictionary<string, object> formData, Action<HttpRequestHeaders>? action, int timeoutSeconds)` | POST 表单（urlencoded）请求并反序列化响应 |
+| `SendAsync` | `Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, string? body, string? mediaType, int timeoutSeconds, Action<HttpRequestHeaders>? action, CancellationToken cancellationToken)` | 发送原始请求返回 `HttpResponseMessage`：不吞异常、不反序列化，超时/网络错误直接抛出，响应由调用方释放 |
 
 ### `HttpService`  `class : IHttpService`
 
-`IHttpService` 的默认实现：封装 POST/PUT/DELETE/GET/表单 POST，超时或异常时返回 default 并记录日志。`T` 为 `string` 时直接返回响应文本。
+`IHttpService` 的默认实现：封装 POST/PUT/DELETE/GET/表单 POST，超时或异常时返回 default 并记录日志。`T` 为 `string` 时直接返回响应文本。需要原始响应（错误体、状态码、流式读取）时用 `SendAsync`，异常直接抛出、不记录不吞。
 
 ---
 

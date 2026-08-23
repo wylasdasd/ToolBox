@@ -248,10 +248,30 @@ public class HttpService : IHttpService
             return default;
         }
     }
+
+    /// <inheritdoc />
+    public virtual async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, string? body = null, string? mediaType = null, int timeoutSeconds = 30, Action<HttpRequestHeaders>? action = null, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient();
+        using var request = new HttpRequestMessage(method, url);
+        action?.Invoke(request.Headers);
+        if (body is not null)
+        {
+            request.Content = new StringContent(body, Encoding.UTF8, mediaType ?? "application/json");
+        }
+
+        // 1. 关联外部取消令牌并附加超时
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+        // 2. 不吞异常、不反序列化：原始响应交由调用方读取并在用完后释放
+        return await client.SendAsync(request, cts.Token);
+    }
 }
 
 /// <summary>
-/// HTTP 请求服务接口：JSON/表单请求的统一入口，失败或超时返回 default。
+/// HTTP 请求服务接口：JSON/表单请求的统一入口，失败或超时返回 default；
+/// 需要原始响应（错误体、状态码、流式读取）时使用 <see cref="SendAsync"/>。
 /// </summary>
 public interface IHttpService
 {
@@ -279,4 +299,10 @@ public interface IHttpService
     /// POST 表单（urlencoded）请求并把响应反序列化为 T；实现方默认超时较长，适合耗时任务。
     /// </summary>
     Task<T?> PostFormRequestAsync<T>(string url, Dictionary<string, object> formData, Action<HttpRequestHeaders>? action = null, int timeoutSeconds = 60 * 3) where T : class;
+
+    /// <summary>
+    /// 发送原始 HTTP 请求并返回未经处理的响应：不吞异常、不反序列化，超时/网络错误直接抛出；响应由调用方读取并释放。
+    /// body 非空时作为请求体发送，mediaType 缺省为 application/json。
+    /// </summary>
+    Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, string? body = null, string? mediaType = null, int timeoutSeconds = 30, Action<HttpRequestHeaders>? action = null, CancellationToken cancellationToken = default);
 }

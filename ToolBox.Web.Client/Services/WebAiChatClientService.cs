@@ -1,14 +1,19 @@
-using System.Net.Http.Json;
 using System.Text.Json;
+using CommonHelp;
 using ToolBox.Services.Ai;
 
 namespace ToolBox.Web.Client.Services;
 
-public sealed class WebAiChatClientService(HttpClient httpClient) : IAiChatService
+public sealed class WebAiChatClientService(IHttpService httpService) : IAiChatService
 {
     public async Task<string> CompleteAsync(AiChatRequest request, CancellationToken cancellationToken = default)
     {
-        using var response = await httpClient.PostAsJsonAsync("api/ai/complete", request, cancellationToken);
+        using var response = await httpService.SendAsync(
+            HttpMethod.Post,
+            "api/ai/complete",
+            JsonSerializer.Serialize(request, JsonSerializerOptions.Web),
+           // timeoutSeconds: 15 * 60,
+            cancellationToken: cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

@@ -90,6 +90,24 @@ public class CommonHelpTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public async Task SendAsync_ReturnsRawResponse_WithoutSwallowingNonSuccess()
+    {
+        var service = new HttpService(
+            new FakeHttpClientFactory(new FixedStatusHandler(HttpStatusCode.BadGateway, "raw body")),
+            NullLogger<IHttpService>.Instance);
+
+        using var response = await service.SendAsync(
+            HttpMethod.Post,
+            "https://example.com/api/test",
+            "{\"a\":1}");
+
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        Assert.Equal("raw body", await response.Content.ReadAsStringAsync());
+        Assert.NotNull(response.RequestMessage?.Content);
+        Assert.Equal("application/json", response.RequestMessage!.Content!.Headers.ContentType?.MediaType);
+    }
+
     private static string CreateTempFilePath()
     {
         var directory = Path.Combine(Path.GetTempPath(), "ToolBoxCommonHelpTests", Guid.NewGuid().ToString("N"));
@@ -119,6 +137,19 @@ public class CommonHelpTests
                 Content = new StringContent("{}", Encoding.UTF8, "application/json"),
                 RequestMessage = request
             };
+        }
+    }
+
+    private sealed class FixedStatusHandler(HttpStatusCode statusCode, string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "text/plain"),
+                RequestMessage = request
+            });
         }
     }
 }

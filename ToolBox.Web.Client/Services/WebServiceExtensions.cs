@@ -1,6 +1,8 @@
 using Blazing.Mvvm;
+using CommonHelp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using ToolBox;
 using ToolBox.Services;
 using ToolBox.Services.Ai;
@@ -26,11 +28,12 @@ public static class WebServiceExtensions
         if (hostingModel == BlazorHostingModelType.WebAssembly)
         {
             services.AddScoped<IAiChatService, WebAiChatClientService>();
-            services.AddScoped(sp =>
+            services.AddHttpClient(Options.DefaultName, (sp, client) =>
             {
                 var navigation = sp.GetRequiredService<NavigationManager>();
-                return new HttpClient { BaseAddress = new Uri(navigation.BaseUri) };
+                client.BaseAddress = new Uri(navigation.BaseUri);
             });
+            services.AddScoped<IHttpService, HttpService>();
         }
 
         return services;
