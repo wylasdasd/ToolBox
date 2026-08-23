@@ -2,224 +2,77 @@
 
 ## 仓库结构
 
-- `ToolBox/`：.NET MAUI Blazor 应用（平台专属服务与 MAUI 壳）
-- `ToolBox.Shared/`：共享 Razor 组件、ViewModel、服务接口、`AddToolBoxCore()`
-- `ToolBox.Web/`：Blazor Web App 宿主（SSR 壳、`Program.cs`）
-- `ToolBox.Web.Client/`：WASM 客户端、Web 路由/布局、浏览器平台服务
-- `ToolBox.Tools/`：可复用工具 Service 层（VM 与 MCP 共用）
-- `ToolBox.Mcp/`：本地 stdio MCP Server（见 `ToolBox.Mcp/README.md`）
-- `CommonHelp/`：共享类库
-- `TestCommonHelp/`：CommonHelp 单元测试
+| 目录 | 职责 |
+|:---|:---|
+| `ToolBox/` | .NET MAUI Blazor 应用壳 + 平台服务实装 |
+| `ToolBox.Shared/` | 共享 Razor 组件、ViewModel、服务接口、`AddToolBoxCore()` |
+| `ToolBox.Web/` | Blazor Web App 宿主（SSR 壳） |
+| `ToolBox.Web.Client/` | WASM 客户端、Web 路由/布局、浏览器平台服务 |
+| `ToolBox.Tools/` | 可复用工具 Service 层（VM 与 MCP 共用，纯逻辑） |
+| `ToolBox.Mcp/` | 本地 stdio MCP Server（见 `README.md`） |
+| `CommonHelp/` | 跨项目通用工具库（namespace `CommonHelp`，file-scoped） |
+| `TestCommonHelp/` | CommonHelp 单元测试 |
 
 ## 构建
 
-- Windows MAUI 快速构建：`dotnet build ToolBox/ToolBox.csproj -c Debug -f net10.0-windows10.0.19041.0`
-- Web 本地运行：`dotnet run --project ToolBox.Web/ToolBox.Web.csproj`
+- MAUI：`dotnet build ToolBox/ToolBox.csproj -c Debug -f net10.0-windows10.0.19041.0`
+- Web 运行：`dotnet run --project ToolBox.Web/ToolBox.Web.csproj`
 - Web 发布：`dotnet publish ToolBox.Web/ToolBox.Web.csproj -c Release -o ./publish/web`
-- Web Docker 部署：`.\scripts\deploy-web-docker.ps1`（或 `docker compose up -d --build`；默认 http://localhost:18488）
-- 构建整个解决方案：`dotnet build ToolBox.slnx -c Debug`
+- Docker：`docker compose up -d --build`（默认 http://localhost:18488）
+- 全量：`dotnet build ToolBox.slnx -c Debug`
 
 ## Web 架构要点
 
-- **SSR 壳**：`ToolBox.Web/Components/App.razor`（HTML、CSS/JS、`HeadOutlet`，无 `@rendermode`）
-- **WASM 交互**：`<ToolRouter @rendermode="InteractiveWebAssembly" />` 及其子树（含 Shared 工具页）
-- Shared **不是 WASM 专属**；MAUI 通过 WebView 引用 Shared，Web 通过 Client 引用 Shared
-- **禁止**在 Shared 页面使用 `@rendermode`（会破坏 MAUI Hybrid）
-- Web 交互组件（`ToolRouter`、`WebRouteView`、`WebMainLayout`、`WebNavMenu`）必须在 `ToolBox.Web.Client`
-- 导航定义在 `ToolBox.Shared/Components/Layout/ToolNavDefinition.cs`；`NavMenu.razor` / `WebNavMenu.razor` 渲染 `ToolNavMenu`（`ForWeb` 区分平台）
-- Web 开放路由由 `WebRouteRegistry.cs` 控制：`ToolNavDefinition.GetWebRoutePaths()` + `AdditionalWebRoutes`（遗留/别名）；新增 Web 工具只需改 `ToolNavDefinition`，若有重定向路由再补 `AdditionalWebRoutes`
-- 共享 Mud 主题：`ToolBox.Shared/Components/Layout/ToolBoxTheme.cs`（`MainLayout` / `WebMainLayout` 共用）
-- Docker 部署 Web：`Dockerfile` + `docker-compose.yml`；`dotnet publish` **勿** 加 `--no-restore`；`ToolBox.Web.csproj` 需 `<RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>`
+- **SSR 壳**：`ToolBox.Web/Components/App.razor`（无 `@rendermode`）
+- **WASM 交互**：`<ToolRouter @rendermode="InteractiveWebAssembly" />` 及其子树
+- Shared **非 WASM 专属**；MAUI/Web 均引用 Shared
+- **禁止**在 Shared 页面使用 `@rendermode`（破坏 MAUI Hybrid）
+- Web 交互组件（`ToolRouter`、`WebNavMenu` 等）必须在 `ToolBox.Web.Client`
+- 导航定义：`ToolNavDefinition.cs`；路由注册：`WebRouteRegistry.cs`
+- Docker 发布**勿**加 `--no-restore`；`ToolBox.Web.csproj` 需 `<RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>`
 
-## 约定
+## 分层与职责
 
-- C# 命名空间与 `RootNamespace`（`ToolBox`）及目录结构保持一致
-- Razor 组件命名空间与 `ToolBox.Shared/Components/**` 目录保持一致（例如 `ToolBox.Components.Pages.TextTool`）
-- 优先复用现有 `CommonHelp` 代码；避免随手新增零散工具函数；确需新增请放在 `CommonHelp/` 下
-- 平台差异通过 `ToolBox.Shared/Services/` 接口抽象；MAUI 在 `ToolBox/Services/` 实装，Web 在 `ToolBox.Web.Client/Services/` 实装或 stub
-- 避免无关格式化；尽量保持现有编码/换行风格
+| 层 | 放什么 | 不放什么 |
+|:---|:---|:---|
+| `ToolBox.Tools/` | `static *Service`、`*Result` record、`ToolResult<T>` | UI/MudBlazor/平台API |
+| `Shared/Services/` | `I*` 接口、DTO、平台无关服务 | MAUI/浏览器专属API |
+| `Shared/Components/` | `.razor` + 同目录 `*VM.cs`（**仅交互**） | 算法/解析/转换 |
+| `ToolBox/Services/` | MAUI 平台实装 | Web逻辑 |
+| `Web.Client/Services/` | WASM 实装 / `Unsupported*` stub | MAUI逻辑 |
+| `CommonHelp/` | 跨项目通用工具库 | 新功能优先放 `ToolBox.Tools` |
 
-## 代码风格
+**VM vs Tools**：VM 只做交互编排（绑定、状态清理 `ErrorMessage=null`、防重入 `if(IsBusy)return`、格式化展示、计算属性）；核心算法（`JsonDocument.Parse`、Base64 编解码、正则、子网掩码计算等解析/转换/校验/计算）必须下沉 `ToolBox.Tools`。流程：`用户点击 → VM命令 → Tools.*Service / I*平台服务 → ToolResult → VM更新绑定 → .razor渲染`
 
-以下约定来自本仓库现有代码的惯用写法，新增或修改代码时应优先对齐。
+## 核心约定
 
-### 分层与职责
+- 命名空间与目录结构一致；优先复用 `CommonHelp`，确需新增放 `CommonHelp/`
+- 平台差异走 `Shared/Services/I*` 接口：MAUI 实装 `ToolBox/Services/`（`MauiProgram.cs` 注册）；Web 实装/stub `ToolBox.Web.Client/Services/`（`WebServiceExtensions.AddToolBoxWeb` 注册）；Web 不支持的能力给明确 stub（如 `UnsupportedFolderPickerService`，`IsNativeSupported => false`），避免 silent 失败
+- 保持既有编码风格，避免无关格式化
 
-| 位置 | 放什么 | 不放什么 |
-| :--- | :--- | :--- |
-| `ToolBox.Tools/` | 可单测的纯逻辑：`static *Service`、`*Result` 模型、`ToolResult<T>` 返回值 | UI 状态、MudBlazor、平台 API |
-| `ToolBox.Shared/Services/` | 跨平台接口 `I*`、共享 DTO/模型、与宿主无关的服务实现（如 AI 路由） | MAUI / 浏览器专属 API |
-| `ToolBox.Shared/Components/` | `.razor` 视图 + 同目录 `*VM.cs`（**仅交互**） | 算法、解析、转换（应放 `ToolBox.Tools`） |
-| `ToolBox/Services/` | MAUI / Windows 平台实装 | Web 逻辑 |
-| `ToolBox.Web.Client/Services/` | WASM 实装；不支持的能力用 `Unsupported*` stub | MAUI 逻辑 |
-| `CommonHelp/` | 跨项目通用工具库；命名空间统一为 `CommonHelp`（file-scoped），文件夹仅做领域归类 | 新功能优先放 `ToolBox.Tools`，除非与现有 Help 强相关 |
+## C# 风格与命名
 
-### VM 与 Tools 的分工
+- 文件作用域命名空间；类型默认 `sealed`；优先现代语法（`[...]`、`record`、expression-bodied）；可空引用类型跟随现有文件风格
+- 异步方法以 `Async` 结尾；`CancellationToken` 放末尾，默认 `default`
+- 字段 `_camelCase` ↔ 属性 `PascalCase` 成对；输入/输出成对（`InputJson`/`OutputJson`、`PlainText`/`Base64Text`、`SourcePath`/`TargetPath`）；布尔前缀 `Is`/`Has`（`HasPreview` 而非 `IsHasPreview`）；选中项 `Selected`+名词（`SelectedTemplateKey`）
+- 命令方法：动词或动词短语，不加 `Command` 后缀（`Format()`、`Clear()`、`PickSourceFolderAsync()`）；Tools 侧 `{Feature}Service` + 方法 `Process/Validate/Encode`，结果 `{Feature}Result` 或 `{Action}Result`（如 `JsonValidateResult`）
+- setter：用户可编辑 → `public set`（配 `@bind-Value`）；仅 VM 内部写入 → `private set`；均配 `SetProperty(ref _field, value)`；需联动通知在 setter 内 `OnPropertyChanged(nameof(...))`（见 `DirectorySyncVM.Preview`）
+- 默认值：文本 `= string.Empty`；消息 `string? = null`；bool 按语义（如 `_sortKeys = true`）；注入依赖 `private readonly` 构造函数赋值，不暴露属性；计算属性用表达式体（`HasPreview`），无 backing 字段
 
-**VM 只处理交互**——一切与控件绑定、用户操作流程、界面反馈相关的状态与编排。  
-**交互之外的可复用逻辑**——解析、转换、校验、计算、算法——一律放入 `ToolBox.Tools/`（或已有 `CommonHelp/`），VM 只负责调用并映射结果。
+- 尽量使用C# 新语法（）要兼容项目net 版本 
+## ViewModel（Blazing.Mvvm）
 
-| 放在 VM | 放在 `ToolBox.Tools` | 放在 `I*` 平台服务 |
-| :--- | :--- | :--- |
-| 输入框/开关/下拉的可绑定值 | JSON 格式化、JWT 解析、正则匹配 | 选文件夹、目录同步、剪贴板 |
-| `IsBusy`、`IsUpdating` 等 UI 状态 | IP/Cron/位运算/编码转换 | OCR、SecureStorage、原生文件访问 |
-| `ErrorMessage`、`StatusMessage`、进度条数值 | 模板数据、选项列表的静态定义 | 需 OS / 浏览器 / MAUI API 的能力 |
-| 命令入口：`Format()`、`Clear()`、`SyncAsync()` | `ToolResult<T>` 与 `*Result` 模型 | 异步 I/O + 进度回调 |
-| 把 Service 返回值赋给输出属性 | 单元测试覆盖的核心算法 | MAUI / Web 分平台实装 |
+- `{Page}.razor` 与 `{Page}VM.cs` 必须**同一文件夹**，VM 文件名以 `VM.cs` 结尾；VM 继承 `ViewModelBase`
+- Razor 通过 `@inherits MvvmComponentBase<{Page}VM>` 绑定，视图中统一用 `ViewModel` 访问；**禁止**在 `.razor` 写 `@code` 业务逻辑，用户入口是 VM 的公开 `void`/`Task` 方法
+- 平台能力构造函数注入 `I*`，存 `private readonly`，不暴露为绑定属性
+- 错误/提示：`ErrorMessage`（`string?`，`private set`）；按 `ToolResult<T>.Success` 分支赋值，视图用 `MudAlert` 条件渲染
 
-```text
-用户点击 → VM 命令方法 → ToolBox.Tools.*Service（纯逻辑）
-                       ↘ I* 平台服务（文件/网络/设备）
-         ← VM 更新绑定属性 ← ToolResult / DTO
-         → .razor 渲染
-```
+## ToolBox.Tools 服务
 
-**VM 里允许保留的「薄逻辑」**（不必强行下沉）：
+- `public static class {Feature}Service`，按领域分子目录（`Format/`、`Encoding/`、`Network/` 等）；结果用 `sealed record`，单独 `{Feature}Result.cs` 或与 Service 同文件
+- 对外返回 `ToolResult<T>`：成功 `Ok(value)`，失败 `Fail("用户可读中文说明")`；Service 内 `try/catch`，不抛异常到 UI 层
 
-- 调用 Service 前后的**状态清理**（清空 Error、重置进度）
-- **防重入**（`if (IsBusy) return`）
-- **日志行拼接**、把 DTO 格式化成展示用字符串（若规则变复杂，再抽到 Tools）
-- **计算属性**（`HasPreview`、`PreviewSummary`）——仅做绑定便利，不承载核心算法
-
-**反例（应下沉到 Tools）**：在 VM 里 `JsonDocument.Parse`、手写 Base64 编解码、正则引擎调用、子网掩码计算、颜色空间换算等。
-
-```csharp
-// ✅ VM：编排交互
-public void Format()
-{
-    ErrorMessage = null;
-    var result = JsonFormatService.Process(InputJson, indent: true, SortKeys);
-    if (!result.Success) { ErrorMessage = result.Error; return; }
-    OutputJson = result.Value!.Output;
-}
-
-// ✅ Tools：纯逻辑（ToolBox.Tools/Format/JsonFormatService.cs）
-public static ToolResult<JsonFormatOutputResult> Process(string? input, bool indent, bool sortKeys) { ... }
-
-// ❌ VM：不应出现核心算法
-// using var doc = JsonDocument.Parse(InputJson);
-```
-
-### C# 通用
-
-- 新代码使用**文件作用域命名空间**：`namespace ToolBox.Components.Pages.TextTool;`（编辑 `CommonHelp/` 时跟随该文件既有 block 风格）
-- 类型默认 `sealed`（VM、Service、DTO、Stub），除非明确需要继承
-- 优先现代 C# 语法：collection expression（`[...]`）、`record`、expression-bodied member
-- 异步方法以 `Async` 结尾；`CancellationToken cancellationToken = default` 放参数列表末尾
-- 可空引用类型与现有文件保持一致：VM 中用户输入/输出常用 `string`，错误信息用 `string?`
-
-### 字段与属性命名
-
-私有字段与公开属性**成对出现**：字段 `_camelCase`，属性 `PascalCase`，属性名 = 字段名去掉前导 `_` 并首字母大写。
-
-```csharp
-private string _inputJson = string.Empty;   // 字段
-public string InputJson { get => _inputJson; set => SetProperty(ref _inputJson, value); }  // 属性
-```
-
-#### 字段 / 属性分类
-
-| 分类 | 字段示例 | 属性示例 | `set` 可见性 | 说明 |
-| :--- | :--- | :--- | :--- | :--- |
-| 用户可编辑输入 | `_inputJson`、`_sourcePath`、`_pattern` | `InputJson`、`SourcePath`、`Pattern` | `public set` | 与 `@bind-Value` 双向绑定 |
-| 用户可编辑选项 | `_sortKeys`、`_deleteExtraFiles` | `SortKeys`、`DeleteExtraFiles` | `public set` |  checkbox / 开关 |
-| 下拉选中项 | `_selectedTemplateKey` | `SelectedTemplateKey` | `public set` | 统一 `Selected` + 名词 |
-| 只读输出 | `_outputJson`、`_replacementResult` | `OutputJson`、`ReplacementResult` | `private set` | 由命令/Service 结果写入 |
-| 错误 / 提示 | `_errorMessage`、`_jsonPathError` | `ErrorMessage`、`JsonPathError` | `private set` | 类型 `string?`；全局用 `ErrorMessage`，分区用 `{Feature}Error` |
-| 状态文案 | `_statusMessage` | `StatusMessage` | `private set` | 页面底部或标题旁说明 |
-| UI 状态 | `_isBusy`、`_isUpdating` | `IsBusy`、`IsUpdating` | `private set` | 布尔前缀 `Is`；用于禁用按钮、防重入 |
-| 进度 / 计数 | `_progressPercent`、`_copiedFiles` | `ProgressPercent`、`CopiedFiles` | `private set` | 由回调或命令更新 |
-| 注入依赖 | `_directorySyncService` | （通常不暴露属性） | — | `private readonly`，构造函数赋值 |
-| 无字段计算属性 | — | `HasPreview`、`PreviewSummary` | — | 表达式体，仅依赖其它属性 |
-
-#### 命名习惯
-
-- **输入 / 输出成对**：`InputJson` / `OutputJson`，`PlainText` / `Base64Text`，`SourcePath` / `TargetPath`
-- **布尔**：`IsBusy`、`IsUpdating`、`IsSigned`；存在性用 `HasPreview` 而非 `IsHasPreview`
-- **选中项**：`Selected` + 名词（`SelectedTemplateKey`、`SelectedTimeZoneId`、`SelectedOperation`）
-- **命令方法**：动词或动词短语，不加 `Command` 后缀——`Format()`、`Clear()`、`Validate()`、`PickSourceFolderAsync()`、`SyncAsync()`
-- **Tools 侧**：服务类 `{Feature}Service`，方法动词 `Process`、`Validate`、`Encode`；结果 `{Feature}Result` 或 `{Action}Result`（如 `JsonFormatOutputResult`、`JsonValidateResult`）
-- **默认值**：文本字段 `= string.Empty`；可选消息 `string?` 初始 `null`；bool 按语义默认 `false` 或 `true`（如 `_sortKeys = true`）
-
-#### SetProperty 与 setter 约定
-
-- 可绑定且用户或视图可写 → `public set` + `SetProperty(ref _field, value)`
-- 仅 VM 内部命令/回调可写 → `private set` + `SetProperty`
-- 赋值时需联动其它属性通知 → 在 `private set` 内 `SetProperty` 后 `OnPropertyChanged(nameof(...))`（见 `DirectorySyncVM.Preview`）
-
-### ViewModel（Blazing.Mvvm）
-
-- 文件名 `{Page}VM.cs`，类名 `{Page}VM`，继承 `ViewModelBase`
-- Razor 通过 `@inherits MvvmComponentBase<{Page}VM>` 绑定，视图中统一用 `ViewModel` 访问
-- **职责边界**：只做交互编排（见上文「VM 与 Tools 的分工」），核心逻辑委托 `ToolBox.Tools.*Service` 或 `I*` 平台服务
-- 需要平台能力时**构造函数注入** `I*` 服务，存为 `private readonly` 字段，不暴露为绑定属性
-- 用户操作入口：公开 `void` / `Task` 方法，**不要在 `.razor` 里写 `@code` 业务逻辑**
-- 错误与提示：由视图用 `MudAlert` 条件渲染；调用 Tools 后根据 `ToolResult<T>.Success` 分支赋值
-
-```csharp
-// JsonFormatVM.cs — 典型模式（交互 + 委托 Tools）
-public sealed class JsonFormatVM : ViewModelBase
-{
-    private string _inputJson = string.Empty;
-    private string _outputJson = string.Empty;
-    private string? _errorMessage;
-    private bool _sortKeys = true;
-
-    public string InputJson
-    {
-        get => _inputJson;
-        set => SetProperty(ref _inputJson, value);
-    }
-
-    public string OutputJson
-    {
-        get => _outputJson;
-        private set => SetProperty(ref _outputJson, value);
-    }
-
-    public string? ErrorMessage
-    {
-        get => _errorMessage;
-        private set => SetProperty(ref _errorMessage, value);
-    }
-
-    public bool SortKeys
-    {
-        get => _sortKeys;
-        set => SetProperty(ref _sortKeys, value);
-    }
-
-    public void Format() => ProcessJson(indent: true);
-
-    private void ProcessJson(bool indent)
-    {
-        ErrorMessage = null;
-        var result = JsonFormatService.Process(InputJson, indent, SortKeys);
-        if (!result.Success) { ErrorMessage = result.Error; return; }
-        OutputJson = result.Value!.Output;
-    }
-}
-```
-
-### ToolBox.Tools 服务
-
-- `public static class {Feature}Service`，按领域分子目录（`Format/`、`Encoding/`、`Network/` 等）
-- 对外返回 `ToolResult<T>`，失败时用 `ToolResult<T>.Fail("用户可读中文说明")`
-- 结果类型用 `sealed record`，单独文件 `{Feature}Result.cs` 或与 Service 同文件
-- 不抛异常到 UI 层；在 Service 内 `try/catch` 后转为 `Fail`
-
-```csharp
-// ToolBox.Tools/Common/ToolResult.cs
-public sealed record ToolResult<T>(bool Success, T? Value, string? Error)
-{
-    public static ToolResult<T> Ok(T value) => new(true, value, null);
-    public static ToolResult<T> Fail(string error) => new(false, default, error);
-}
-```
-
-### Razor 页面
-
-- 文件顶部的典型顺序：
+## Razor 页面
 
 ```razor
 @page "/json-format"
@@ -227,32 +80,10 @@ public sealed record ToolResult<T>(bool Success, T? Value, string? Error)
 @inherits MvvmComponentBase<JsonFormatVM>
 ```
 
-- 路由用 **kebab-case**（与 `@page`、`NavMenu` 的 `Href` 一致）
-- UI 使用 **MudBlazor**（`MudStack`、`MudPaper`、`MudButton`、`MudTextField` 等）
-- 主按钮：`Variant="Variant.Filled" Color="Color.Primary"`；次要操作：`Variant="Variant.Outlined"`
-- 布局块：`MudPaper Class="pa-4 mb-4" Elevation="1"`；标题区常用 `MudText Typo="Typo.h4"`
-- 输入框默认 `Variant="Variant.Outlined"`；大段文本用 `Lines="12"` 或 `TextFieldType="TextFieldType.MultiLine"`
-- **禁止**在 Shared 页面使用 `@rendermode`
+- 路由用 **kebab-case**（与 `@page`、`NavMenu` 的 `Href` 一致）；UI 用 MudBlazor（`MudStack`、`MudPaper`、`MudButton`、`MudTextField` 等）
+- 主按钮 `Variant="Variant.Filled" Color="Color.Primary"`，次要 `Variant="Variant.Outlined"`；布局块 `MudPaper Class="pa-4 mb-4" Elevation="1"`，标题 `MudText Typo="Typo.h4"`；输入框默认 `Outlined`，大段文本 `Lines="12"`
 
-### 平台服务接口
-
-- 接口与模型放 `ToolBox.Shared/Services/{Feature}/`（如 `IDirectorySyncService`、`DirectorySyncModels.cs`）
-- MAUI 实装放 `ToolBox/Services/`，在 `MauiProgram.cs` 注册
-- Web 实装或 stub 放 `ToolBox.Web.Client/Services/`，在 `WebServiceExtensions.AddToolBoxWeb` 注册
-- Web 不支持的能力提供明确 stub（如 `UnsupportedFolderPickerService`），`IsNativeSupported => false`，避免 silent 失败
-
-```csharp
-public interface IDirectorySyncService
-{
-    Task<DirectorySyncPreview> PreviewAsync(
-        string sourcePath,
-        string targetPath,
-        bool deleteExtraFiles,
-        CancellationToken cancellationToken = default);
-}
-```
-
-### 命名空间对照
+## 命名空间对照
 
 | 目录 | 命名空间示例 |
 | :--- | :--- |
@@ -263,14 +94,9 @@ public interface IDirectorySyncService
 | `ToolBox.Web.Client/Services/` | `ToolBox.Web.Client.Services` |
 | `ToolBox/Services/System/` | `ToolBox.Services.MauiPlatform` 或项目内既有命名 |
 
-> 注意：`Calculation/Converters/` 目录下 VM 的命名空间是 `ToolBox.Components.Pages.Converters`，与文件夹名不完全一致——**以同目录现有文件为准**。
+> `Calculation/Converters/` 下 VM 的命名空间是 `ToolBox.Components.Pages.Converters`，与文件夹名不完全一致——**以同目录现有文件为准**。
 
-### 组件与 VM 同目录
-
-- 所有 Blazor 组件（`.razor`）及其 ViewModel 必须放在**同一文件夹**
-- ViewModel 文件名必须以 `VM.cs` 结尾（`JsonFormat.razor` → `JsonFormatVM.cs`）
-
-### 新增工具页清单
+## 新增工具页清单
 
 1. **先**把算法与转换逻辑放入 `ToolBox.Tools/{领域}/{Name}Service.cs`（及 `*Result.cs`），确保无 UI 依赖
 2. 页面 → `ToolBox.Shared/Components/Pages/{分类}/{Name}.razor` + `{Name}VM.cs`（VM 只做绑定与命令编排，调用上一步 Service）
@@ -279,63 +105,26 @@ public interface IDirectorySyncService
 5. Web 别名/重定向路由（如有）→ `ToolBox.Web.Client/WebRouteRegistry.cs` 的 `AdditionalWebRoutes`
 6. 若涉及 OS/设备 → Shared `I*` 接口 + MAUI 实装 + Web stub/实装 + DI 注册
 
-### DI 注册入口
+## DI 注册
 
-```csharp
-// 共享（MudBlazor + Mvvm + DiffPlex）
-services.AddToolBoxCore(hostingModel);
-
-// MAUI — MauiProgram.cs
-AddToolBoxCore(HybridMaui) + 平台服务 AddScoped/I*
-
-// Web WASM — ToolBox.Web.Client/Program.cs
-AddToolBoxWeb(WebAssembly);
-
-// Web 服务端 — ToolBox.Web/Program.cs
-AddToolBoxWeb(WebApp);
-```
-
-### 注释与 diff 纪律
-
-- 代码以自解释为主；仅对非显而易见的业务规则、平台限制、安全约束加简短注释
-- 不做无关格式化（重排 import、整文件 reformat、改引号风格等）
-- 修改文件时保持 surrounding style；`CommonHelp` 等旧文件不必强行统一为 file-scoped namespace
+- 共享（MudBlazor + Mvvm + DiffPlex）：`services.AddToolBoxCore(hostingModel)`
+- MAUI `MauiProgram.cs`：`AddToolBoxCore(HybridMaui)` + 平台服务 `AddScoped/I*`
+- Web WASM `ToolBox.Web.Client/Program.cs`：`AddToolBoxWeb(WebAssembly)`
+- Web 服务端 `ToolBox.Web/Program.cs`：`AddToolBoxWeb(WebApp)`
 
 
-## 主题与布局
 
-### 主题色
 
-用于 MudBlazor 主题和控件但不要滥用。
+## 主题色
 
-| 角色 | 颜色预览 | 十六进制 |
-| :--- | :--- | :--- |
-| Primary | ![#111111](https://via.placeholder.com/15/2F6DF6/2F6DF6.png) | `#111111` |
-| Secondary | ![#0E7490](https://via.placeholder.com/15/0E7490/0E7490.png) | `#0E7490` |
-| Tertiary/Accent | ![#F59E0B](https://via.placeholder.com/15/F59E0B/F59E0B.png) | `#F59E0B` |
-| Surface | ![#FFFFFF](https://via.placeholder.com/15/FFFFFF/FFFFFF.png) | `#FFFFFF` |
-| Background | ![#F6F7FB](https://via.placeholder.com/15/F6F7FB/F6F7FB.png) | `#F6F7FB` |
-| Text Primary | ![#0F172A](https://via.placeholder.com/15/0F172A/0F172A.png) | `#0F172A` |
-| Text Secondary | ![#475569](https://via.placeholder.com/15/475569/475569.png) | `#475569` |
-| Divider | ![#E2E8F0](https://via.placeholder.com/15/E2E8F0/E2E8F0.png) | `#E2E8F0` |
+- Primary `#111111` · Secondary `#0E7490` · Tertiary/Accent `#F59E0B` · Surface `#FFFFFF` · Background `#F6F7FB` · Text `#0F172A` / `#475569` · Divider `#E2E8F0`
 
 
 ## MCP（toolbox）
 
-本地 stdio MCP Server 见 `ToolBox.Mcp/README.md`。项目级 MCP 配置（同一 dll）：
+本地 stdio MCP Server 见 `ToolBox.Mcp/README.md`。项目级配置（同一 dll）：Cursor `.cursor/mcp.json`（标识 **`user-toolbox`**，设置界面可能显示为 `toolbox`）；VS Code `.vscode/mcp.json`；Cline `.cline/mcp.json`；Codex `.codex/config.toml`（标识 **`toolbox`**）。
 
-| 编辑器 | 配置文件 |
-| :--- | :--- |
-| Cursor | [`.cursor/mcp.json`](.cursor/mcp.json) |
-| VS Code Copilot | [`.vscode/mcp.json`](.vscode/mcp.json) |
-| Cline | [`.cline/mcp.json`](.cline/mcp.json) |
-| Codex | [`.codex/config.toml`](.codex/config.toml) |
-
-Cursor 中服务器标识为 **`user-toolbox`**（设置界面可能显示为 `toolbox`）；Cline / Copilot / Codex 一般为 **`toolbox`**。
-
-### Agent 必须走 MCP 的场景
-
-下列任务**禁止**在回复里手算、手写等价逻辑或「猜」结果；应调用 `user-toolbox` MCP（先读工具 schema，再 `CallMcpTool`）：
+### 必须走 MCP 的场景（**禁止**手算、手写等价逻辑或「猜」结果，应调用 `user-toolbox` MCP）
 
 | 领域 | 典型任务 |
 | :--- | :--- |
@@ -346,28 +135,16 @@ Cursor 中服务器标识为 **`user-toolbox`**（设置界面可能显示为 `t
 | 计算 | 进制、Unix 时间戳、颜色、单位换算、传输时间、位运算、struct 布局 |
 | 生成 | UUID/GUID |
 
-**不必用 MCP**：改代码、读仓库、跑 build/test、**执行**目录同步、OCR、AI 对话、C# 脚本执行、Socket/WebSocket 实时 I/O、剪贴板键入等。
+**不必/刻意不上 MCP**：改代码、读仓库、跑 build/test、**执行**目录同步、OCR、AI 对话、`csharp_run` 执行、Socket/WebSocket 实时 I/O、剪贴板序列键入、AI API 调用、SVG 预览渲染、剪贴板列表解析（后几项无安全/可预测边界，逻辑仅在 Tools 供 UI）。
 
-**刻意不上 MCP**（无安全/可预测边界）：`csharp_run` 执行、目录同步**执行**、Socket/WS 连接、剪贴板序列键入、AI API 调用、SVG 预览渲染、剪贴板列表解析（逻辑在 Tools，仅供 UI）。
-
-**预览类 MCP**（只读计划/解析）：`directory_sync_plan`（JSON 文件清单 → 同步预览统计，不读写磁盘）、`data_uri_image_parse`。
+**预览类 MCP**（只读）：`directory_sync_plan`（JSON 文件清单 → 同步预览统计，不读写磁盘）、`data_uri_image_parse`。
 
 ### 调用约定
 
-1. 调用前读取 `mcps/user-toolbox/tools/<tool>.json` 确认参数名与必填项。
-2. 失败时若返回以 `ERROR:` 开头，原样告知用户或换合法输入重试；不要在对话里绕过 Service 重算。
-3. 修改 `ToolBox.Tools` 或 `ToolBox.Mcp` 后需 `dotnet build ToolBox.Mcp/ToolBox.Mcp.csproj -c Release`，并在 Cursor MCP 面板 Refresh。
-4. 分类级操作细则见 [`.agents/skills/`](.agents/skills/) 下各 `toolbox-*` Skill（含 `toolbox-system`；副本： [`.cursor/skills/`](.cursor/skills/) · [`.cline/skills/`](.cline/skills/)）。
-
-### 如何使用 Skill
-
-| 方式 | 做法 |
-| :--- | :--- |
-| **自动** | 在 ToolBox 仓库开 Agent，直接说任务（如「格式化这段 JSON」）；匹配到 Skill 的 description 时 Agent 会读取并走 MCP。 |
-| **点名** | 对话里写 `@toolbox-format`、`@toolbox-encoding`、`@toolbox-system` 等，或说「按 toolbox 编码 skill 处理」。 |
-| **总览** | 不确定用哪个时 @`toolbox-mcp`，或说「走 toolbox MCP」。 |
-
-Skill 的 **`name` 必须是英文 slug**（如 `toolbox-format`）；正文标题用中文。真源目录 **`.agents/skills/`**；副本：**`.cursor/skills/`**、**`.cline/skills/`**（需与真源同步维护）。
+1. 调用前读 `mcps/user-toolbox/tools/<tool>.json` 确认参数名与必填项。
+2. 失败返回 `ERROR:` 开头 → 原样告知用户或换合法输入重试；不绕过 Service 重算。
+3. 修改 `ToolBox.Tools` 或 `ToolBox.Mcp` 后：`dotnet build ToolBox.Mcp/ToolBox.Mcp.csproj -c Release` + MCP 面板 Refresh。
+4. 分类细则见 [`.agents/skills/`](.agents/skills/) 各 `toolbox-*` Skill（含 `toolbox-system`；副本 `.cursor/skills/` · `.cline/skills/`）。
 
 ## 安全
 
