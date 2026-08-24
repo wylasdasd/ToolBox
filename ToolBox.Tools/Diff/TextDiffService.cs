@@ -13,7 +13,7 @@ public static class TextDiffService
     /// <summary>
     /// 执行 Compare 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<TextDiffResult> Compare(string? text1, string? text2, TextDiffOptions options)
+    public static Result<TextDiffResult> Compare(string? text1, string? text2, TextDiffOptions options)
     {
         try
         {
@@ -27,11 +27,11 @@ public static class TextDiffService
             var deletions = model.OldText.Lines.Count(l => l.Type == ChangeType.Deleted);
             var modifications = model.NewText.Lines.Count(l => l.Type == ChangeType.Modified);
 
-            return ToolResult<TextDiffResult>.Ok(new TextDiffResult(additions, deletions, modifications));
+            return Result<TextDiffResult>.Ok(new TextDiffResult(additions, deletions, modifications));
         }
         catch (Exception ex)
         {
-            return ToolResult<TextDiffResult>.Fail(ex.Message);
+            return Result<TextDiffResult>.Fail(ex.Message);
         }
     }
 

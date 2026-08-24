@@ -48,7 +48,7 @@ public sealed class CronParserVM : ViewModelBase
         NextRuns = string.Empty;
 
         var result = CronParseService.Parse(Expression, IncludeSeconds);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

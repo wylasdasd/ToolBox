@@ -18,9 +18,21 @@ public class StringHelp
     {
         if (string.IsNullOrEmpty(text))
             return 0;
-        lineSeparator ??= Environment.NewLine;
-        // 使用 Split 会处理末尾没有换行的情况
-        return text.Split(new string[] { lineSeparator }, StringSplitOptions.None).Length;
+
+        // 默认按逻辑行计数（\r\n、\r、\n 均识别，无分配），避免 Windows 下按 \r\n Split 数错纯 \n 文本
+        if (lineSeparator is null)
+            return (int)CountLogicalLines(text);
+
+        // 自定义分隔符：无分配顺序计数
+        var count = 1;
+        var index = 0;
+        while ((index = text.IndexOf(lineSeparator, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += lineSeparator.Length;
+        }
+
+        return count;
     }
 
     /// <summary>

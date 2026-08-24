@@ -33,23 +33,23 @@ public static class RadixHelp
     /// <summary>
     /// 将一个输入值从 fromBase 进制解析后，批量换算为所有常用进制的表示。
     /// </summary>
-    public static ToolResult<RadixConvertResult> ConvertFrom(string? value, int fromBase)
+    public static Result<RadixConvertResult> ConvertFrom(string? value, int fromBase)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(value))
-                return ToolResult<RadixConvertResult>.Ok(new RadixConvertResult(EmptyValues()));
+                return Result<RadixConvertResult>.Ok(new RadixConvertResult(EmptyValues()));
 
             var big = Parse(value, fromBase);
             var dict = new Dictionary<int, string>();
             foreach (var radix in ProgrammerBases)
                 dict[radix] = Format(big, radix);
 
-            return ToolResult<RadixConvertResult>.Ok(new RadixConvertResult(dict));
+            return Result<RadixConvertResult>.Ok(new RadixConvertResult(dict));
         }
         catch (Exception ex)
         {
-            return ToolResult<RadixConvertResult>.Fail(ex.Message);
+            return Result<RadixConvertResult>.Fail(ex.Message);
         }
     }
 
@@ -112,7 +112,13 @@ public static class RadixHelp
         while (value > BigInteger.Zero)
         {
             value = BigInteger.DivRem(value, r, out var rem);
-            sb.Insert(0, Digits[(int)rem]);
+            sb.Append(Digits[(int)rem]);
+        }
+
+        // 逐位 Append 后整体反转，避免 Insert(0, …) 的 O(n²) 搬移
+        for (int i = 0, j = sb.Length - 1; i < j; i++, j--)
+        {
+            (sb[i], sb[j]) = (sb[j], sb[i]);
         }
 
         return sb.ToString();
@@ -153,15 +159,12 @@ public static class RadixHelp
 
     private static Dictionary<char, int> BuildCharMap()
     {
-        var map = new Dictionary<char, int>(MaxRadix * 2);
+        // 严格按字母表索引建映射：'A'–'Z' = 10–35，'a'–'z' = 36–61（大小写是不同数字）。
+        // 不做大小写别名：字母表同时含大小写且值不同，别名写入会覆盖主映射
+        // （曾导致 36 进制无法解析 A–Z、64 进制 A/a 取值错乱）。
+        var map = new Dictionary<char, int>(MaxRadix);
         for (var i = 0; i < Digits.Length; i++)
-        {
             map[Digits[i]] = i;
-            if (Digits[i] is >= 'A' and <= 'Z')
-                map[char.ToLowerInvariant(Digits[i])] = i;
-            else if (Digits[i] is >= 'a' and <= 'z')
-                map[char.ToUpperInvariant(Digits[i])] = i;
-        }
 
         return map;
     }

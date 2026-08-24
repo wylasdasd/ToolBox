@@ -12,13 +12,13 @@ namespace CommonHelp;
 /// </summary>
 public static class JsonExtensions
 {
-    /// <summary>属性名全小写的命名策略单例。</summary>
-    public static LowerCaseNamingPolicy lowerCaseNamingPolicy = new LowerCaseNamingPolicy();
+    /// <summary>属性名全小写的命名策略单例（只读，可在外部构建自定义 options 时复用）。</summary>
+    public static readonly LowerCaseNamingPolicy LowerCaseNamingPolicyInstance = new();
 
     /// <summary>缩进 + 属性名全小写 + 非 ASCII 不转义（缓存实例，避免每次调用重建元数据）。</summary>
     private static readonly JsonSerializerOptions IndentedLowerCaseOptions = new()
     {
-        PropertyNamingPolicy = lowerCaseNamingPolicy, // 关键：使用自定义命名策略（全小写操作）
+        PropertyNamingPolicy = LowerCaseNamingPolicyInstance, // 关键：使用自定义命名策略（全小写操作）
         WriteIndented = true, // 让 JSON 格式化
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // 关键：禁用不必要的转义
     };

@@ -107,7 +107,7 @@ public partial class ColorConverterVM : ViewModelBase
         try
         {
             var result = ColorConvertHelp.FromHex(_hexDigits);
-            if (!result.Success)
+            if (!result.IsSuccess)
                 return;
 
             ApplyState(result.Value!);

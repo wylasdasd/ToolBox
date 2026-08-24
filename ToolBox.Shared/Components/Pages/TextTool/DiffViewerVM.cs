@@ -87,7 +87,7 @@ public sealed class DiffViewerVM : ViewModelBase
     private void RefreshDiffStats()
     {
         var result = TextDiffService.Compare(Text1, Text2, new TextDiffOptions(IgnoreWhitespace, IgnoreCase));
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             LineAdditionCount = 0;
             LineDeletionCount = 0;

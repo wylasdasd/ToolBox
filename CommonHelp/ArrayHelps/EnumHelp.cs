@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -11,6 +12,9 @@ namespace CommonHelp;
 /// </summary>
 public static class EnumHelp
 {
+    /// <summary>描述缓存：反射结果按枚举值缓存，避免高频调用重复走 GetField/GetCustomAttribute。</summary>
+    private static readonly ConcurrentDictionary<Enum, string> DescriptionCache = new();
+
     /// <summary>
     /// 获取枚举值的描述信息 (DescriptionAttribute)
     /// </summary>
@@ -18,10 +22,15 @@ public static class EnumHelp
     /// <returns>描述信息或枚举名称</returns>
     public static string GetDescription(this Enum value)
     {
+        if (value == null) return string.Empty;
+
+        return DescriptionCache.GetOrAdd(value, static v => ResolveDescription(v));
+    }
+
+    private static string ResolveDescription(Enum value)
+    {
         try
         {
-            if (value == null) return string.Empty;
-
             var type = value.GetType();
             var name = Enum.GetName(type, value);
             if (name == null) return value.ToString();

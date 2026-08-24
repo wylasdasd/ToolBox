@@ -43,7 +43,7 @@ public static class TextTools
             "sort_desc" => TextLinesHelp.SortDesc(text, trimLines, ignoreEmptyLines, ignoreCase),
             "remove_empty" => TextLinesHelp.RemoveEmptyLines(text, trimLines),
             "trim" => TextLinesHelp.TrimOnly(text),
-            _ => ToolResult<TextLinesOperationResult>.Fail(
+            _ => Result<TextLinesOperationResult>.Fail(
                 "operation must be: deduplicate, sort_asc, sort_desc, remove_empty, trim"),
         };
         return McpToolResponses.From(result);

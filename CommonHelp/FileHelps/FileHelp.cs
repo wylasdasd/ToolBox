@@ -292,11 +292,7 @@ public static class FileHelp
         EnsureDirectoryExists(path);
         var mode = overwrite ? FileMode.Create : FileMode.CreateNew;
         await using var dest = new FileStream(path, mode, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-        // CopyToAsync with default buffer is efficient; preserve position of source if seekable
-        if (source.CanSeek && source.Position != 0)
-        {
-            // ensure reading from current position
-        }
+        // CopyToAsync 从源流当前位置开始复制（不重置、不关闭源流）
         await source.CopyToAsync(dest, 81920, cancellationToken).ConfigureAwait(false);
         await dest.FlushAsync(cancellationToken).ConfigureAwait(false);
     }

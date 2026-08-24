@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 
 namespace CommonHelp;
@@ -32,67 +33,67 @@ public static class TimestampConvertHelp
     /// <summary>
     /// 解析 Unix 秒/毫秒时间戳（纯数字 ≥12 位按毫秒处理，否则按秒）；按 preferField 优先取值，失败时回退另一字段。
     /// </summary>
-    public static ToolResult<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds, UnixFieldPrefer preferField)
+    public static Result<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds, UnixFieldPrefer preferField)
     {
         if (string.IsNullOrWhiteSpace(unixSeconds) && string.IsNullOrWhiteSpace(unixMilliseconds))
-            return ToolResult<DateTimeOffset>.Fail("empty");
+            return Result<DateTimeOffset>.Fail("empty");
 
         var secText = (unixSeconds ?? string.Empty).Trim();
         var msText = (unixMilliseconds ?? string.Empty).Trim();
 
         if (preferField == UnixFieldPrefer.Seconds && TryParseUnixToken(secText, out var dto))
-            return ToolResult<DateTimeOffset>.Ok(dto);
+            return Result<DateTimeOffset>.Ok(dto);
         if (preferField == UnixFieldPrefer.Milliseconds && TryParseUnixToken(msText, out dto))
-            return ToolResult<DateTimeOffset>.Ok(dto);
+            return Result<DateTimeOffset>.Ok(dto);
         if (TryParseUnixToken(secText, out dto))
-            return ToolResult<DateTimeOffset>.Ok(dto);
+            return Result<DateTimeOffset>.Ok(dto);
         if (TryParseUnixToken(msText, out dto))
-            return ToolResult<DateTimeOffset>.Ok(dto);
+            return Result<DateTimeOffset>.Ok(dto);
 
-        return ToolResult<DateTimeOffset>.Fail("invalid");
+        return Result<DateTimeOffset>.Fail("invalid");
     }
 
     /// <summary>
     /// ParseUnix 的简化重载（优先秒字段）。
     /// </summary>
-    public static ToolResult<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds) =>
+    public static Result<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds) =>
         ParseUnix(unixSeconds, unixMilliseconds, UnixFieldPrefer.Seconds);
 
     /// <summary>
     /// 由时区时间与/或 UTC 时间（支持 ISO 8601）解析出 DateTimeOffset；两者同时提供时校验偏差不超过 1 分钟。
     /// </summary>
-    public static ToolResult<DateTimeOffset> ParseFromTime(string? localTime, string? utcTime, string timeZoneId)
+    public static Result<DateTimeOffset> ParseFromTime(string? localTime, string? utcTime, string timeZoneId)
     {
         var hasLocal = !string.IsNullOrWhiteSpace(localTime);
         var hasUtc = !string.IsNullOrWhiteSpace(utcTime);
 
         if (!hasLocal && !hasUtc)
-            return ToolResult<DateTimeOffset>.Fail("请填写时区时间或 UTC 时间（支持 ISO 8601）。");
+            return Result<DateTimeOffset>.Fail("请填写时区时间或 UTC 时间（支持 ISO 8601）。");
 
         DateTimeOffset dto;
         if (hasLocal && hasUtc)
         {
             if (!TryParseLocalTimeInZone(localTime!, timeZoneId, out dto))
-                return ToolResult<DateTimeOffset>.Fail("时区时间格式不正确。");
+                return Result<DateTimeOffset>.Fail("时区时间格式不正确。");
 
             if (!TryParseDateTimeInput(utcTime!, preferUtc: true, out var utcDto))
-                return ToolResult<DateTimeOffset>.Fail("UTC 时间格式不正确。");
+                return Result<DateTimeOffset>.Fail("UTC 时间格式不正确。");
 
             if (Math.Abs(dto.ToUnixTimeMilliseconds() - utcDto.ToUnixTimeMilliseconds()) > 60_000)
-                return ToolResult<DateTimeOffset>.Fail("时区时间与 UTC 相差超过 1 分钟，请检查输入。");
+                return Result<DateTimeOffset>.Fail("时区时间与 UTC 相差超过 1 分钟，请检查输入。");
         }
         else if (hasLocal)
         {
             if (!TryParseLocalTimeInZone(localTime!, timeZoneId, out dto))
-                return ToolResult<DateTimeOffset>.Fail("时区时间格式不正确。");
+                return Result<DateTimeOffset>.Fail("时区时间格式不正确。");
         }
         else
         {
             if (!TryParseDateTimeInput(utcTime!, preferUtc: true, out dto))
-                return ToolResult<DateTimeOffset>.Fail("UTC 时间格式不正确。");
+                return Result<DateTimeOffset>.Fail("UTC 时间格式不正确。");
         }
 
-        return ToolResult<DateTimeOffset>.Ok(dto);
+        return Result<DateTimeOffset>.Ok(dto);
     }
 
     /// <summary>
@@ -214,20 +215,25 @@ public static class TimestampConvertHelp
         return DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, styles, out dto);
     }
 
+    /// <summary>已解析的时区缓存；TimeZoneInfo 不可变且线程安全，缓存可避免每次查找重建实例。</summary>
+    private static readonly ConcurrentDictionary<string, TimeZoneInfo> TimeZoneCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
-    /// 按 Id 查找时区；找不到时回退到系统本地时区。
+    /// 按 Id 查找时区（带缓存）；找不到时回退到系统本地时区。
     /// </summary>
-    private static TimeZoneInfo FindTimeZone(string timeZoneId)
-    {
-        try
+    private static TimeZoneInfo FindTimeZone(string timeZoneId) =>
+        TimeZoneCache.GetOrAdd(timeZoneId, static id =>
         {
-            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return TimeZoneInfo.Local;
-        }
-    }
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(id);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.Local;
+            }
+        });
 
     /// <summary>
     /// 生成相对当前时间的提示文案（x 天/小时/分钟/秒 之前或之后）。

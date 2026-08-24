@@ -47,7 +47,7 @@ public static class TextLinesHelp
     /// <summary>
     /// 多行文本去重；keepOrder 为 true 时保留首次出现顺序，否则只保证去重不保证顺序。
     /// </summary>
-    public static ToolResult<TextLinesOperationResult> Deduplicate(
+    public static Result<TextLinesOperationResult> Deduplicate(
         string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase, bool keepOrder)
     {
         var lines = PrepareLines(text ?? string.Empty, trimLines, ignoreEmptyLines);
@@ -69,7 +69,7 @@ public static class TextLinesHelp
             result = lines.Distinct(comparer).ToList();
         }
 
-        return ToolResult<TextLinesOperationResult>.Ok(new TextLinesOperationResult(
+        return Result<TextLinesOperationResult>.Ok(new TextLinesOperationResult(
             JoinLines(result),
             $"已去重 {lines.Count - result.Count} 行。"));
     }
@@ -77,42 +77,42 @@ public static class TextLinesHelp
     /// <summary>
     /// 多行文本按字典序升序排序。
     /// </summary>
-    public static ToolResult<TextLinesOperationResult> SortAsc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)
+    public static Result<TextLinesOperationResult> SortAsc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)
     {
         var lines = PrepareLines(text ?? string.Empty, trimLines, ignoreEmptyLines);
         var comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         lines.Sort(comparer);
-        return ToolResult<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已按升序排序。"));
+        return Result<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已按升序排序。"));
     }
 
     /// <summary>
     /// 多行文本按字典序降序排序。
     /// </summary>
-    public static ToolResult<TextLinesOperationResult> SortDesc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)
+    public static Result<TextLinesOperationResult> SortDesc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)
     {
         var lines = PrepareLines(text ?? string.Empty, trimLines, ignoreEmptyLines);
         var comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         lines.Sort(comparer);
         lines.Reverse();
-        return ToolResult<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已按降序排序。"));
+        return Result<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已按降序排序。"));
     }
 
     /// <summary>
     /// 移除所有空白行。
     /// </summary>
-    public static ToolResult<TextLinesOperationResult> RemoveEmptyLines(string? text, bool trimLines)
+    public static Result<TextLinesOperationResult> RemoveEmptyLines(string? text, bool trimLines)
     {
         var lines = PrepareLines(text ?? string.Empty, trimLines, removeEmpty: true);
-        return ToolResult<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已移除空行。"));
+        return Result<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已移除空行。"));
     }
 
     /// <summary>
     /// 裁剪每行首尾空白（保留空行）。
     /// </summary>
-    public static ToolResult<TextLinesOperationResult> TrimOnly(string? text)
+    public static Result<TextLinesOperationResult> TrimOnly(string? text)
     {
         var lines = PrepareLines(text ?? string.Empty, applyTrim: true, removeEmpty: false);
-        return ToolResult<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已裁剪行首尾空白。"));
+        return Result<TextLinesOperationResult>.Ok(new TextLinesOperationResult(JoinLines(lines), "已裁剪行首尾空白。"));
     }
 
     /// <summary>

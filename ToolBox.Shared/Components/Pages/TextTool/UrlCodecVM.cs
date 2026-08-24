@@ -38,7 +38,7 @@ public sealed class UrlCodecVM : ViewModelBase
     {
         ErrorMessage = null;
         var result = UrlCodecHelp.Encode(PlainText, UseEscapeDataString);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;
@@ -51,7 +51,7 @@ public sealed class UrlCodecVM : ViewModelBase
     {
         ErrorMessage = null;
         var result = UrlCodecHelp.Decode(EncodedText, UseEscapeDataString);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

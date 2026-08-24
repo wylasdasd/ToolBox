@@ -35,7 +35,7 @@ public static class EndianHexHelp
     /// <summary>
     /// 数值转 Hex 字节：inputIsHex 为 true 时直接解析 Hex 输入，否则按十进制数值编码；同时输出二进制与按目标类型解码的十进制。
     /// </summary>
-    public static ToolResult<EndianHexResult> ConvertValueToHex(
+    public static Result<EndianHexResult> ConvertValueToHex(
         string? input, string? dataTypeId, bool bigEndian, bool inputIsHex)
     {
         var type = ResolveDataType(dataTypeId);
@@ -45,28 +45,28 @@ public static class EndianHexHelp
                 ? EncodingHelp.ParseHexBytes(input ?? string.Empty, type.ByteSize)
                 : EncodeValue(input ?? string.Empty, type, bigEndian);
 
-            return ToolResult<EndianHexResult>.Ok(BuildResult(bytes, type, bigEndian));
+            return Result<EndianHexResult>.Ok(BuildResult(bytes, type, bigEndian));
         }
         catch (Exception ex)
         {
-            return ToolResult<EndianHexResult>.Fail(ex.Message);
+            return Result<EndianHexResult>.Fail(ex.Message);
         }
     }
 
     /// <summary>
     /// Hex 字节转十进制：解析指定长度的 Hex 输入，按目标类型与端序解码为数值字符串。
     /// </summary>
-    public static ToolResult<EndianHexResult> ConvertHexToValue(string? input, string? dataTypeId, bool bigEndian)
+    public static Result<EndianHexResult> ConvertHexToValue(string? input, string? dataTypeId, bool bigEndian)
     {
         var type = ResolveDataType(dataTypeId);
         try
         {
             var bytes = EncodingHelp.ParseHexBytes(input ?? string.Empty, type.ByteSize);
-            return ToolResult<EndianHexResult>.Ok(BuildResult(bytes, type, bigEndian));
+            return Result<EndianHexResult>.Ok(BuildResult(bytes, type, bigEndian));
         }
         catch (Exception ex)
         {
-            return ToolResult<EndianHexResult>.Fail(ex.Message);
+            return Result<EndianHexResult>.Fail(ex.Message);
         }
     }
 

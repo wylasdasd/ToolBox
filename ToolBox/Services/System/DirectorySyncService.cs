@@ -135,7 +135,7 @@ public sealed class DirectorySyncService : IDirectorySyncService
             sourceEntries,
             targetEntries);
 
-        if (!result.Success || result.Value is null)
+        if (!result.IsSuccess || result.Value is null)
             throw new InvalidOperationException(result.Error ?? "无法生成同步计划。");
 
         var plan = result.Value;

@@ -21,7 +21,7 @@ public static class TextHexHelp
     /// <summary>
     /// 将文本按指定编码转为字节，输出空格分隔 Hex 及附加展示块（连续 Hex、\xNN C 转义、\uXXXX Unicode 转义按需叠加）。
     /// </summary>
-    public static ToolResult<TextHexEncodeResult> EncodeTextToHex(
+    public static Result<TextHexEncodeResult> EncodeTextToHex(
         string? textInput,
         string encodingId,
         string displayModeId,
@@ -35,29 +35,29 @@ public static class TextHexHelp
             var bytes = encoding.GetBytes(textInput ?? string.Empty);
             var hexInput = EncodingHelp.FormatHexBytes(bytes, uppercaseHex);
             var output = BuildDisplay(bytes, encoding, displayModeId, uppercaseHex, showUnicodeEscape, showCEscape);
-            return ToolResult<TextHexEncodeResult>.Ok(new TextHexEncodeResult(hexInput, output));
+            return Result<TextHexEncodeResult>.Ok(new TextHexEncodeResult(hexInput, output));
         }
         catch (Exception ex)
         {
-            return ToolResult<TextHexEncodeResult>.Fail(ex.Message);
+            return Result<TextHexEncodeResult>.Fail(ex.Message);
         }
     }
 
     /// <summary>
     /// 将十六进制字符串（容忍 0x/\x 前缀、空格与 -、, 分隔符）按指定编码解码为文本。
     /// </summary>
-    public static ToolResult<TextHexDecodeResult> DecodeHexToText(string? hexInput, string encodingId)
+    public static Result<TextHexDecodeResult> DecodeHexToText(string? hexInput, string encodingId)
     {
         try
         {
             var bytes = EncodingHelp.ParseHexBytes(hexInput ?? string.Empty);
             var encoding = EncodingHelp.GetEncoding(encodingId);
             var textInput = encoding.GetString(bytes);
-            return ToolResult<TextHexDecodeResult>.Ok(new TextHexDecodeResult(textInput, textInput));
+            return Result<TextHexDecodeResult>.Ok(new TextHexDecodeResult(textInput, textInput));
         }
         catch (Exception ex)
         {
-            return ToolResult<TextHexDecodeResult>.Fail(ex.Message);
+            return Result<TextHexDecodeResult>.Fail(ex.Message);
         }
     }
 

@@ -20,10 +20,10 @@ public static class FormatConvertService
     /// <summary>
     /// 执行 Convert 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<FormatConvertResult> Convert(string? input, string sourceFormat, string targetFormat)
+    public static Result<FormatConvertResult> Convert(string? input, string sourceFormat, string targetFormat)
     {
         if (string.IsNullOrWhiteSpace(input))
-            return ToolResult<FormatConvertResult>.Ok(new FormatConvertResult(string.Empty));
+            return Result<FormatConvertResult>.Ok(new FormatConvertResult(string.Empty));
 
         try
         {
@@ -62,7 +62,7 @@ public static class FormatConvertService
             }
 
             if (intermediateObj is null)
-                return ToolResult<FormatConvertResult>.Fail("Error: 无法解析输入或结果为空。");
+                return Result<FormatConvertResult>.Fail("Error: 无法解析输入或结果为空。");
 
             string output;
 
@@ -104,11 +104,11 @@ public static class FormatConvertService
                 output = string.Empty;
             }
 
-            return ToolResult<FormatConvertResult>.Ok(new FormatConvertResult(output));
+            return Result<FormatConvertResult>.Ok(new FormatConvertResult(output));
         }
         catch (Exception ex)
         {
-            return ToolResult<FormatConvertResult>.Fail($"Error: {ex.Message}");
+            return Result<FormatConvertResult>.Fail($"Error: {ex.Message}");
         }
     }
 

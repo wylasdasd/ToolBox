@@ -19,10 +19,10 @@ public static class DataUriImageService
     /// <summary>
     /// 执行 Parse 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<DataUriImageParseResult> Parse(string? input)
+    public static Result<DataUriImageParseResult> Parse(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
-            return ToolResult<DataUriImageParseResult>.Fail("输入不能为空。");
+            return Result<DataUriImageParseResult>.Fail("输入不能为空。");
 
         try
         {
@@ -30,9 +30,9 @@ public static class DataUriImageService
             if (MimeHelp.TryParseDataUrl(trimmed, out var dataUrl, out var base64Part, out var mimeType))
             {
                 if (!MimeHelp.IsValidBase64(base64Part))
-                    return ToolResult<DataUriImageParseResult>.Fail("无效的 Base64 字符串。");
+                    return Result<DataUriImageParseResult>.Fail("无效的 Base64 字符串。");
 
-                return ToolResult<DataUriImageParseResult>.Ok(new DataUriImageParseResult(
+                return Result<DataUriImageParseResult>.Ok(new DataUriImageParseResult(
                     dataUrl,
                     mimeType,
                     null,
@@ -40,13 +40,13 @@ public static class DataUriImageService
             }
 
             if (!MimeHelp.IsValidBase64(trimmed))
-                return ToolResult<DataUriImageParseResult>.Fail("无效的 Base64 字符串。");
+                return Result<DataUriImageParseResult>.Fail("无效的 Base64 字符串。");
 
             var imageType = MimeHelp.DetectImageMimeType(trimmed);
             if (string.IsNullOrEmpty(imageType))
-                return ToolResult<DataUriImageParseResult>.Fail("无法识别图片类型。");
+                return Result<DataUriImageParseResult>.Fail("无法识别图片类型。");
 
-            return ToolResult<DataUriImageParseResult>.Ok(new DataUriImageParseResult(
+            return Result<DataUriImageParseResult>.Ok(new DataUriImageParseResult(
                 $"data:{imageType};base64,{trimmed}",
                 null,
                 imageType,
@@ -54,7 +54,7 @@ public static class DataUriImageService
         }
         catch (FormatException)
         {
-            return ToolResult<DataUriImageParseResult>.Fail("无效的 Base64 字符串。");
+            return Result<DataUriImageParseResult>.Fail("无效的 Base64 字符串。");
         }
     }
 }

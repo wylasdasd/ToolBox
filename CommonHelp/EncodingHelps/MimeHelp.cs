@@ -64,8 +64,8 @@ public static class MimeHelp
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        var buffer = new Span<byte>(new byte[value.Length]);
-        return Convert.TryFromBase64String(value, buffer, out _);
+        // 零分配校验；长度不足时按补齐容忍
+        return System.Buffers.Text.Base64.IsValid(value, out _);
     }
 
     /// <summary>

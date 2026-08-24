@@ -48,7 +48,7 @@ public partial class FormatConverterVM : ViewModelBase
         ErrorMessage = null;
 
         var result = FormatConvertService.Convert(Input, SourceFormat, TargetFormat);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

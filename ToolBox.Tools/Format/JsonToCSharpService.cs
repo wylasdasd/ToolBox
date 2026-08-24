@@ -12,10 +12,10 @@ public static class JsonToCSharpService
     /// <summary>
     /// 执行 Convert 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<JsonToCSharpResult> Convert(string? jsonInput, JsonToCSharpOptions options)
+    public static Result<JsonToCSharpResult> Convert(string? jsonInput, JsonToCSharpOptions options)
     {
         if (string.IsNullOrWhiteSpace(jsonInput))
-            return ToolResult<JsonToCSharpResult>.Ok(new JsonToCSharpResult(string.Empty));
+            return Result<JsonToCSharpResult>.Ok(new JsonToCSharpResult(string.Empty));
 
         try
         {
@@ -44,15 +44,15 @@ public static class JsonToCSharpService
             foreach (var cls in classes.Values)
                 sb.AppendLine(cls);
 
-            return ToolResult<JsonToCSharpResult>.Ok(new JsonToCSharpResult(sb.ToString()));
+            return Result<JsonToCSharpResult>.Ok(new JsonToCSharpResult(sb.ToString()));
         }
         catch (JsonException ex)
         {
-            return ToolResult<JsonToCSharpResult>.Fail($"JSON Parsing Error: {ex.Message}");
+            return Result<JsonToCSharpResult>.Fail($"JSON Parsing Error: {ex.Message}");
         }
         catch (Exception ex)
         {
-            return ToolResult<JsonToCSharpResult>.Fail($"Error: {ex.Message}");
+            return Result<JsonToCSharpResult>.Fail($"Error: {ex.Message}");
         }
     }
 /// <summary>

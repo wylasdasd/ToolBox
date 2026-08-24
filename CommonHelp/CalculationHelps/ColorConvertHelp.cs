@@ -49,23 +49,23 @@ public static class ColorConvertHelp
     /// <summary>
     /// 解析 6 位（RGB，Alpha 视为 255）或 8 位（RGBA）Hex 为颜色状态（含 HSL 换算）。
     /// </summary>
-    public static ToolResult<ColorState> FromHex(string hexDigits)
+    public static Result<ColorState> FromHex(string hexDigits)
     {
         try
         {
             var hex = hexDigits;
             if (hex.Length is not (6 or 8))
-                return ToolResult<ColorState>.Fail("invalid length");
+                return Result<ColorState>.Fail("invalid length");
 
             var r = ParseHexByte(hex, 0);
             var g = ParseHexByte(hex, 2);
             var b = ParseHexByte(hex, 4);
             var a = hex.Length == 8 ? ParseHexByte(hex, 6) : 255;
-            return ToolResult<ColorState>.Ok(BuildFromRgba(r, g, b, a));
+            return Result<ColorState>.Ok(BuildFromRgba(r, g, b, a));
         }
         catch
         {
-            return ToolResult<ColorState>.Fail("invalid hex");
+            return Result<ColorState>.Fail("invalid hex");
         }
     }
 

@@ -11,47 +11,47 @@ public static class RequestToCurlService
     /// <summary>
     /// 执行 ConvertFromRaw 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<RequestToCurlResult> ConvertFromRaw(string? raw, bool isHttps, string outputFormat)
+    public static Result<RequestToCurlResult> ConvertFromRaw(string? raw, bool isHttps, string outputFormat)
     {
         try
         {
             var data = BuildFromRaw(raw, isHttps);
             if (data is null)
-                return ToolResult<RequestToCurlResult>.Fail("未能解析请求。");
+                return Result<RequestToCurlResult>.Fail("未能解析请求。");
 
             var command = outputFormat == "powershell"
                 ? GeneratePowerShell(data)
                 : GenerateCurl(data);
 
-            return ToolResult<RequestToCurlResult>.Ok(new RequestToCurlResult(command, data));
+            return Result<RequestToCurlResult>.Ok(new RequestToCurlResult(command, data));
         }
         catch (Exception ex)
         {
-            return ToolResult<RequestToCurlResult>.Fail(ex.Message);
+            return Result<RequestToCurlResult>.Fail(ex.Message);
         }
     }
 
     /// <summary>
     /// 执行 ConvertFromForm 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<RequestToCurlResult> ConvertFromForm(
+    public static Result<RequestToCurlResult> ConvertFromForm(
         string? method, string? url, string? headersText, string? body, bool isHttps, string outputFormat)
     {
         try
         {
             var data = BuildFromForm(method, url, headersText, body, isHttps);
             if (data is null)
-                return ToolResult<RequestToCurlResult>.Fail("未能解析请求。");
+                return Result<RequestToCurlResult>.Fail("未能解析请求。");
 
             var command = outputFormat == "powershell"
                 ? GeneratePowerShell(data)
                 : GenerateCurl(data);
 
-            return ToolResult<RequestToCurlResult>.Ok(new RequestToCurlResult(command, data));
+            return Result<RequestToCurlResult>.Ok(new RequestToCurlResult(command, data));
         }
         catch (Exception ex)
         {
-            return ToolResult<RequestToCurlResult>.Fail(ex.Message);
+            return Result<RequestToCurlResult>.Fail(ex.Message);
         }
     }
 

@@ -31,17 +31,17 @@ public static class NamingStyleHelp
     /// <summary>
     /// 将输入标识符转换为 8 种命名风格。支持 camelCase/PascalCase/snake_case/kebab-case/dot.case/空格等混合输入；空白输入返回空结果。
     /// </summary>
-    public static ToolResult<NamingStyleResult> Convert(string? input)
+    public static Result<NamingStyleResult> Convert(string? input)
     {
         var text = input ?? string.Empty;
         if (string.IsNullOrWhiteSpace(text))
-            return ToolResult<NamingStyleResult>.Ok(NamingStyleResult.Empty);
+            return Result<NamingStyleResult>.Ok(NamingStyleResult.Empty);
 
         try
         {
             var words = SplitWords(text);
             if (words.Count == 0)
-                return ToolResult<NamingStyleResult>.Fail("无法识别有效单词。");
+                return Result<NamingStyleResult>.Fail("无法识别有效单词。");
 
             var lower = words.Select(w => w.ToLowerInvariant()).ToArray();
             var result = new NamingStyleResult(
@@ -54,11 +54,11 @@ public static class NamingStyleHelp
                 TitleCase: string.Join(' ', lower.Select(Capitalize)),
                 LowerCase: string.Join(string.Empty, lower));
 
-            return ToolResult<NamingStyleResult>.Ok(result);
+            return Result<NamingStyleResult>.Ok(result);
         }
         catch (Exception ex)
         {
-            return ToolResult<NamingStyleResult>.Fail(ex.Message);
+            return Result<NamingStyleResult>.Fail(ex.Message);
         }
     }
 

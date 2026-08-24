@@ -149,7 +149,7 @@ public sealed class RegexTesterVM : ViewModelBase
         var options = new RegexMatchOptions(IgnoreCase, Multiline, Singleline, MatchesOnly);
         var result = RegexMatchService.Match(Pattern, InputText, ReplacementText, options);
 
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             MatchCount = 0;

@@ -318,7 +318,7 @@ public partial class BitwiseOperationVM : ViewModelBase
             Result,
             _shiftChainActive);
 
-        if (computed.Success)
+        if (computed.IsSuccess)
             Result = computed.Value!.Result;
     }
 

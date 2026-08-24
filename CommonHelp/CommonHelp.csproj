@@ -9,12 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- IHttpService 所需的 IHttpClientFactory / ILogger 抽象 -->
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.9" />
-    <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
-    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.9" />
+    <!-- GBK/Big5 等 CodePages 编码由 net10.0 共享框架内置（CodePagesEncodingProvider），无需单独引用包；
+         Mapperly / Serilog 全仓库零代码引用，已移除。 -->
   </ItemGroup>
 
 </Project>

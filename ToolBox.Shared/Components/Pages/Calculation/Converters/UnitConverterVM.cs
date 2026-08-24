@@ -136,7 +136,7 @@ public partial class UnitConverterVM : ViewModelBase
     public void RecalculateTransferTime()
     {
         var result = UnitConvertService.CalculateTransferTime(FileSize, FileSizeUnitId, Bandwidth, BandwidthUnitId);
-        TransferTime = result.Success ? result.Value ?? string.Empty : string.Empty;
+        TransferTime = result.IsSuccess ? result.Value ?? string.Empty : string.Empty;
     }
 
     public void ClearInput()

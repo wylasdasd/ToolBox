@@ -39,7 +39,7 @@ public sealed class Base64VM : ViewModelBase
     {
         ErrorMessage = null;
         var result = Base64Help.Encode(PlainText, UseUrlSafe);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;
@@ -52,7 +52,7 @@ public sealed class Base64VM : ViewModelBase
     {
         ErrorMessage = null;
         var result = Base64Help.Decode(Base64Text, UseUrlSafe);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

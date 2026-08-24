@@ -91,7 +91,7 @@ public sealed class TextHexVM : ViewModelBase
             UppercaseHex,
             ShowUnicodeEscape,
             ShowCEscape);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;
@@ -106,7 +106,7 @@ public sealed class TextHexVM : ViewModelBase
     {
         ErrorMessage = null;
         var result = TextHexHelp.DecodeHexToText(HexInput, EncodingId);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

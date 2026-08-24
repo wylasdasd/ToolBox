@@ -105,7 +105,7 @@ public partial class JsonToCSharpVM : ViewModelBase
             MergeArrays);
 
         var result = JsonToCSharpService.Convert(JsonInput, options);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             CSharpOutput = string.Empty;

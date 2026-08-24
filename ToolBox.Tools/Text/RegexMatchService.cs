@@ -14,7 +14,7 @@ public static class RegexMatchService
     /// <summary>
     /// 执行 Match 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<RegexMatchResult> Match(
+    public static Result<RegexMatchResult> Match(
         string? pattern,
         string? inputText,
         string? replacementText,
@@ -26,7 +26,7 @@ public static class RegexMatchService
         if (string.IsNullOrWhiteSpace(patternValue))
         {
             var emptyOptions = BuildOptions(options);
-            return ToolResult<RegexMatchResult>.Ok(new RegexMatchResult(
+            return Result<RegexMatchResult>.Ok(new RegexMatchResult(
                 0,
                 FormatOptionsSummary(emptyOptions),
                 string.Empty,
@@ -73,7 +73,7 @@ public static class RegexMatchService
                 segments = BuildSegments(text, spans);
             }
 
-            return ToolResult<RegexMatchResult>.Ok(new RegexMatchResult(
+            return Result<RegexMatchResult>.Ok(new RegexMatchResult(
                 spans.Count,
                 FormatOptionsSummary(regexOptions),
                 replacementResult,
@@ -82,11 +82,11 @@ public static class RegexMatchService
         }
         catch (ArgumentException ex)
         {
-            return ToolResult<RegexMatchResult>.Fail(ex.Message);
+            return Result<RegexMatchResult>.Fail(ex.Message);
         }
         catch (RegexMatchTimeoutException)
         {
-            return ToolResult<RegexMatchResult>.Fail("Match timeout. Try simplifying the pattern or input.");
+            return Result<RegexMatchResult>.Fail("Match timeout. Try simplifying the pattern or input.");
         }
     }
 

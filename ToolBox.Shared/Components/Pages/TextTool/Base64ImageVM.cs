@@ -34,7 +34,7 @@ public class Base64ImageVM : ViewModelBase
             return;
 
         var result = DataUriImageService.Parse(Base64Input);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error ?? "解析失败。";
             return;

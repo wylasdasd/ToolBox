@@ -103,7 +103,7 @@ public sealed class IpCalculatorVM : ViewModelBase
         ClearResults();
 
         var result = IpCalculatorHelp.Calculate(Input);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

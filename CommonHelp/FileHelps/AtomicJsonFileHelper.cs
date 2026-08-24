@@ -9,12 +9,33 @@ namespace CommonHelp;
 /// <summary>
 /// 原子性 JSON 文件读写工具，提供跨进程与进程内互斥的安全访问方式。
 /// </summary>
+/// <remarks>
+/// 使用方式：<see cref="ReadAtomic{T}(string)"/> 返回句柄后修改 <c>handle.Data</c> 再调用 <c>Commit()</c> 写回；
+/// 或直接用 <see cref="WriteAtomic{T}(string, T)"/> 独占覆盖写入。
+/// 跨进程以 <c>FileShare.None</c> 独占；进程内按路径的监视器锁排队（锁对象随访问过的路径累积，不回收）。
+/// 适用于低并发、强一致性场景。
+/// </remarks>
 public class AtomicJsonFileHelper
 {
     // 定义一个进程内的对象锁，用于防止同一个应用内的多个线程同时开始操作。
-    // 注意：这个锁只对当前进程有效，不能阻止其他独立进程访问文件。
+    // 注意：这个锁只对当前进程有效，不能阻止其他独立进程访问文件；条目按访问过的路径累积，不回收。
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> fileLocks
         = new System.Collections.Concurrent.ConcurrentDictionary<string, object>();
+
+    /// <summary>读取（反序列化）选项；缓存静态实例，避免每次调用重建序列化元数据。</summary>
+    private static readonly JsonSerializerOptions ReadOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true
+    };
+
+    /// <summary>写入（序列化）选项：属性名全小写、非 ASCII 不转义、缩进；缓存静态实例，避免每次调用重建序列化元数据。</summary>
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        PropertyNamingPolicy = new LowerCaseNamingPolicy(),
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        WriteIndented = true
+    };
 
     /// <summary>
     /// 表示对某个 JSON 文件的原子性读写句柄。
@@ -49,17 +70,10 @@ public class AtomicJsonFileHelper
 
             try
             {
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = new LowerCaseNamingPolicy(),
-                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    WriteIndented = true
-                };
-
                 // 截断并写入
                 _stream.SetLength(0);
                 _stream.Seek(0, SeekOrigin.Begin);
-                JsonSerializer.Serialize(_stream, Data, options);
+                JsonSerializer.Serialize(_stream, Data, WriteOptions);
                 _stream.Flush();
                 _committed = true;
             }
@@ -95,22 +109,6 @@ public class AtomicJsonFileHelper
 
 
     /// <summary>
-    /// 使用说明：
-    /// 本类提供原子性（独占）访问 JSON 文件的方式，已将原先的单一 Update 回调模式拆分为两个方法：
-    /// <list type="bullet">
-    /// <item><description><see cref="ReadAtomic{T}(string)"/> - 以独占方式打开文件并返回一个 <see cref="AtomicFileHandle{T}"/> 对象，调用方可在内存中修改 <c>handle.Data</c>，然后调用 <c>handle.Commit()</c> 将修改写回并释放锁；若不调用 Commit 则在 Dispose 时直接释放锁并不写回。</description></item>
-    /// <item><description><see cref="WriteAtomic{T}(string, T)"/> - 仅以独占方式将给定数据写入文件（覆盖写入）。</description></item>
-    /// </list>
-    /// 示例：
-    /// <code>
-    /// using var handle = AtomicFileHelper.ReadAtomic&lt;MyModel&gt;(path);
-    /// handle.Data.Value = 123;
-    /// handle.Commit(); // 写回并释放锁
-    /// </code>
-    /// 注意：ReadAtomic/Commit 与 WriteAtomic 都会在文件上使用 FileShare.None 以保证跨进程的独占性，且会在进程内使用监视器锁防止同一进程内的并发访问。
-    /// 这些方法适用于低并发或需要强一致性的场景。
-    /// </summary>
-    /// <summary>
     /// 原子性地打开并返回文件句柄与反序列化的数据。返回的 <see cref="AtomicFileHandle{T}"/>
     /// 持有对文件的独占访问（FileShare.None）以及进程内的监视器锁，直到调用 <see cref="AtomicFileHandle{T}.Commit"/>
     /// 或 <see cref="AtomicFileHandle{T}.Dispose"/> 为止。
@@ -127,11 +125,6 @@ public class AtomicJsonFileHelper
         {
             stream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             T? data;
-            var options1 = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                AllowTrailingCommas = true
-            };
             if (stream.Length == 0)
             {
                 data = default;
@@ -139,7 +132,7 @@ public class AtomicJsonFileHelper
             else
             {
                 stream.Seek(0, SeekOrigin.Begin);
-                data = JsonSerializer.Deserialize<T>(stream, options1) ?? default;
+                data = JsonSerializer.Deserialize<T>(stream, ReadOptions) ?? default;
             }
 
             // 构造并返回句柄（句柄负责最终的写回与释放锁）
@@ -164,16 +157,15 @@ public class AtomicJsonFileHelper
     public static void WriteAtomic<T>(string filePath, T data) where T : class
     {
         FileHelp.EnsureDirectoryExists(filePath);
-        var options = new JsonSerializerOptions
+        // 与 ReadAtomic/Commit 一致：先取进程内锁，避免同进程内排队竞争时直接抛 IOException
+        var fileLock = fileLocks.GetOrAdd(filePath, _ => new object());
+        lock (fileLock)
         {
-            PropertyNamingPolicy = new LowerCaseNamingPolicy(),
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            WriteIndented = true
-        };
-        // 使用独占打开，仅在写入期间阻止其他访问
-        using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        JsonSerializer.Serialize(stream, data, options);
-        stream.Flush();
+            // 使用独占打开，仅在写入期间阻止其他访问
+            using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            JsonSerializer.Serialize(stream, data, WriteOptions);
+            stream.Flush();
+        }
     }
 
 

@@ -33,7 +33,7 @@ public static class WebServiceExtensions
                 var navigation = sp.GetRequiredService<NavigationManager>();
                 client.BaseAddress = new Uri(navigation.BaseUri);
             });
-            services.AddScoped<IHttpService, HttpService>();
+            services.AddScoped<IHttpService, HttpClientFactoryService>();
         }
 
         return services;

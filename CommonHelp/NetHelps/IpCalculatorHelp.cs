@@ -28,16 +28,16 @@ public static class IpCalculatorHelp
     /// <summary>
     /// 计算子网信息。输入支持三种形式：192.168.1.10/24、192.168.1.10 255.255.255.0、纯 IP（视为 /32 单主机）。
     /// </summary>
-    public static ToolResult<IpCalculatorResult> Calculate(string? input)
+    public static Result<IpCalculatorResult> Calculate(string? input)
     {
         var text = (input ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(text))
-            return ToolResult<IpCalculatorResult>.Fail("请输入 IPv4 地址，如 192.168.1.10/24 或 192.168.1.10 255.255.255.0。");
+            return Result<IpCalculatorResult>.Fail("请输入 IPv4 地址，如 192.168.1.10/24 或 192.168.1.10 255.255.255.0。");
 
         try
         {
             if (!TryParseInput(text, out var ip, out var prefix))
-                return ToolResult<IpCalculatorResult>.Fail("无法解析 IPv4 或子网掩码。");
+                return Result<IpCalculatorResult>.Fail("无法解析 IPv4 或子网掩码。");
 
             var mask = PrefixToMask(prefix);
             var wildcard = ~mask;
@@ -70,13 +70,13 @@ public static class IpCalculatorHelp
                 hostCount = total.ToString(CultureInfo.InvariantCulture);
             }
 
-            return ToolResult<IpCalculatorResult>.Ok(new IpCalculatorResult(
+            return Result<IpCalculatorResult>.Ok(new IpCalculatorResult(
                 address, integerValue, hexValue, subnetMask, wildcardMask,
                 networkAddress, broadcastAddress, firstHost, lastHost, hostCount, cidr));
         }
         catch (Exception ex)
         {
-            return ToolResult<IpCalculatorResult>.Fail(ex.Message);
+            return Result<IpCalculatorResult>.Fail(ex.Message);
         }
     }
 

@@ -32,7 +32,7 @@ public static class JsonFormatService
     /// <summary>
     /// 执行 Process 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<JsonFormatOutputResult> Process(string? input, bool indent, bool sortKeys)
+    public static Result<JsonFormatOutputResult> Process(string? input, bool indent, bool sortKeys)
     {
         try
         {
@@ -44,55 +44,55 @@ public static class JsonFormatService
                 WriteElement(writer, doc.RootElement, sortKeys);
             }
 
-            return ToolResult<JsonFormatOutputResult>.Ok(new JsonFormatOutputResult(System.Text.Encoding.UTF8.GetString(stream.ToArray())));
+            return Result<JsonFormatOutputResult>.Ok(new JsonFormatOutputResult(System.Text.Encoding.UTF8.GetString(stream.ToArray())));
         }
         catch (Exception ex)
         {
-            return ToolResult<JsonFormatOutputResult>.Fail(ex.Message);
+            return Result<JsonFormatOutputResult>.Fail(ex.Message);
         }
     }
 
     /// <summary>
     /// 执行 Validate 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<JsonValidateResult> Validate(string? input)
+    public static Result<JsonValidateResult> Validate(string? input)
     {
         try
         {
             _ = JsonDocument.Parse(input ?? string.Empty);
-            return ToolResult<JsonValidateResult>.Ok(new JsonValidateResult("JSON 校验通过。"));
+            return Result<JsonValidateResult>.Ok(new JsonValidateResult("JSON 校验通过。"));
         }
         catch (Exception ex)
         {
-            return ToolResult<JsonValidateResult>.Fail(ex.Message);
+            return Result<JsonValidateResult>.Fail(ex.Message);
         }
     }
 
     /// <summary>
     /// 执行 QueryJsonPath 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<JsonPathQueryResult> QueryJsonPath(string? input, string? jsonPath)
+    public static Result<JsonPathQueryResult> QueryJsonPath(string? input, string? jsonPath)
     {
         if (string.IsNullOrWhiteSpace(jsonPath))
-            return ToolResult<JsonPathQueryResult>.Fail("JSONPath 为空。");
+            return Result<JsonPathQueryResult>.Fail("JSONPath 为空。");
 
         try
         {
             using var doc = JsonDocument.Parse(input ?? string.Empty);
             var matches = EvaluateJsonPath(doc.RootElement, jsonPath.Trim());
             if (matches.Count == 0)
-                return ToolResult<JsonPathQueryResult>.Ok(new JsonPathQueryResult("未匹配到结果。", true));
+                return Result<JsonPathQueryResult>.Ok(new JsonPathQueryResult("未匹配到结果。", true));
 
             if (matches.Count == 1)
-                return ToolResult<JsonPathQueryResult>.Ok(new JsonPathQueryResult(matches[0].GetRawText(), false));
+                return Result<JsonPathQueryResult>.Ok(new JsonPathQueryResult(matches[0].GetRawText(), false));
 
             var items = matches.Select(m => m.GetRawText());
             var result = "[\n" + string.Join(",\n", items) + "\n]";
-            return ToolResult<JsonPathQueryResult>.Ok(new JsonPathQueryResult(result, false));
+            return Result<JsonPathQueryResult>.Ok(new JsonPathQueryResult(result, false));
         }
         catch (Exception ex)
         {
-            return ToolResult<JsonPathQueryResult>.Fail(ex.Message);
+            return Result<JsonPathQueryResult>.Fail(ex.Message);
         }
     }
 

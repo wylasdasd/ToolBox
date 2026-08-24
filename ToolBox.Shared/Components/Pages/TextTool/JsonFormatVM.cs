@@ -81,7 +81,7 @@ public sealed class JsonFormatVM : ViewModelBase
         InfoMessage = null;
 
         var result = JsonFormatService.Validate(InputJson);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;
@@ -119,7 +119,7 @@ public sealed class JsonFormatVM : ViewModelBase
         InfoMessage = null;
 
         var result = JsonFormatService.QueryJsonPath(InputJson, JsonPath);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             JsonPathError = result.Error;
             return;
@@ -140,7 +140,7 @@ public sealed class JsonFormatVM : ViewModelBase
         InfoMessage = null;
 
         var result = JsonFormatService.Process(InputJson, indent, SortKeys);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

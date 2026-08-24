@@ -11,7 +11,7 @@ public static class AiServiceCollectionExtensions
     public static IServiceCollection AddToolBoxAiChatBackend(this IServiceCollection services)
     {
         services.AddHttpClient();
-        services.AddScoped<IHttpService, HttpService>();
+        services.AddScoped<IHttpService, HttpClientFactoryService>();
         services.AddScoped<OpenAiCompatChatService>();
         services.AddScoped<CursorCloudAgentChatService>();
         services.AddScoped<IAiChatService, AiChatServiceRouter>();

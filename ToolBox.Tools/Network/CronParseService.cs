@@ -13,11 +13,11 @@ public static class CronParseService
     /// <summary>
     /// 执行 Parse 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<CronParseResult> Parse(string? expression, bool includeSeconds)
+    public static Result<CronParseResult> Parse(string? expression, bool includeSeconds)
     {
         var expr = (expression ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(expr))
-            return ToolResult<CronParseResult>.Fail("请输入 Cron 表达式。");
+            return Result<CronParseResult>.Fail("请输入 Cron 表达式。");
 
         try
         {
@@ -25,11 +25,11 @@ public static class CronParseService
             var cron = CronExpression.Parse(expr, format);
             var description = Describe(expr, format);
             var nextRuns = BuildNextRuns(cron);
-            return ToolResult<CronParseResult>.Ok(new CronParseResult(description, nextRuns));
+            return Result<CronParseResult>.Ok(new CronParseResult(description, nextRuns));
         }
         catch (Exception ex)
         {
-            return ToolResult<CronParseResult>.Fail(ex.Message);
+            return Result<CronParseResult>.Fail(ex.Message);
         }
     }
 

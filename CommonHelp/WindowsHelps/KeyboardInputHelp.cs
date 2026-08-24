@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
 
 namespace CommonHelp;
@@ -6,6 +7,7 @@ namespace CommonHelp;
 /// <summary>
 /// Windows 键盘输入模拟：基于 Win32 SendInput 逐字符键入文本（Unicode 直发）；\n 映射回车、\t 映射 Tab。仅支持 Windows。
 /// </summary>
+[SupportedOSPlatform("windows")]
 public static class KeyboardInputHelp
 {
     private const uint InputKeyboard = 1;

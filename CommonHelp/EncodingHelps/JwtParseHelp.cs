@@ -17,18 +17,21 @@ public sealed record JwtParseResult(
 /// </summary>
 public static class JwtParseHelp
 {
+    /// <summary>缩进输出选项；缓存静态实例，避免每段解码重建序列化元数据。</summary>
+    private static readonly JsonSerializerOptions IndentedOptions = new() { WriteIndented = true };
+
     /// <summary>
     /// 解析 JWT 字符串（Header.Payload[.Signature]），返回格式化的 Header/Payload 与过期时间；至少需要 Header 与 Payload 两段。
     /// </summary>
-    public static ToolResult<JwtParseResult> Parse(string? token)
+    public static Result<JwtParseResult> Parse(string? token)
     {
         var trimmed = (token ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(trimmed))
-            return ToolResult<JwtParseResult>.Fail("请输入 JWT。");
+            return Result<JwtParseResult>.Fail("请输入 JWT。");
 
         var parts = trimmed.Split('.');
         if (parts.Length < 2)
-            return ToolResult<JwtParseResult>.Fail("JWT 格式不正确，需要至少包含 Header 和 Payload。");
+            return Result<JwtParseResult>.Fail("JWT 格式不正确，需要至少包含 Header 和 Payload。");
 
         try
         {
@@ -43,7 +46,7 @@ public static class JwtParseHelp
                 expiryLocal = expiry.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
             }
 
-            return ToolResult<JwtParseResult>.Ok(new JwtParseResult(
+            return Result<JwtParseResult>.Ok(new JwtParseResult(
                 headerJson,
                 payloadJson,
                 expiryUtc,
@@ -51,7 +54,7 @@ public static class JwtParseHelp
         }
         catch (Exception ex)
         {
-            return ToolResult<JwtParseResult>.Fail(ex.Message);
+            return Result<JwtParseResult>.Fail(ex.Message);
         }
     }
 
@@ -63,7 +66,7 @@ public static class JwtParseHelp
         var jsonBytes = Convert.FromBase64String(FixBase64Padding(base64Url));
         var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
         using var doc = JsonDocument.Parse(json);
-        return JsonSerializer.Serialize(doc.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        return JsonSerializer.Serialize(doc.RootElement, IndentedOptions);
     }
 
     /// <summary>

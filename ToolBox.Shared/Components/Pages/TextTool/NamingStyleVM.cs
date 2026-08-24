@@ -114,7 +114,7 @@ public sealed class NamingStyleVM : ViewModelBase
         }
 
         var result = NamingStyleHelp.Convert(Input);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             CamelCase = PascalCase = SnakeCase = KebabCase = ScreamingSnake = DotCase = TitleCase = LowerCase = string.Empty;

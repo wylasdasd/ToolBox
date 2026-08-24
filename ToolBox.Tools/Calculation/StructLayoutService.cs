@@ -20,7 +20,7 @@ public static class StructLayoutService
     /// <summary>
     /// 执行 Calculate 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<StructLayoutResult> Calculate(string? structDefinition, int pack)
+    public static Result<StructLayoutResult> Calculate(string? structDefinition, int pack)
     {
         try
         {
@@ -41,7 +41,7 @@ public static class StructLayoutService
                 ? BuildUnionLayout(fields, effectivePack, typeAlignOverride, customTypes)
                 : BuildStructLayout(fields, effectivePack, typeAlignOverride, customTypes);
 
-            return ToolResult<StructLayoutResult>.Ok(new StructLayoutResult(
+            return Result<StructLayoutResult>.Ok(new StructLayoutResult(
                 layoutKindText,
                 result.Fields,
                 result.Rows,
@@ -51,7 +51,7 @@ public static class StructLayoutService
         }
         catch (Exception ex)
         {
-            return ToolResult<StructLayoutResult>.Fail(ex.Message);
+            return Result<StructLayoutResult>.Fail(ex.Message);
         }
     }
 

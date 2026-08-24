@@ -99,7 +99,7 @@ public partial class NumberBaseConverterVM : ViewModelBase
             }
 
             var result = RadixHelp.ConvertFrom(value, fromBase);
-            if (!result.Success)
+            if (!result.IsSuccess)
             {
                 ErrorMessage = result.Error;
                 return;

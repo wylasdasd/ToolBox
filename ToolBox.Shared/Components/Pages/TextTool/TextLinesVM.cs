@@ -135,9 +135,9 @@ public sealed class TextLinesVM : ViewModelBase
         StatusMessage = string.Empty;
     }
 
-    private void ApplyOperation(ToolResult<TextLinesOperationResult> result)
+    private void ApplyOperation(Result<TextLinesOperationResult> result)
     {
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             StatusMessage = result.Error ?? "操作失败。";
             return;

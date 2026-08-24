@@ -42,7 +42,7 @@ public static class DirectorySyncPlanService
     /// <summary>
     /// 执行 BuildPlan 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<DirectorySyncPlanResult> BuildPlan(
+    public static Result<DirectorySyncPlanResult> BuildPlan(
         string sourcePath,
         string targetPath,
         bool deleteExtraFiles,
@@ -116,11 +116,11 @@ public static class DirectorySyncPlanService
                 filesToCopy.Sum(x => x.Length),
                 deleteExtraFiles && filesToDelete.Count > 0);
 
-            return ToolResult<DirectorySyncPlanResult>.Ok(plan);
+            return Result<DirectorySyncPlanResult>.Ok(plan);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            return ToolResult<DirectorySyncPlanResult>.Fail(ex.Message);
+            return Result<DirectorySyncPlanResult>.Fail(ex.Message);
         }
     }
 

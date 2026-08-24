@@ -113,7 +113,7 @@ public sealed class EndianHexVM : ViewModelBase
         HexOutput = BinaryOutput = DecimalOutput = string.Empty;
 
         var result = EndianHexHelp.ConvertValueToHex(Input, DataTypeId, BigEndian, InputIsHex);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;
@@ -128,7 +128,7 @@ public sealed class EndianHexVM : ViewModelBase
         HexOutput = BinaryOutput = DecimalOutput = string.Empty;
 
         var result = EndianHexHelp.ConvertHexToValue(Input, DataTypeId, BigEndian);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

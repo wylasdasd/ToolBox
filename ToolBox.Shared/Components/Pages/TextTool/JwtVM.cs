@@ -57,7 +57,7 @@ public sealed class JwtVM : ViewModelBase
         ExpiryLocal = string.Empty;
 
         var result = JwtParseHelp.Parse(Token);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

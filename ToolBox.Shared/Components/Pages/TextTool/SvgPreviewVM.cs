@@ -47,7 +47,7 @@ public sealed class SvgPreviewVM : ViewModelBase
         ErrorMessage = null;
 
         var result = SvgPreviewService.Validate(SvgInput);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;

@@ -138,10 +138,10 @@ public sealed class RequestToCurlVM : ViewModelBase
     public void ConvertForm() =>
         ApplyConvertResult(RequestToCurlService.ConvertFromForm(FormMethod, FormUrl, FormHeaders, FormBody, IsHttps, OutputFormat));
 
-    private void ApplyConvertResult(ToolResult<RequestToCurlResult> result)
+    private void ApplyConvertResult(Result<RequestToCurlResult> result)
     {
         ErrorMessage = null;
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             CurlCommand = string.Empty;

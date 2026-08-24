@@ -52,7 +52,7 @@ public static class BitwiseHelp
     /// <summary>
     /// 执行一次位运算（AND/OR/XOR/NOT 或移位）并按位宽归一化结果；NOT 只取操作数 A。
     /// </summary>
-    public static ToolResult<BitwiseComputeResult> Compute(
+    public static Result<BitwiseComputeResult> Compute(
         string operation,
         long operandA,
         long operandB,
@@ -67,7 +67,7 @@ public static class BitwiseHelp
             if (IsShiftOp(operation))
             {
                 var res = ApplyShift(operation, operandA, currentResult, operandC, bitWidth, isSigned, shiftFromResult);
-                return ToolResult<BitwiseComputeResult>.Ok(new BitwiseComputeResult(res));
+                return Result<BitwiseComputeResult>.Ok(new BitwiseComputeResult(res));
             }
 
             var mask = GetMask(bitWidth);
@@ -88,11 +88,11 @@ public static class BitwiseHelp
                 _ => 0L,
             };
 
-            return ToolResult<BitwiseComputeResult>.Ok(new BitwiseComputeResult(NormalizeResult(result, bitWidth, isSigned)));
+            return Result<BitwiseComputeResult>.Ok(new BitwiseComputeResult(NormalizeResult(result, bitWidth, isSigned)));
         }
         catch (Exception ex)
         {
-            return ToolResult<BitwiseComputeResult>.Fail(ex.Message);
+            return Result<BitwiseComputeResult>.Fail(ex.Message);
         }
     }
 

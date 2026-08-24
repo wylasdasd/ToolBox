@@ -14,7 +14,7 @@ internal static class McpToolResponses
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    public static string From<T>(ToolResult<T> result)
+    public static string From<T>(Result<T> result)
     {
         if (!result.Success)
             return Error(result.Error ?? "Unknown error");

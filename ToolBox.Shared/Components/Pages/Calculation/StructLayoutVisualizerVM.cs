@@ -119,7 +119,7 @@ public partial class StructLayoutVisualizerVM : ViewModelBase
     public void Calculate()
     {
         var result = StructLayoutService.Calculate(StructDefinition, Pack);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             _fields = [];
             _byteRows = [];

@@ -135,23 +135,23 @@ public static class UnitConvertService
     /// <summary>
     /// 执行 CalculateTransferTime 操作，完成该方法对应的工具处理逻辑。
     /// </summary>
-    public static ToolResult<string> CalculateTransferTime(string? fileSize, string fileSizeUnitId, string? bandwidth, string bandwidthUnitId)
+    public static Result<string> CalculateTransferTime(string? fileSize, string fileSizeUnitId, string? bandwidth, string bandwidthUnitId)
     {
         if (!TryParseInput(fileSize, out var size, out _) || !TryParseInput(bandwidth, out var bw, out _) || bw <= 0)
-            return ToolResult<string>.Ok(string.Empty);
+            return Result<string>.Ok(string.Empty);
 
         var sizeUnit = ResolveFileSizeUnit(fileSizeUnitId);
         if (sizeUnit is null)
-            return ToolResult<string>.Fail($"不支持的文件大小单位：{fileSizeUnitId}");
+            return Result<string>.Fail($"不支持的文件大小单位：{fileSizeUnitId}");
         var bwUnit = BandwidthUnits.FirstOrDefault(u => u.Id == bandwidthUnitId) ?? BandwidthUnits.First();
 
         var bytes = size * sizeUnit.FactorToBase;
         var bitsPerSec = bw * bwUnit.FactorToBase;
         if (bitsPerSec <= 0)
-            return ToolResult<string>.Ok(string.Empty);
+            return Result<string>.Ok(string.Empty);
 
         var seconds = bytes * 8m / bitsPerSec;
-        return ToolResult<string>.Ok(FormatDuration(seconds));
+        return Result<string>.Ok(FormatDuration(seconds));
     }
 
     /// <summary>

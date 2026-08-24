@@ -10,25 +10,25 @@ public static class Base64Help
     /// <summary>
     /// 将 UTF-8 文本编码为 Base64；useUrlSafe 时输出 URL-safe 字母表。
     /// </summary>
-    public static ToolResult<string> Encode(string? plainText, bool useUrlSafe)
+    public static Result<string> Encode(string? plainText, bool useUrlSafe)
     {
         try
         {
             var bytes = System.Text.Encoding.UTF8.GetBytes(plainText ?? string.Empty);
             var base64 = Convert.ToBase64String(bytes);
             var result = useUrlSafe ? ToUrlSafe(base64) : base64;
-            return ToolResult<string>.Ok(result);
+            return Result<string>.Ok(result);
         }
         catch (Exception ex)
         {
-            return ToolResult<string>.Fail(ex.Message);
+            return Result<string>.Fail(ex.Message);
         }
     }
 
     /// <summary>
     /// 将 Base64 文本解码为 UTF-8 字符串；useUrlSafe 时先还原字母表与填充。
     /// </summary>
-    public static ToolResult<string> Decode(string? base64Text, bool useUrlSafe)
+    public static Result<string> Decode(string? base64Text, bool useUrlSafe)
     {
         try
         {
@@ -37,11 +37,11 @@ public static class Base64Help
                 input = FromUrlSafe(input);
 
             var bytes = Convert.FromBase64String(input);
-            return ToolResult<string>.Ok(System.Text.Encoding.UTF8.GetString(bytes));
+            return Result<string>.Ok(System.Text.Encoding.UTF8.GetString(bytes));
         }
         catch (FormatException ex)
         {
-            return ToolResult<string>.Fail(ex.Message);
+            return Result<string>.Fail(ex.Message);
         }
     }
 

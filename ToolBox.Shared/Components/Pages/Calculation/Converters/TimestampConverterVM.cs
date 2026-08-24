@@ -110,7 +110,7 @@ public sealed class TimestampConverterVM : ViewModelBase
     {
         ErrorMessage = null;
         var result = TimestampConvertHelp.ParseUnix(UnixSeconds, UnixMilliseconds);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = "请输入有效的 Unix 时间戳（秒 10 位左右 / 毫秒 13 位左右，可自动识别）。";
             return;
@@ -123,7 +123,7 @@ public sealed class TimestampConverterVM : ViewModelBase
     {
         ErrorMessage = null;
         var result = TimestampConvertHelp.ParseFromTime(LocalTime, UtcTime, SelectedTimeZoneId);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             ErrorMessage = result.Error;
             return;
@@ -159,7 +159,7 @@ public sealed class TimestampConverterVM : ViewModelBase
             return;
 
         var result = TimestampConvertHelp.ParseUnix(UnixSeconds, UnixMilliseconds, preferField);
-        if (result.Success)
+        if (result.IsSuccess)
         {
             ErrorMessage = null;
             Apply(result.Value!);
