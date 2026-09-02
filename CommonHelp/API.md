@@ -1,7 +1,7 @@
 # CommonHelp API 索引
 
 > 命名空间：`CommonHelp`（file-scoped）
-> 约定：公开类/方法均使用 XML doc 注释；Service 层返回 `Result<T>`（Ok/Fail）。
+> 约定：公开类/方法均使用 XML doc 注释；Service 层返回 `ToolResult<T>`（Ok/Fail）。
 > 注：部分 API 为跨项目通用预留，当前解决方案内未必有直接调用。
 
 ---
@@ -101,7 +101,7 @@
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
 | `GetRandomList<T>` | `List<T> GetRandomList<T>(IEnumerable<T> list, int count)` | 从序列随机抽取 count 个元素（拷贝后洗牌截断，count 自动钳制到 [0, n]） |
-| `GenerateUuids` | `Result<UuidGenerateResult> GenerateUuids(int count, bool includeHyphens, bool upperCase)` | 批量生成 UUID/GUID 字符串 |
+| `GenerateUuids` | `ToolResult<UuidGenerateResult> GenerateUuids(int count, bool includeHyphens, bool upperCase)` | 批量生成 UUID/GUID 字符串 |
 
 ### `UuidGenerateResult`  `sealed record`
 
@@ -117,7 +117,7 @@ UUID 生成结果：`Output`（每行一个的 UUID 文本）。
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `Compute` | `Result<BitwiseComputeResult> Compute(string operation, long operandA, long operandB, int operandC, int bitWidth, bool isSigned, long currentResult, bool shiftFromResult)` | 执行位运算（AND/OR/XOR/NOT/SHL/SHR_A/SHR_L）并按位宽归一化 |
+| `Compute` | `ToolResult<BitwiseComputeResult> Compute(string operation, long operandA, long operandB, int operandC, int bitWidth, bool isSigned, long currentResult, bool shiftFromResult)` | 执行位运算（AND/OR/XOR/NOT/SHL/SHR_A/SHR_L）并按位宽归一化 |
 | `ApplyShift` | `long ApplyShift(string operation, long operandA, long currentResult, int operandC, int bitWidth, bool isSigned, bool fromResult)` | 移位运算：被移位数可选操作数 A 或当前结果，移位量钳制在 0–bitWidth |
 | `IsShiftOp` | `bool IsShiftOp(string op)` | 判断是否为移位操作 |
 | `GetMask` | `long GetMask(int bits)` | 生成指定位宽的掩码 |
@@ -137,7 +137,7 @@ UUID 生成结果：`Output`（每行一个的 UUID 文本）。
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `ConvertFrom` | `Result<RadixConvertResult> ConvertFrom(string? value, int fromBase)` | 将 `fromBase` 进制输入批量换算为所有常用进制（2/8/10/16/32/64/128） |
+| `ConvertFrom` | `ToolResult<RadixConvertResult> ConvertFrom(string? value, int fromBase)` | 将 `fromBase` 进制输入批量换算为所有常用进制（2/8/10/16/32/64/128） |
 | `Parse` | `BigInteger Parse(string value, int radix)` | 将指定进制的字符串解析为 BigInteger（2/8/10/16 走内置快路径；暂不支持负数） |
 | `Format` | `string Format(BigInteger value, int radix, bool upperCaseForHex = true)` | 将 BigInteger 格式化为指定进制字符串 |
 | `GetDigitAlphabet` | `string GetDigitAlphabet(int radix)` | 获取指定进制使用的字符集（如 16 进制返回 `0-9A-F`） |
@@ -175,8 +175,8 @@ Base64 编解码，支持标准与 URL-safe 两种字母表。
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `Encode` | `Result<string> Encode(string? plainText, bool useUrlSafe)` | 将 UTF-8 文本编码为 Base64（可选 URL-safe 字母表） |
-| `Decode` | `Result<string> Decode(string? base64Text, bool useUrlSafe)` | 将 Base64 解码为 UTF-8 文本（URL-safe 时先还原字母表与填充） |
+| `Encode` | `ToolResult<string> Encode(string? plainText, bool useUrlSafe)` | 将 UTF-8 文本编码为 Base64（可选 URL-safe 字母表） |
+| `Decode` | `ToolResult<string> Decode(string? base64Text, bool useUrlSafe)` | 将 Base64 解码为 UTF-8 文本（URL-safe 时先还原字母表与填充） |
 
 ### `AesGcmCryptoHelp`  `static class`
 
@@ -209,8 +209,8 @@ AES-GCM 字符串加解密：密钥由上下文（如站点 Origin）+ 前缀派
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `EncodeTextToHex` | `Result<TextHexEncodeResult> EncodeTextToHex(string? textInput, string encodingId, string displayModeId, bool uppercaseHex, bool showUnicodeEscape, bool showCEscape)` | 文本按指定编码转 HEX，输出空格分隔 Hex 与附加展示块（连续 Hex、\xNN、\uXXXX） |
-| `DecodeHexToText` | `Result<TextHexDecodeResult> DecodeHexToText(string? hexInput, string encodingId)` | HEX（容忍 0x/\x 前缀与分隔符）按指定编码解码为文本 |
+| `EncodeTextToHex` | `ToolResult<TextHexEncodeResult> EncodeTextToHex(string? textInput, string encodingId, string displayModeId, bool uppercaseHex, bool showUnicodeEscape, bool showCEscape)` | 文本按指定编码转 HEX，输出空格分隔 Hex 与附加展示块（连续 Hex、\xNN、\uXXXX） |
+| `DecodeHexToText` | `ToolResult<TextHexDecodeResult> DecodeHexToText(string? hexInput, string encodingId)` | HEX（容忍 0x/\x 前缀与分隔符）按指定编码解码为文本 |
 
 ### `TextHexEncodeResult`  `sealed record`
 
@@ -239,7 +239,7 @@ JWT（JSON Web Token）解析工具：解码 Header/Payload 并提取过期时�
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `Parse` | `Result<JwtParseResult> Parse(string? token)` | 解析 JWT，返回 Header/Payload JSON 与 exp 过期时间 |
+| `Parse` | `ToolResult<JwtParseResult> Parse(string? token)` | 解析 JWT，返回 Header/Payload JSON 与 exp 过期时间 |
 
 ### `JwtParseResult`  `sealed record`
 
@@ -295,24 +295,16 @@ URL 编解码工具。
 | `WriteStreamAsync` | `Task WriteStreamAsync(string path, Stream source, bool overwrite = true, CancellationToken cancellationToken = default)` | 将源流从当前位置异步复制写入文件（不关闭源流） |
 | `CreateEmptyFileDurable` | `void CreateEmptyFileDurable(string filePath)` | 原子性创建空文件（防止并发冲突） |
 
-### `AtomicJsonFileHelper`  `class`
+### `LockFileHelper`  `static class`
 
-原子性 JSON 文件读写工具：通过 `FileShare.None` 独占 + 进程内 `Monitor` 锁实现跨进程/线程安全。
+文件独占锁：进程内按规范化绝对路径排队，跨进程 `FileShare.None`。不解析内容，由调用方通过 `Action`/`Func` 自行处理 `FileStream`。
+
+打开后 `Position == 0`。读到 EOF 后指针在末尾；覆盖整文件须先 `Seek(0, Begin)` 再写，写完用 `SetLength(Position)` 截掉旧尾部。不要 Dispose 回调里的 stream。
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `ReadAtomic<T>` | `static AtomicFileHandle<T> ReadAtomic<T>(string filePath)` | 以独占方式打开文件并返回反序列化的数据句柄；修改后调用 `handle.Commit()` 写回 |
-| `WriteAtomic<T>` | `static void WriteAtomic<T>(string filePath, T data)` | 独占写入（覆盖），不做读出 |
-
-### `AtomicFileHandle<T>`  `sealed class : IDisposable` （`AtomicJsonFileHelper` 内部类）
-
-原子性文件读写句柄，持有独占访问与监视器锁直到释放。
-
-| 成员 | 说明 |
-|:---|:---|
-| `Data` (T?) | 反序列化后的数据（可直接修改） |
-| `Commit()` | 将修改后的数据序列化写回文件，然后释放锁 |
-| `Dispose()` | 释放文件句柄与监视器锁（不写回） |
+| `WithExclusiveLock` | `static void WithExclusiveLock(string filePath, Action<FileStream> action)` | 独占打开（不存在则创建空文件），锁内执行 action |
+| `WithExclusiveLock<TResult>` | `static TResult WithExclusiveLock<TResult>(string filePath, Func<FileStream, TResult> func)` | 同上，并返回 func 的结果 |
 
 ---
 
@@ -393,8 +385,8 @@ HTTP JSON 传输工具：共享连接池的 `HttpClient` 工厂、JSON POST 构�
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `ConvertValueToHex` | `Result<EndianHexResult> ConvertValueToHex(string? input, string? dataTypeId, bool bigEndian, bool inputIsHex)` | 数值转 HEX 字节；同时输出二进制与十进制 |
-| `ConvertHexToValue` | `Result<EndianHexResult> ConvertHexToValue(string? input, string? dataTypeId, bool bigEndian)` | HEX 字节转十进制数值 |
+| `ConvertValueToHex` | `ToolResult<EndianHexResult> ConvertValueToHex(string? input, string? dataTypeId, bool bigEndian, bool inputIsHex)` | 数值转 HEX 字节；同时输出二进制与十进制 |
+| `ConvertHexToValue` | `ToolResult<EndianHexResult> ConvertHexToValue(string? input, string? dataTypeId, bool bigEndian)` | HEX 字节转十进制数值 |
 | `DataTypes` | `static IReadOnlyList<EndianHexDataType> DataTypes` | 全部支持的数据类型（int8/uint8/int16/…/float64） |
 
 ### `EndianHexDataType`  `sealed record`
@@ -411,7 +403,7 @@ IPv4 子网计算器：由 IP + CIDR/掩码计算网络地址、广播地址、�
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `Calculate` | `Result<IpCalculatorResult> Calculate(string? input)` | 计算子网信息；支持 `192.168.1.10/24`、`192.168.1.10 255.255.255.0`、纯 IP（/32）三种输入 |
+| `Calculate` | `ToolResult<IpCalculatorResult> Calculate(string? input)` | 计算子网信息；支持 `192.168.1.10/24`、`192.168.1.10 255.255.255.0`、纯 IP（/32）三种输入 |
 
 ### `IpCalculatorResult`  `sealed record`
 
@@ -519,7 +511,7 @@ HTTP 请求服务接口。`T` 表示响应类型；请求体由调用方以 JSON
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `Convert` | `Result<NamingStyleResult> Convert(string? input)` | 转换为 camelCase/PascalCase/snake_case/kebab-case/SCREAMING_SNAKE/dot.case/Title Case/lowercase |
+| `Convert` | `ToolResult<NamingStyleResult> Convert(string? input)` | 转换为 camelCase/PascalCase/snake_case/kebab-case/SCREAMING_SNAKE/dot.case/Title Case/lowercase |
 
 ### `NamingStyleResult`  `sealed record`
 
@@ -532,11 +524,11 @@ HTTP 请求服务接口。`T` 表示响应类型；请求体由调用方以 JSON
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
 | `ComputeStats` | `static TextLineStats ComputeStats(string? text, bool applyTrim, bool removeEmpty, bool ignoreCase)` | 统计行数、非空行数、去重行数、单词数、字符数 |
-| `Deduplicate` | `static Result<TextLinesOperationResult> Deduplicate(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase, bool keepOrder)` | 多行文本去重（可选保留首次出现顺序） |
-| `SortAsc` | `static Result<TextLinesOperationResult> SortAsc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)` | 按字典序升序排序 |
-| `SortDesc` | `static Result<TextLinesOperationResult> SortDesc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)` | 按字典序降序排序 |
-| `RemoveEmptyLines` | `static Result<TextLinesOperationResult> RemoveEmptyLines(string? text, bool trimLines)` | 移除所有空白行 |
-| `TrimOnly` | `static Result<TextLinesOperationResult> TrimOnly(string? text)` | 裁剪每行首尾空白（保留空行） |
+| `Deduplicate` | `static ToolResult<TextLinesOperationResult> Deduplicate(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase, bool keepOrder)` | 多行文本去重（可选保留首次出现顺序） |
+| `SortAsc` | `static ToolResult<TextLinesOperationResult> SortAsc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)` | 按字典序升序排序 |
+| `SortDesc` | `static ToolResult<TextLinesOperationResult> SortDesc(string? text, bool trimLines, bool ignoreEmptyLines, bool ignoreCase)` | 按字典序降序排序 |
+| `RemoveEmptyLines` | `static ToolResult<TextLinesOperationResult> RemoveEmptyLines(string? text, bool trimLines)` | 移除所有空白行 |
+| `TrimOnly` | `static ToolResult<TextLinesOperationResult> TrimOnly(string? text)` | 裁剪每行首尾空白（保留空行） |
 
 ### `TextLineStats`  `sealed record`
 
@@ -565,9 +557,9 @@ Unix 时间戳与日期时间互转工具：支持智能识别秒/毫秒、任�
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|
-| `ParseUnix` | `Result<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds, UnixFieldPrefer preferField)` | 解析 Unix 秒/毫秒时间戳（≥12 位按毫秒处理）；按 preferField 优先取值 |
-| `ParseUnix` | `Result<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds)` | 简化重载（优先秒字段） |
-| `ParseFromTime` | `Result<DateTimeOffset> ParseFromTime(string? localTime, string? utcTime, string timeZoneId)` | 由时区时间/UTC 时间（支持 ISO 8601）解析 DateTimeOffset |
+| `ParseUnix` | `ToolResult<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds, UnixFieldPrefer preferField)` | 解析 Unix 秒/毫秒时间戳（≥12 位按毫秒处理）；按 preferField 优先取值 |
+| `ParseUnix` | `ToolResult<DateTimeOffset> ParseUnix(string? unixSeconds, string? unixMilliseconds)` | 简化重载（优先秒字段） |
+| `ParseFromTime` | `ToolResult<DateTimeOffset> ParseFromTime(string? localTime, string? utcTime, string timeZoneId)` | 由时区时间/UTC 时间（支持 ISO 8601）解析 DateTimeOffset |
 | `BuildDisplay` | `TimestampDisplayResult BuildDisplay(DateTimeOffset dto, string timeZoneId)` | 构建完整展示信息（秒/毫秒戳、本地/UTC 时间、ISO 8601、相对时间提示） |
 | `FormatLocalTimeLabel` | `string FormatLocalTimeLabel(string timeZoneId)` | 生成时区展示标签（如 `China Standard Time (UTC+08:00)`） |
 | `TryParseUnixToken` | `bool TryParseUnixToken(string text, out DateTimeOffset dto)` | 尝试解析单个时间戳文本（≥12 位按毫秒，否则按秒） |
@@ -591,7 +583,7 @@ Unix 时间戳与日期时间互转工具：支持智能识别秒/毫秒、任�
 
 ### `KeyboardInputHelp`  `static class`
 
-Windows 键盘输入模拟：基于 Win32 `SendInput` 逐字符键入文本（Unicode 直发）。仅支持 Windows。
+Windows 键盘输入模拟：基于 Win32 `SendInput` 逐字符键入文本（Unicode 直发）。仅支持 Windows。发送前会取消并暂时分离前台窗口 IME、松开卡住的修饰键，避免中文输入法或 Shift/Ctrl 吞键漏字。
 
 | 方法 | 签名 | 说明 |
 |:---|:---|:---|

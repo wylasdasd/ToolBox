@@ -12,5 +12,5 @@ public static class AiJsonResponseHelp
         return MarkdownJsonHelp.NormalizeToJson(raw);
     }
 
-    public static string SerializeForDisplay<T>(T value) => value.JsonSeNoLow();
+    public static string SerializeForDisplay<T>(T value) => value.JsonSe(JsonExtensions.IndentedRelaxedOptions);
 }

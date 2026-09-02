@@ -50,32 +50,25 @@ public class StringHelp
     }
 
     /// <summary>
-    /// 读取文件并计算其行数与字符数（默认按 UTF8 编码计算字节数）。
-    /// 返回元组： (lines, charsOrBytes) 。
+    /// 读取文件并计算行数与字符数（或字节数）。
+    /// <paramref name="encoding"/> 为 null 时按字符数（<see cref="string.Length"/>）；传入编码时按该编码的字节数。
+    /// 文件不存在时返回 (0, 0)。
     /// </summary>
     public static (long Lines, long Count) CountFileLinesAndChars(string filePath, Encoding? encoding = null)
     {
-        if (!File.Exists(filePath))
-            return (0, 0);
-
-        var countCharacters = encoding == null;
-        encoding ??= Encoding.UTF8;
-        var text = File.ReadAllText(filePath, encoding);
-        return (CountLogicalLines(text), countCharacters ? text.Length : encoding.GetByteCount(text));
+        var text = FileHelp.ReadAllText(filePath, encoding ?? Encoding.UTF8);
+        var count = encoding is null ? text.Length : encoding.GetByteCount(text);
+        return (CountLogicalLines(text), count);
     }
 
     /// <summary>
-    /// 计算文件的字符数（或字节数，取决于 encoding 参数）。默认使用 UTF8 编码计算字节数。
+    /// 计算文件的字符数（<paramref name="encoding"/> 为 null）或指定编码下的字节数。
+    /// 文件不存在时返回 0。
     /// </summary>
     public static long CountFileCharacters(string filePath, Encoding? encoding = null)
     {
-        if (!File.Exists(filePath))
-            return 0;
-
-        var countCharacters = encoding == null;
-        encoding ??= Encoding.UTF8;
-        var text = File.ReadAllText(filePath, encoding);
-        return countCharacters ? text.Length : encoding.GetByteCount(text);
+        var text = FileHelp.ReadAllText(filePath, encoding ?? Encoding.UTF8);
+        return encoding is null ? text.Length : encoding.GetByteCount(text);
     }
 
     private static long CountLogicalLines(string text)

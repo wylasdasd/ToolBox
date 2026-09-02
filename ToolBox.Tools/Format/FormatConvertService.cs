@@ -68,11 +68,11 @@ public static class FormatConvertService
 
             if (targetFormat == "JSON")
             {
-                output = intermediateObj?.JsonSeNoLow() ?? "";
+                output = intermediateObj?.JsonSe(JsonExtensions.IndentedRelaxedOptions) ?? "";
             }
             else if (targetFormat == "YAML")
             {
-                string jsonStr = intermediateObj?.JsonSeNoLow() ?? "{}";
+                string jsonStr = intermediateObj?.JsonSe(JsonExtensions.IndentedRelaxedOptions) ?? "{}";
 
                 var deserializer = new DeserializerBuilder().Build();
                 var yamlObj = deserializer.Deserialize(new StringReader(jsonStr));

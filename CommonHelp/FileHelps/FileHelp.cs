@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,21 +20,22 @@ public static class FileHelp
     private static readonly string[] FileSizeUnits = ["B", "KB", "MB", "GB", "TB"];
 
     /// <summary>
-    /// 确保路径的目录存在。
-    /// 如果传入的是目录路径则创建该目录；如果是文件路径则创建其父目录。
+    /// 确保路径对应的目录存在。
+    /// 路径以目录分隔符结尾时创建该目录；否则视为文件路径，创建其父目录。
     /// </summary>
-    /// <param name="path">文件或目录路径。</param>
+    /// <param name="path">文件路径，或以 <c>\</c> / <c>/</c> 结尾的目录路径。</param>
     public static void EnsureDirectoryExists(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
             return;
 
-        var dir = Path.GetDirectoryName(path) ?? path;
+        var dir = path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar)
+            ? path
+            : Path.GetDirectoryName(path);
         if (string.IsNullOrWhiteSpace(dir))
             return;
 
-        if (!Directory.Exists(dir))
-            Directory.CreateDirectory(dir);
+        Directory.CreateDirectory(dir);
     }
 
     /// <summary>
@@ -69,19 +71,23 @@ public static class FileHelp
     }
 
     /// <summary>
-    /// 安全创建文件（如果不存在）。必要时会先创建目录。（这个using 是在多线程下防止并发错误的）
+    /// 若文件不存在则创建空文件并返回 true；已存在返回 false。必要时先创建父目录。
     /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
     public static bool CreateFile(string path)
     {
-        if (!File.Exists(path))
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        try
         {
             EnsureDirectoryExists(path);
-            using (File.Create(path))
-            { return true; } // 确保文件句柄被正确释放
+            using var _ = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            return true;
         }
-        return false;
+        catch (IOException) when (File.Exists(path))
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -112,20 +118,25 @@ public static class FileHelp
     }
 
     /// <summary>
-    /// 读取文件全部文本。若文件不存在则返回空字符串。
+    /// 读取文件全部文本。若文件或目录不存在则返回空字符串（直接读，避免 Exists 后再读的竞态）。
     /// </summary>
     /// <param name="path">源文件路径。</param>
     /// <param name="encoding">可选编码（默认 UTF8）。</param>
     /// <returns>文件内容，文件缺失时返回空字符串。</returns>
     public static string ReadAllText(string path, Encoding? encoding = null)
     {
-        if (!File.Exists(path))
+        try
+        {
+            return File.ReadAllText(path, encoding ?? Encoding.UTF8);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
             return string.Empty;
-        return File.ReadAllText(path, encoding ?? Encoding.UTF8);
+        }
     }
 
     /// <summary>
-    /// 异步读取文件全部文本。若文件不存在则返回空字符串。
+    /// 异步读取文件全部文本。若文件或目录不存在则返回空字符串。
     /// </summary>
     /// <param name="path">源文件路径。</param>
     /// <param name="encoding">可选编码（默认 UTF8）。</param>
@@ -133,9 +144,14 @@ public static class FileHelp
     /// <returns>文件内容，文件缺失时返回空字符串。</returns>
     public static async Task<string> ReadAllTextAsync(string path, Encoding? encoding = null, CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(path))
+        try
+        {
+            return await File.ReadAllTextAsync(path, encoding ?? Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
             return string.Empty;
-        return await File.ReadAllTextAsync(path, encoding ?? Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -308,5 +324,55 @@ public static class FileHelp
         // Use small buffer and WriteThrough to force durability
         using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough);
         fs.Flush(true);
+    }
+}
+
+
+public static class LockFileHelper
+{
+    private static readonly ConcurrentDictionary<string, object> FileLocks
+        = new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+    /// <summary>
+    /// 独占打开文件（不存在则创建空文件），在锁内执行 <paramref name="action"/>，结束后关闭流并释放锁。
+    /// </summary>
+    /// <param name="filePath">目标文件路径。</param>
+    /// <param name="action">自定义处理。进入时 <see cref="FileStream.Position"/> 为 0；请自行 Seek，不要假设读完后仍在文件头。</param>
+    public static void WithExclusiveLock(string filePath, Action<FileStream> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        WithExclusiveLock(filePath, stream =>
+        {
+            action(stream);
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// 独占打开文件（不存在则创建空文件），在锁内执行 <paramref name="func"/> 并返回其结果。
+    /// </summary>
+    /// <param name="filePath">目标文件路径。</param>
+    /// <param name="func">自定义处理。进入时指针在 0；读完整文件后在末尾，覆盖写入前必须 Seek 回开头。</param>
+    /// <returns><paramref name="func"/> 的返回值。</returns>
+    public static TResult WithExclusiveLock<TResult>(string filePath, Func<FileStream, TResult> func)
+    {
+        ArgumentNullException.ThrowIfNull(func);
+        filePath = NormalizeLockPath(filePath);
+        FileHelp.EnsureDirectoryExists(filePath);
+        var fileLock = FileLocks.GetOrAdd(filePath, _ => new object());
+        lock (fileLock)
+        {
+            using var stream = new FileStream(
+                filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
+            // OpenOrCreate + ReadWrite：新建或已有文件，Position 均为 0（不是追加打开，不会停在 Length）。
+            return func(stream);
+        }
+    }
+
+    private static string NormalizeLockPath(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        return Path.GetFullPath(filePath);
     }
 }

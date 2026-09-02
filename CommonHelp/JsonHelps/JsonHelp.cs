@@ -16,7 +16,7 @@ public static class JsonExtensions
     public static readonly LowerCaseNamingPolicy LowerCaseNamingPolicyInstance = new();
 
     /// <summary>缩进 + 属性名全小写 + 非 ASCII 不转义（缓存实例，避免每次调用重建元数据）。</summary>
-    private static readonly JsonSerializerOptions IndentedLowerCaseOptions = new()
+    public static readonly JsonSerializerOptions IndentedLowerCaseOptions = new()
     {
         PropertyNamingPolicy = LowerCaseNamingPolicyInstance, // 关键：使用自定义命名策略（全小写操作）
         WriteIndented = true, // 让 JSON 格式化
@@ -24,45 +24,20 @@ public static class JsonExtensions
     };
 
     /// <summary>缩进 + 保留原属性名 + 非 ASCII 不转义（缓存实例，避免每次调用重建元数据）。</summary>
-    private static readonly JsonSerializerOptions IndentedRelaxedOptions = new()
+    public static readonly JsonSerializerOptions IndentedRelaxedOptions = new()
     {
         WriteIndented = true, // 让 JSON 格式化
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // 关键：禁用不必要的转义
     };
 
     /// <summary>容错反序列化选项：忽略属性名大小写并容忍尾逗号。</summary>
-    private static readonly JsonSerializerOptions LenientDeserializeOptions = new()
+    public static readonly JsonSerializerOptions LenientDeserializeOptions = new()
     {
         PropertyNameCaseInsensitive = true, // 忽略字段大小写（容错）
         AllowTrailingCommas = true //允许 JSON 结尾有逗号
     };
 
-    /// <summary>
-    /// 序列化为缩进 JSON：属性名全部转小写，中文等非 ASCII 字符不转义。支持值类型（如 JsonElement/JsonNode）。
-    /// </summary>
-    public static string JsonSeToLow<T>(this T obj)
-    {
-        // 使用 JsonSerializer.Serialize 方法进行序列化
-        return JsonSerializer.Serialize(obj, IndentedLowerCaseOptions);
-    }
 
-    /// <summary>
-    /// 序列化为缩进 JSON：保留原属性名，中文等非 ASCII 字符不转义。支持值类型（如 JsonElement/JsonNode）。
-    /// </summary>
-    public static string JsonSeNoLow<T>(this T obj)
-    {
-        // 使用 JsonSerializer.Serialize 方法进行序列化
-        return JsonSerializer.Serialize(obj, IndentedRelaxedOptions);
-    }
-
-    /// <summary>
-    /// 反序列化 JSON 字符串：忽略属性名大小写并容忍尾逗号。
-    /// </summary>
-    public static T? JsonDe<T>(this string json) where T : class
-    {
-        // 使用 JsonSerializer.Deserialize 方法进行反序列化
-        return JsonSerializer.Deserialize<T>(json, LenientDeserializeOptions);
-    }
 
     /// <summary>
     /// 使用自定义 JsonSerializerOptions 序列化对象。
@@ -80,6 +55,25 @@ public static class JsonExtensions
     {
         // 使用 JsonSerializer.Deserialize 方法进行反序列化
         return JsonSerializer.Deserialize<T>(json, options);
+    }
+
+
+    /// <summary>
+    /// 使用自定义 JsonSerializerOptions 序列化对象。
+    /// </summary>
+    public static string JsonSe<T>(this T obj)
+    {
+        // 使用 JsonSerializer.Serialize 方法进行序列化
+        return JsonSerializer.Serialize(obj);
+    }
+
+    /// <summary>
+    /// 使用自定义 JsonSerializerOptions 反序列化 JSON 字符串。
+    /// </summary>
+    public static T? JsonDe<T>(this string json) where T : class
+    {
+        // 使用 JsonSerializer.Deserialize 方法进行反序列化
+        return JsonSerializer.Deserialize<T>(json);
     }
 
     /// <summary>

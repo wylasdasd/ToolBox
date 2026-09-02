@@ -33,6 +33,6 @@ public static class MarkdownJsonHelp
         var text = StripCodeFence(raw);
 
         using var doc = JsonDocument.Parse(text);
-        return doc.RootElement.JsonSeNoLow();
+        return doc.RootElement.JsonSe(JsonExtensions.IndentedRelaxedOptions);
     }
 }

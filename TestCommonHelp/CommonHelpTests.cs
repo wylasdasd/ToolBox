@@ -10,40 +10,47 @@ namespace TestCommonHelp;
 public class CommonHelpTests
 {
     [Fact]
-    public void WriteAtomic_WritesJsonObjectInsteadOfQuotedJsonString()
+    public void LockFileHelper_WritesJsonObjectInsteadOfQuotedJsonString()
     {
         var filePath = CreateTempFilePath();
         var model = new SampleModel { Name = "Alice", Count = 2 };
 
-        AtomicJsonFileHelper.WriteAtomic(filePath, model);
+        WriteJsonObject(filePath, model);
 
         var text = File.ReadAllText(filePath, Encoding.UTF8);
 
         Assert.StartsWith("{", text.TrimStart());
         Assert.Contains("\"name\"", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\\\"", text, StringComparison.Ordinal);
-        var roundTrip = text.JsonDe<SampleModel>();
+        var roundTrip = text.JsonDe<SampleModel>(JsonExtensions.LenientDeserializeOptions);
         Assert.NotNull(roundTrip);
         Assert.Equal("Alice", roundTrip!.Name);
         Assert.Equal(2, roundTrip.Count);
     }
 
     [Fact]
-    public void ReadAtomic_Commit_PersistsUpdatedObject()
+    public void ExclusiveLock_ReadModifyWrite_PersistsUpdatedObject()
     {
         var filePath = CreateTempFilePath();
-        AtomicJsonFileHelper.WriteAtomic(filePath, new SampleModel { Name = "Before", Count = 1 });
+        WriteJsonObject(filePath, new SampleModel { Name = "Before", Count = 1 });
 
-        using (var handle = AtomicJsonFileHelper.ReadAtomic<SampleModel>(filePath))
+        LockFileHelper.WithExclusiveLock(filePath, stream =>
         {
-            Assert.NotNull(handle.Data);
-            handle.Data!.Name = "After";
-            handle.Data.Count = 3;
-            handle.Commit();
-        }
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+            var existing = reader.ReadToEnd();
+            var data = existing.JsonDe<SampleModel>(JsonExtensions.LenientDeserializeOptions);
+            Assert.NotNull(data);
+            data!.Name = "After";
+            data.Count = 3;
+
+            var bytes = Encoding.UTF8.GetBytes(data.JsonSe(JsonExtensions.IndentedLowerCaseOptions));
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.Write(bytes);
+            stream.SetLength(stream.Position);
+        });
 
         var text = File.ReadAllText(filePath, Encoding.UTF8);
-        var saved = text.JsonDe<SampleModel>();
+        var saved = text.JsonDe<SampleModel>(JsonExtensions.LenientDeserializeOptions);
         Assert.NotNull(saved);
         Assert.Equal("After", saved!.Name);
         Assert.Equal(3, saved.Count);
@@ -110,19 +117,19 @@ public class CommonHelpTests
     }
 
     [Fact]
-    public void JsonSeNoLow_SupportsValueTypes_SuchAsJsonElement()
+    public void JsonSe_WithIndentedRelaxedOptions_SupportsValueTypes_SuchAsJsonElement()
     {
         using var doc = JsonDocument.Parse("{\"名称\":\"工具箱\"}");
 
-        var json = doc.RootElement.JsonSeNoLow();
+        var json = doc.RootElement.JsonSe(JsonExtensions.IndentedRelaxedOptions);
 
         Assert.Contains("\"名称\": \"工具箱\"", json);
     }
 
     [Fact]
-    public void JsonSeToLow_LowerCasesPropertyNames_AndKeepsChineseUnescaped()
+    public void JsonSe_WithIndentedLowerCaseOptions_LowerCasesPropertyNames_AndKeepsChineseUnescaped()
     {
-        var json = new SampleModel { Name = "工具箱", Count = 2 }.JsonSeToLow();
+        var json = new SampleModel { Name = "工具箱", Count = 2 }.JsonSe(JsonExtensions.IndentedLowerCaseOptions);
 
         Assert.Contains("\"name\": \"工具箱\"", json);
     }
@@ -233,6 +240,16 @@ public class CommonHelpTests
         var directory = Path.Combine(Path.GetTempPath(), "ToolBoxCommonHelpTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         return Path.Combine(directory, "data.json");
+    }
+
+    private static void WriteJsonObject<T>(string filePath, T data)
+    {
+        var bytes = Encoding.UTF8.GetBytes(data.JsonSe(JsonExtensions.IndentedLowerCaseOptions));
+        LockFileHelper.WithExclusiveLock(filePath, stream =>
+        {
+            stream.Write(bytes);
+            stream.SetLength(stream.Position);
+        });
     }
 
     private sealed class SampleModel

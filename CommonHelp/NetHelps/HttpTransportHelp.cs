@@ -101,6 +101,16 @@ public class HttpTransportHelp
         CancellationToken cancellationToken = default) =>
         httpClient.SendAsync(request, cancellationToken);
 
+    /// <summary>
+    /// 发送请求并按 <paramref name="completionOption"/> 返回。
+    /// 流式读 body 时请用 <see cref="HttpCompletionOption.ResponseHeadersRead"/>，避免等整包下完。
+    /// </summary>
+    public virtual Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        HttpCompletionOption completionOption,
+        CancellationToken cancellationToken = default) =>
+        httpClient.SendAsync(request, completionOption, cancellationToken);
+
     /// <summary>判断异常链中是否包含瞬时发送失败（可重试）。</summary>
     private static bool IsTransientSendFailure(Exception ex)
     {
